@@ -1,0 +1,31 @@
+name: Desktop CI
+
+on:
+  push:
+    branches-ignore:
+      - dev
+      - qa
+      - main
+    paths:
+      - 'uce-buslink-desktop/**'
+
+jobs:
+  validate:
+    name: Desktop Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        working-directory: uce-buslink-desktop
+        run: npm ci
+
+      - name: Lint
+        working-directory: uce-buslink-desktop
+        run: npm run lint
+
+      - name: Build
+        working-directory: uce-buslink-desktop
+        run: npm run build
