@@ -1,0 +1,31 @@
+name: Mobile CI
+
+on:
+  push:
+    branches-ignore:
+      - dev
+      - qa
+      - main
+    paths:
+      - 'uce-buslink-mobile/**'
+
+jobs:
+  validate:
+    name: Mobile Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        working-directory: uce-buslink-mobile
+        run: npm ci
+
+      - name: Lint
+        working-directory: uce-buslink-mobile
+        run: npm run lint
+
+      - name: Type check
+        working-directory: uce-buslink-mobile
+        run: npx tsc --noEmit

@@ -2,7 +2,9 @@ name: Backend Deploy
 
 on:
   push:
-    branches:
+    branches-ignore:
+      - dev
+      - qa
       - main
     paths:
       - 'uce-buslink-backend/**'
