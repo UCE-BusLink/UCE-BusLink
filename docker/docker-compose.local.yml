@@ -1,0 +1,64 @@
+services:
+
+  # CONTENEDOR 1: (PostGIS)
+  uce-buslink-db:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: uce-buslink-db
+    env_file:
+      - ../.env
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - uce-buslink-db-data:/var/lib/postgresql/data
+    networks:
+      - uce-buslink-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # CONTENEDOR 2: Caché en tiempo real coordenadas GPS
+  uce-buslink-redis:
+    image: redis:7.2-alpine
+    container_name: uce-buslink-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - uce-buslink-redis-data:/data
+    networks:
+      - uce-buslink-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # CONTENEDOR 3: Lógica de negocio 
+  uce-buslink-backend:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.backend
+    container_name: uce-buslink-backend
+    env_file:
+      - ../.env
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    networks:
+      - uce-buslink-net
+    depends_on:
+      uce-buslink-db:
+        condition: service_healthy
+      uce-buslink-redis:
+        condition: service_healthy
+
+volumes:
+  uce-buslink-db-data:
+    driver: local
+  uce-buslink-redis-data:
+    driver: local
+
+networks:
+  uce-buslink-net:
+    driver: bridge

@@ -1,0 +1,19 @@
+FROM maven:3.9.6-eclipse-temurin-17-alpine AS builder
+WORKDIR /app/uce-buslink-backend
+COPY uce-buslink-backend/pom.xml ./pom.xml
+COPY uce-buslink-backend/uce-buslink-shared-kernel/pom.xml ./uce-buslink-shared-kernel/
+COPY uce-buslink-backend/uce-buslink-identity-module/pom.xml ./uce-buslink-identity-module/
+COPY uce-buslink-backend/uce-buslink-reservations-module/pom.xml ./uce-buslink-reservations-module/
+COPY uce-buslink-backend/uce-buslink-tracking-module/pom.xml ./uce-buslink-tracking-module/
+COPY uce-buslink-backend/uce-buslink-notifications-module/pom.xml ./uce-buslink-notifications-module/
+COPY uce-buslink-backend/uce-buslink-supervisor-module/pom.xml ./uce-buslink-supervisor-module/
+COPY uce-buslink-backend/uce-buslink-main/pom.xml ./uce-buslink-main/
+RUN mvn dependency:go-offline -q
+COPY uce-buslink-backend/ .
+RUN mvn clean package -DskipTests
+
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=builder /app/uce-buslink-backend/uce-buslink-main/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
