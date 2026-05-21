@@ -1,0 +1,25 @@
+name: Mobile Build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'uce-buslink-mobile/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'uce-buslink-mobile/**'
+
+jobs:
+  validate:
+    name: Mobile Structure Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate package.json exists
+        run: test -f uce-buslink-mobile/package.json

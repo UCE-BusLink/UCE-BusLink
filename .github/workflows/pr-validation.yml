@@ -1,0 +1,27 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Validate Monorepo Structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate root package.json
+        run: test -f package.json
+
+      - name: Validate desktop package.json
+        run: test -f uce-buslink-desktop/package.json
+
+      - name: Validate mobile package.json
+        run: test -f uce-buslink-mobile/package.json
+
+      - name: Validate backend pom.xml
+        run: test -f uce-buslink-backend/pom.xml
