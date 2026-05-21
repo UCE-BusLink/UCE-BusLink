@@ -29,3 +29,34 @@ Thumbs.db
 # Build
 out/
 build/
+
+# Node / JavaScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build artifacts
+dist/
+coverage/
+.cache/
+.tmp/
+temp/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+.expo-cache/
+metro-cache/
+web-build/
+
+# Vite / frontend tooling
+.vite/
+vite.svg
+
+# General JS/TS
+*.tsbuildinfo
