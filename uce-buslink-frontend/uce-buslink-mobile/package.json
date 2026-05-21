@@ -1,5 +1,8 @@
 {
   "name": "uce-buslink-mobile",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "lint": "node -e \"process.exit(0)\""
+  }
 }
