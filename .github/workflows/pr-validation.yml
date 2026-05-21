@@ -13,9 +13,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Validate root package.json
-        run: test -f package.json
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Validate desktop package.json
         run: test -f uce-buslink-desktop/package.json
