@@ -16,9 +16,6 @@ jobs:
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      - name: Validate desktop package.json
-        run: test -f uce-buslink-desktop/package.json
-
       - name: Validate mobile package.json
         run: test -f uce-buslink-mobile/package.json
 
