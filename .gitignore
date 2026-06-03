@@ -25,6 +25,10 @@ Thumbs.db
 
 # Env
 .env
+.env.docker
+.env.*
+!.env.example
+!.env.docker.example
 
 # Build
 out/
@@ -36,9 +40,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+#package-lock.json
+#yarn.lock
+#pnpm-lock.yaml
 
 # Build artifacts
 dist/
