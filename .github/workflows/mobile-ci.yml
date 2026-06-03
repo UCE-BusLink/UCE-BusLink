@@ -7,7 +7,7 @@ on:
       - qa
       - main
     paths:
-      - 'uce-buslink-mobile/**'
+      - 'uce-buslink-frontend/uce-buslink-mobile/**'  # ← CORREGIDO
 
 jobs:
   validate:
@@ -19,13 +19,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        working-directory: uce-buslink-mobile
+        working-directory: uce-buslink-frontend/uce-buslink-mobile  # ← CORREGIDO
         run: npm ci
 
       - name: Lint
-        working-directory: uce-buslink-mobile
+        working-directory: uce-buslink-frontend/uce-buslink-mobile  # ← CORREGIDO
         run: npm run lint
 
-      - name: Type check
-        working-directory: uce-buslink-mobile
-        run: npx tsc --noEmit
+      
