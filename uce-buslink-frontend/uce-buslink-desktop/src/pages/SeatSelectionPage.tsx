@@ -7,7 +7,7 @@ import {
   initialSeats,
   initialStandingSpots,
 } from '../data/mockData';
-import type { Seat, StandingSpot, SeatStatus } from '../types';
+import type { Seat, SeatStatus } from '../types';
 
 const SEAT_STYLES: Record<SeatStatus, string> = {
   available: 'bg-green-400 hover:bg-green-500 text-white cursor-pointer',
@@ -67,8 +67,9 @@ export function SeatSelectionPage() {
   const navigate = useNavigate();
 
   const [seats, setSeats] = useState<Seat[]>(initialSeats);
-  const [standingSpots, setStandingSpots] =
-    useState<StandingSpot[]>(initialStandingSpots);
+  
+  // ✅ DESPUÉS — sin setter innecesario
+  const standingSpots = initialStandingSpots;
   const [selectedStandingId, setSelectedStandingId] = useState<number | null>(null);
 
   const route = getRouteById(routeId ?? '');

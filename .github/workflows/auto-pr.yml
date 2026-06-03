@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create pull request to dev
+      - name: Create and merge pull request to dev
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -46,7 +46,7 @@ jobs:
               return;
             }
 
-            await github.rest.pulls.create({
+            const pr = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Auto PR: ${headBranch} -> ${baseBranch}`,
@@ -59,3 +59,12 @@ jobs:
                 `Source SHA: ${run.head_sha}`,
               ].join('\n\n'),
             });
+
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.data.number,
+              merge_method: 'squash'
+            });
+
+            core.info(`PR #${pr.data.number} merged successfully into ${baseBranch}`);
