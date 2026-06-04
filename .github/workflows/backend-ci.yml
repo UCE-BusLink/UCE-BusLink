@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - 'uce-buslink-backend/**'
+      - '.github/workflows/backend-ci.yml' 
 
 jobs:
   # ─────────────────────────────────────────
