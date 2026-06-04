@@ -7,32 +7,14 @@ on:
       - main
     paths:
       - 'uce-buslink-frontend/uce-buslink-desktop/**'
-<<<<<<< Updated upstream
-
-=======
       - '.github/workflows/desktop-ci.yml'
->>>>>>> Stashed changes
 jobs:
-  validate:
+  build-and-test:
     name: Desktop Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-<<<<<<< Updated upstream
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        working-directory: uce-buslink-frontend/uce-buslink-desktop
-        # npm install en vez de npm ci
-        # genera el lock file correcto para Linux en el runner
-        run: npm install --ignore-scripts
-
-=======
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
@@ -42,15 +24,11 @@ jobs:
       - name: Install dependencies
         working-directory: uce-buslink-frontend/uce-buslink-desktop
         run: npm install
->>>>>>> Stashed changes
       - name: Lint
         working-directory: uce-buslink-frontend/uce-buslink-desktop
         run: npm run lint
       - name: Build
         working-directory: uce-buslink-frontend/uce-buslink-desktop
-<<<<<<< Updated upstream
-        run: npm run build
-=======
         run: npm run build
   docker-build-push:
     name: Docker Build & Push
@@ -80,4 +58,3 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend:qa
           cache-from: type=gha
           cache-to: type=gha,mode=max
->>>>>>> Stashed changes
