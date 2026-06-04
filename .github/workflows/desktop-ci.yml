@@ -11,9 +11,6 @@ on:
       - '.github/workflows/desktop-ci.yml'
 
 jobs:
-  # ─────────────────────────────────────────
-  # JOB 1: Lint y Build del frontend
-  # ─────────────────────────────────────────
   build-and-test:
     name: Desktop Build
     runs-on: ubuntu-latest
@@ -40,13 +37,37 @@ jobs:
       - name: Build
         working-directory: uce-buslink-frontend/uce-buslink-desktop
         run: npm run build
-
- 
-  docker-build-push:
+        
+      docker-build-push:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: build-and-test
 
     steps:
       - name: Checkout code
-        uses: actions/c
+        uses: actions/checkout@v4
+
+      - name: Set short SHA
+        id: vars
+        run: echo "sha_short=sha-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend:${{ steps.vars.outputs.sha_short }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend:qa
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
