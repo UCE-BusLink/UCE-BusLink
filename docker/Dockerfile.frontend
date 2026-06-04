@@ -1,6 +1,5 @@
 # =============================================================================
 # UCE-BUSLINK FRONTEND DESKTOP — Dockerfile (Production Ready)
-# Multi-stage build: Node (compilación) + Nginx (servidor estático)
 # =============================================================================
 
 ARG BUILDPLATFORM
@@ -9,20 +8,21 @@ ARG TARGETPLATFORM
 # -----------------------------------------------------------------------------
 # STAGE 1: BUILD
 # -----------------------------------------------------------------------------
-FROM node:22-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+
 COPY uce-buslink-frontend/uce-buslink-desktop/package.json ./
-COPY uce-buslink-frontend/uce-buslink-desktop/package-lock.json ./
 
-# PASO 2: Instalar dependencias de forma reproducible
-RUN npm ci --ignore-scripts
+# npm install resuelve dependencias nativas para Linux
+# --ignore-scripts: seguridad contra scripts maliciosos
+RUN npm install --ignore-scripts
 
-# PASO 3: Copiar el resto del código fuente
+# Copiar el resto del código fuente
 COPY uce-buslink-frontend/uce-buslink-desktop/ ./
 
-# PASO 4: Compilar para producción
+# Compilar para producción
 RUN npm run build
 
 # -----------------------------------------------------------------------------

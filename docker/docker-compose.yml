@@ -1,0 +1,150 @@
+# =============================================================================
+# UCE-BUSLINK — Docker Compose PRODUCCIÓN
+
+# Uso en servidor EC2:
+#   docker compose -f docker-compose.yml up -d
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # BASE DE DATOS — PostgreSQL con PostGIS
+  # ---------------------------------------------------------------------------
+  uce-buslink-db:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: uce-buslink-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - uce-buslink-db-data:/var/lib/postgresql/data
+    networks:
+      - uce-buslink-net
+    # En producción NO exponemos el puerto al exterior
+    # Solo accesible dentro de la red Docker interna
+    expose:
+      - "5432"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # CACHÉ — Redis
+  # ---------------------------------------------------------------------------
+  uce-buslink-redis:
+    image: redis:7.2-alpine
+    container_name: uce-buslink-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - uce-buslink-redis-data:/data
+    networks:
+      - uce-buslink-net
+    # En producción NO exponemos Redis al exterior
+    expose:
+      - "6379"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # BACKEND — Spring Boot
+  # Imagen publicada en DockerHub por el pipeline CI/CD
+  # ---------------------------------------------------------------------------
+  uce-buslink-backend:
+    image: rodneyandrade/uce-buslink-backend:${BACKEND_TAG:-latest}
+    container_name: uce-buslink-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      APP_NAME: ${APP_NAME:-uce-buslink-backend}
+      SERVER_PORT: "8080"
+      WEB_APPLICATION_TYPE: reactive
+      DB_URL: jdbc:postgresql://uce-buslink-db:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_DRIVER: org.postgresql.Driver
+      JPA_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+      HIBERNATE_DDL_AUTO: validate
+      JPA_SHOW_SQL: "false"
+      HIBERNATE_FORMAT_SQL: "false"
+      REDIS_HOST: uce-buslink-redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      FLYWAY_ENABLED: "true"
+      FLYWAY_LOCATIONS: classpath:db/migration
+      FLYWAY_VALIDATE: "true"
+      FLYWAY_BASELINE: "true"
+    expose:
+      - "8080"
+    networks:
+      - uce-buslink-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      uce-buslink-db:
+        condition: service_healthy
+      uce-buslink-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # FRONTEND — React compilado con Nginx
+  # Imagen publicada en DockerHub por el pipeline CI/CD
+  # ---------------------------------------------------------------------------
+  uce-buslink-frontend:
+    image: rodneyandrade/uce-buslink-frontend-desktop:${FRONTEND_TAG:-latest}
+    container_name: uce-buslink-frontend
+    ports:
+      # Puerto 80 es el único expuesto al exterior en producción
+      # Todo el tráfico entra por aquí
+      - "80:80"
+    networks:
+      - uce-buslink-net
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    depends_on:
+      uce-buslink-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: always
+
+volumes:
+  uce-buslink-db-data:
+    driver: local
+  uce-buslink-redis-data:
+    driver: local
+
+networks:
+  uce-buslink-net:
+    driver: bridge
