@@ -7,7 +7,7 @@ on:
       - qa
       - main
     paths:
-      - 'uce-buslink-frontend/uce-buslink-desktop/**'  # ← CORREGIDO
+      - 'uce-buslink-frontend/uce-buslink-desktop/**'
 
 jobs:
   validate:
@@ -18,14 +18,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install dependencies
-        working-directory: uce-buslink-frontend/uce-buslink-desktop  # ← CORREGIDO
-        run: npm ci
+        working-directory: uce-buslink-frontend/uce-buslink-desktop
+        # npm install en vez de npm ci
+        # genera el lock file correcto para Linux en el runner
+        run: npm install --ignore-scripts
 
       - name: Lint
-        working-directory: uce-buslink-frontend/uce-buslink-desktop  # ← CORREGIDO
+        working-directory: uce-buslink-frontend/uce-buslink-desktop
         run: npm run lint
 
       - name: Build
-        working-directory: uce-buslink-frontend/uce-buslink-desktop  # ← CORREGIDO
+        working-directory: uce-buslink-frontend/uce-buslink-desktop
         run: npm run build
