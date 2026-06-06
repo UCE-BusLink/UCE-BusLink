@@ -11,10 +11,11 @@ import com.ucebuslink.shared.constant.Role;
 import com.ucebuslink.shared.constant.UserStatus;
 import com.ucebuslink.shared.dto.AuthResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 
 import java.util.Collections;
-import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -22,12 +23,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final GoogleIdTokenVerifier verifier;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthService(UserRepository userRepository, 
                        JwtTokenProvider jwtTokenProvider,
+                       PasswordEncoder passwordEncoder,
                        @Value("${google.client.id}") String googleClientId) {
+
         this.userRepository = userRepository;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.passwordEncoder = passwordEncoder;
+
         this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                 .setAudience(Collections.singletonList(googleClientId))
                 .build();
@@ -69,6 +75,38 @@ public class AuthService {
         // 3. Generate JWT
         String jwt = jwtTokenProvider.generateToken(user);
 
+        return new AuthResponse(jwt, user.getEmail(), user.getRole().name());
+    }
+
+    public AuthResponse loginWithCredentials(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Credenciales inválidas"));
+
+        // 1. Verificar si la cuenta está bloqueada temporalmente
+        if (user.getLockoutExpiration() != null && user.getLockoutExpiration().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("Cuenta bloqueada temporalmente por múltiples intentos fallidos. Intente en 15 minutos.");
+        }
+
+        // 2. Verificar la contraseña con Bcrypt
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            user.setFailedLoginAttempts(user.getFailedLoginAttempts() + 1);
+            
+            // Bloquear por 15 minutos si llega a 5 intentos
+            if (user.getFailedLoginAttempts() >= 5) {
+                user.setLockoutExpiration(LocalDateTime.now().plusMinutes(15));
+            }
+            userRepository.save(user);
+            throw new IllegalArgumentException("Credenciales inválidas");
+        }
+
+        // 3. Login exitoso: Resetear contadores y limpiar bloqueo
+        user.setFailedLoginAttempts(0);
+        user.setLockoutExpiration(null);
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        // 4. Generar y devolver el JWT
+        String jwt = jwtTokenProvider.generateToken(user);
         return new AuthResponse(jwt, user.getEmail(), user.getRole().name());
     }
 }
