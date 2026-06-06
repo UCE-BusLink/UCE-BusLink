@@ -1,4 +1,4 @@
-package com.ucebuslink.identity.domain;
+package com.ucebuslink.identity.infrastructure.persistence.entity;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -6,39 +6,19 @@ import java.util.UUID;
 import com.ucebuslink.shared.constant.Role;
 import com.ucebuslink.shared.constant.UserStatus;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import jakarta.persistence.*;
+import lombok.*;
 
-@ToString
-@Data
-@EqualsAndHashCode
 @Entity
 @Table(name = "users", indexes = {
-    @Index(name = "idx_user_email", columnList = "email")
+        @Index(name = "idx_user_email", columnList = "email")
 })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class UserJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -76,8 +56,16 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Builder.Default
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts = 0;
+
+    @Column(name = "lockout_expiration")
+    private LocalDateTime lockoutExpiration;
+
     @PrePersist
     protected void onCreate() {
+
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
 
@@ -90,11 +78,4 @@ public class User {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-
-    @Builder.Default
-    @Column(name = "failed_login_attempts", nullable = false)
-    private int failedLoginAttempts = 0;
-
-    @Column(name = "lockout_expiration")
-    private LocalDateTime lockoutExpiration;
 }

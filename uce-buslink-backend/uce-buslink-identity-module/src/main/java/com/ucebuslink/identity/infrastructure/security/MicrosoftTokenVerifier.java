@@ -1,4 +1,4 @@
-package com.ucebuslink.identity.application.security;
+package com.ucebuslink.identity.infrastructure.security;
 
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Value;

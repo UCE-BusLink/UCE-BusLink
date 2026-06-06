@@ -1,6 +1,5 @@
-package com.ucebuslink.identity.infrastructure.config;
+package com.ucebuslink.identity.infrastructure.security;
 
-import com.ucebuslink.identity.application.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
