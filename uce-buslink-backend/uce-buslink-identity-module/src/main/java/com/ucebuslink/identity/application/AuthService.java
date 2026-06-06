@@ -4,7 +4,10 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import com.ucebuslink.identity.application.security.JwtTokenProvider;
+import com.ucebuslink.identity.application.security.MicrosoftTokenVerifier;
 import com.ucebuslink.identity.domain.User;
 import com.ucebuslink.identity.infrastructure.UserRepository;
 import com.ucebuslink.shared.constant.Role;
@@ -24,15 +27,18 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final GoogleIdTokenVerifier verifier;
     private final PasswordEncoder passwordEncoder;
+    private final MicrosoftTokenVerifier microsoftTokenVerifier;
 
     public AuthService(UserRepository userRepository, 
                        JwtTokenProvider jwtTokenProvider,
                        PasswordEncoder passwordEncoder,
+                       MicrosoftTokenVerifier microsoftTokenVerifier,
                        @Value("${google.client.id}") String googleClientId) {
 
         this.userRepository = userRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
+        this.microsoftTokenVerifier = microsoftTokenVerifier;
 
         this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                 .setAudience(Collections.singletonList(googleClientId))
@@ -52,9 +58,9 @@ public class AuthService {
 
         String email = payload.getEmail();
 
-        // 1. Validate institutional domain @uce.edu.ec
-        if (!email.endsWith("@uce.edu.ec")) {
-            throw new IllegalAccessException("Only institutional @uce.edu.ec emails are allowed");
+        // 1. Validate institutional domain @gmail.com
+        if (!email.endsWith("@gmail.com")) {
+            throw new IllegalAccessException("Only institutional @gmail.com emails are allowed");
         }
 
         // 2. Find user or create if first time
@@ -108,5 +114,59 @@ public class AuthService {
         // 4. Generar y devolver el JWT
         String jwt = jwtTokenProvider.generateToken(user);
         return new AuthResponse(jwt, user.getEmail(), user.getRole().name());
+    }
+
+    public AuthResponse authenticateWithMicrosoft(String accessToken) throws Exception {
+
+        SignedJWT jwt = microsoftTokenVerifier.verify(accessToken);
+
+        JWTClaimsSet claims;
+        claims = jwt.getJWTClaimsSet();
+
+        String email = extractMicrosoftEmail(claims);
+
+        System.out.println("Microsoft token claims: " + claims);
+        System.out.println("Extracted email from Microsoft token: " + email);
+
+        if (email == null || !email.endsWith("@uce.edu.ec")) {
+            throw new IllegalAccessException("Solo se permiten correos institucionales");
+        }
+
+        User user = userRepository.findByEmail(email).orElseGet(() -> {
+            User newUser = new User();
+            newUser.setEmail(email);
+            newUser.setGoogleId(claims.getSubject());
+
+            newUser.setFirstName((String) claims.getClaim("given_name"));
+            newUser.setLastName((String) claims.getClaim("family_name"));
+
+            newUser.setRole(Role.STUDENT);
+            newUser.setStatus(UserStatus.ACTIVE);
+
+            return userRepository.save(newUser);
+        });
+
+        String internalJwt = jwtTokenProvider.generateToken(user);
+
+        return new AuthResponse(internalJwt, user.getEmail(), user.getRole().name());
+    }
+
+    private String extractMicrosoftEmail(JWTClaimsSet claims) throws Exception {
+
+        String email = claims.getStringClaim("preferred_username");
+
+        if (email == null) {
+            email = claims.getStringClaim("upn");
+        }
+
+        if (email == null) {
+            email = claims.getStringClaim("unique_name");
+        }
+
+        if (email == null) {
+            email = claims.getStringClaim("email");
+        }
+
+        return email;
     }
 }

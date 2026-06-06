@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.ucebuslink.shared.dto.LoginRequest;
+import com.ucebuslink.shared.dto.MicrosoftLoginRequest;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -47,4 +48,32 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
         }
     }
+
+    @PostMapping("/microsoft")
+        public ResponseEntity<?> microsoftLogin(
+                @RequestBody MicrosoftLoginRequest request
+        ) {
+
+            try {
+
+                AuthResponse response =
+                        authService.authenticateWithMicrosoft(
+                                request.accessToken()
+                        );
+
+                return ResponseEntity.ok(response);
+
+            } catch (IllegalAccessException e) {
+
+                return ResponseEntity
+                        .status(HttpStatus.FORBIDDEN)
+                        .body(e.getMessage());
+
+            } catch (Exception e) {
+
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body("Error de autenticación Microsoft");
+            }
+        }
 }
