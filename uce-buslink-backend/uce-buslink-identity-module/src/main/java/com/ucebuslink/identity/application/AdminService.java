@@ -1,7 +1,7 @@
 package com.ucebuslink.identity.application;
 
-import com.ucebuslink.identity.domain.User;
-import com.ucebuslink.identity.infrastructure.UserRepository;
+import com.ucebuslink.identity.domain.model.User;
+import com.ucebuslink.identity.domain.repository.*;
 import com.ucebuslink.shared.constant.Role;
 import com.ucebuslink.shared.constant.UserStatus;
 import com.ucebuslink.shared.dto.CreateDriverRequest;

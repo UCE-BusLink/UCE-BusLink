@@ -1,5 +1,6 @@
-package com.ucebuslink.identity.application.security;
+package com.ucebuslink.identity.infrastructure.security;
 
+import com.ucebuslink.identity.infrastructure.security.JwtTokenProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

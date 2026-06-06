@@ -1,4 +1,4 @@
-package com.ucebuslink.identity.web;
+package com.ucebuslink.identity.adapters.input.http;
 
 import com.ucebuslink.identity.application.AdminService;
 import com.ucebuslink.shared.dto.CreateDriverRequest;
