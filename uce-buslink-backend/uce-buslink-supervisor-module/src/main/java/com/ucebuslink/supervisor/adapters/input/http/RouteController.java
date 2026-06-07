@@ -3,6 +3,9 @@ package com.ucebuslink.supervisor.adapters.input.http;
 import com.ucebuslink.supervisor.application.dto.CreateRouteCommand;
 import com.ucebuslink.supervisor.application.dto.RouteResponse;
 import com.ucebuslink.supervisor.application.usecase.ManageRouteUseCase;
+
+import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,7 +26,7 @@ public class RouteController {
     }
 
     @PostMapping
-    public ResponseEntity<RouteResponse> createRoute(@RequestBody CreateRouteCommand command) {
+    public ResponseEntity<RouteResponse> createRoute(@Valid @RequestBody CreateRouteCommand command) {
         RouteResponse response = manageRouteUseCase.createRoute(command);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -34,12 +37,12 @@ public class RouteController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RouteResponse> getRouteById(@PathVariable UUID id) {
+    public ResponseEntity<RouteResponse> getRouteById(@PathVariable(name = "id") UUID id) {
         return ResponseEntity.ok(manageRouteUseCase.getRouteById(id));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRoute(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteRoute(@PathVariable(name = "id") UUID id) {
         manageRouteUseCase.deleteRoute(id);
         return ResponseEntity.noContent().build();
     }
