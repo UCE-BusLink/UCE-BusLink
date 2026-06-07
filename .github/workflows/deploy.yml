@@ -1,0 +1,39 @@
+name: Deploy to EC2
+on:
+  push:
+    branches:
+      - dev
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/uce-buslink
+
+            # Crear .env si no existe
+            if [ ! -f .env ]; then
+              echo "DB_URL=jdbc:postgresql://uce-buslink-db:5432/uce_buslink_db" >> .env
+              echo "DB_USERNAME=buslink_user" >> .env
+              echo "DB_PASSWORD=BusLink2024Secure!" >> .env
+              echo "DB_DRIVER=org.postgresql.Driver" >> .env
+              echo "REDIS_HOST=uce-buslink-redis" >> .env
+              echo "REDIS_PASSWORD=" >> .env
+              echo "POSTGRES_USER=buslink_user" >> .env
+              echo "POSTGRES_PASSWORD=BusLink2024Secure!" >> .env
+              echo "POSTGRES_DB=uce_buslink_db" >> .env
+            fi
+
+            # Bajar y levantar contenedores con imagen nueva
+            docker compose -f docker/docker-compose.yml pull
+            docker compose -f docker/docker-compose.yml up -d --remove-orphans
+
+            # Limpiar imagenes viejas
+            docker image prune -f
+            
