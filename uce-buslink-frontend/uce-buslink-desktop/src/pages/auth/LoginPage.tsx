@@ -1,17 +1,96 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Bus } from 'lucide-react';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { msalInstance, msalReady, microsoftLoginRequest } from '../../lib/msalConfig';
 import heroImg from '../../assets/hero.png';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const navigate = useNavigate();
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    navigate('/dashboard');
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        setError(msg || 'Credenciales inválidas');
+        return;
+      }
+      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      navigate('/dashboard');
+    } catch {
+      setError('No se pudo conectar con el servidor');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleMicrosoftLogin() {
+    setError('');
+    setMicrosoftLoading(true);
+    try {
+      await msalReady;
+      const result = await msalInstance.loginPopup(microsoftLoginRequest);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/microsoft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: result.idToken }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        setError(msg || 'No se pudo iniciar sesión con Microsoft');
+        return;
+      }
+      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'BrowserAuthError') {
+        setError('No se pudo conectar con el servidor');
+      }
+    } finally {
+      setMicrosoftLoading(false);
+    }
+  }
+
+  async function handleGoogleSuccess(credentialResponse: CredentialResponse) {
+    setError('');
+    const idToken = credentialResponse.credential;
+    if (!idToken) {
+      setError('No se recibió el token de Google');
+      return;
+    }
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        setError(msg || 'No se pudo iniciar sesión');
+        return;
+      }
+      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      navigate('/dashboard');
+    } catch {
+      setError('No se pudo conectar con el servidor');
+    }
   }
 
   return (
@@ -39,12 +118,12 @@ export function LoginPage() {
           </div>
 
           <h1 className="text-2xl font-bold text-navy-900 mb-1">Iniciar sesión</h1>
-          <p className="text-gray-500 text-sm mb-8">Usa tu correo institucional UCE</p>
+          <p className="text-gray-500 text-sm mb-8">Ingresa con tu correo y contraseña</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Correo institucional
+                Correo electrónico
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -54,7 +133,7 @@ export function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@uce.edu.ec"
+                  placeholder="tu@correo.com"
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-navy-800 transition-colors"
                   required
                 />
@@ -87,14 +166,50 @@ export function LoginPage() {
               </div>
             </div>
 
+            {error && (
+              <p className="text-red-500 text-xs text-center">{error}</p>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-navy-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-navy-800 transition-colors flex items-center justify-center gap-2 mt-2"
+              disabled={loading}
+              className="w-full bg-navy-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-navy-800 transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Ingresar
-              <span>→</span>
+              {loading ? 'Ingresando...' : 'Ingresar'}
+              {!loading && <span>→</span>}
             </button>
           </form>
+
+          <div className="flex items-center gap-3 my-6">
+            <hr className="flex-1 border-gray-200" />
+            <span className="text-xs text-gray-400">o continúa con</span>
+            <hr className="flex-1 border-gray-200" />
+          </div>
+
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError('Error al autenticar con Google')}
+              text="continue_with"
+              shape="pill"
+              width="320"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleMicrosoftLogin}
+            disabled={microsoftLoading}
+            className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+              <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
+              <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
+              <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
+            </svg>
+            {microsoftLoading ? 'Conectando...' : 'Continuar con Microsoft'}
+          </button>
 
           <p className="text-center text-sm text-gray-500 mt-6">
             ¿Aún no tienes cuenta?{' '}
