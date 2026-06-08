@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
+import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.BusResponse;
 import com.ucebuslink.supervisor.application.dto.CreateBusCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageBusUseCase;
@@ -29,9 +30,18 @@ public class BusController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    /*
     @GetMapping
     public ResponseEntity<List<BusResponse>> getAllBuses() {
         return ResponseEntity.ok(manageBusUseCase.getAllActiveBuses());
+    }
+    */
+   
+    @GetMapping
+    public ResponseEntity<PageResponse<BusResponse>> getAllBuses(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(manageBusUseCase.getAllActiveBuses(page, size));
     }
 
     @GetMapping("/{id}")

@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.application.service;
 
+import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.BusResponse;
 import com.ucebuslink.supervisor.application.dto.CreateBusCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageBusUseCase;
@@ -36,13 +37,27 @@ public class BusApplicationService implements ManageBusUseCase {
         Bus savedBus = busRepository.save(bus);
         return mapToResponse(savedBus);
     }
-
+    
+    /*
     @Override
     @Transactional(readOnly = true)
     public List<BusResponse> getAllActiveBuses() {
         return busRepository.findAllActive().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+    */
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BusResponse> getAllActiveBuses(int page, int size) {
+        PageResponse<Bus> domainPage = busRepository.findAllActive(page, size);
+        
+        List<BusResponse> dtos = domainPage.content().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+                
+        return new PageResponse<>(dtos, domainPage.pageNumber(), domainPage.pageSize(), domainPage.totalElements(), domainPage.totalPages());
     }
 
     @Override
