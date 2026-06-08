@@ -1,7 +1,8 @@
 name: Deploy to EC2
+
 on:
   push:
-    branches:      
+    branches:
       - qa
       - main
 
@@ -30,6 +31,7 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd ~/uce-buslink
+            git pull origin ${{ github.ref_name }}
 
             if [ ! -f .env ]; then
               echo "DB_URL=jdbc:postgresql://uce-buslink-db:5432/uce_buslink_db" >> .env
@@ -50,6 +52,12 @@ jobs:
               echo "JWT_EXPIRATION_MS=900000" >> .env
             fi
 
-            docker compose -f docker/docker-compose.yml pull
-            docker compose -f docker/docker-compose.yml up -d --remove-orphans
+            if [ "${{ github.ref_name }}" == "main" ]; then
+              COMPOSE_OVERRIDE="docker/docker-compose.prod.yml"
+            else
+              COMPOSE_OVERRIDE="docker/docker-compose.qa.yml"
+            fi
+
+            docker compose -f docker/docker-compose.yml -f $COMPOSE_OVERRIDE pull
+            docker compose -f docker/docker-compose.yml -f $COMPOSE_OVERRIDE up -d --remove-orphans
             docker image prune -f
