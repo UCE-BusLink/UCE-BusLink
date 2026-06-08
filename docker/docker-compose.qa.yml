@@ -1,0 +1,21 @@
+# =============================================================================
+# UCE-BUSLINK — Sobreescritura para ambiente QA
+# Uso: docker compose -f docker-compose.yml -f docker-compose.qa.yml up -d
+# =============================================================================
+
+services:
+
+  uce-buslink-backend:
+    # En QA usamos el tag qa en vez de latest
+    image: rodneyandrade/uce-buslink-backend:${BACKEND_TAG:-qa}
+    environment:
+      SPRING_PROFILES_ACTIVE: qa
+      # En QA sí mostramos SQL para debug
+      JPA_SHOW_SQL: "true"
+      HIBERNATE_FORMAT_SQL: "true"
+
+  uce-buslink-frontend:
+    image: rodneyandrade/uce-buslink-frontend-desktop:${FRONTEND_TAG:-qa}
+    ports:
+      # QA corre en puerto 80 del EC2 de QA
+      - "80:80"
