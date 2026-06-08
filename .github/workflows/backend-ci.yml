@@ -3,12 +3,12 @@ name: Backend CI
 on:
   push:
     branches:
-      - 'feature/**'
+      - dev
       - qa
       - main
     paths:
-      - 'uce-buslink-backend/**'        
-      - '.github/workflows/backend-ci.yml'  
+      - 'uce-buslink-backend/**'
+      - '.github/workflows/backend-ci.yml'
 
 jobs:
   # ─────────────────────────────────────────
