@@ -172,16 +172,19 @@ export function RouteDetailPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-fit">
-          <div className="bg-navy-900 h-36 flex items-center justify-center">
-            <span className="text-white/20 text-sm select-none">Vista de ruta</span>
-          </div>
-          <div className="p-5">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-navy-900">{route.name}</h3>
-              <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
+          <div className="bg-navy-900 px-5 pt-5 pb-4">
+            <div className="flex items-start justify-between mb-1">
+              <h3 className="font-bold text-white">{route.name}</h3>
+              <span className="text-xs bg-white/10 text-white/70 px-2.5 py-1 rounded-full font-medium flex-shrink-0 ml-2">
                 {route.distanceKm} km
               </span>
             </div>
+            <p className="text-white/50 text-xs">{route.stops.length} paradas</p>
+          </div>
+          <div className="p-5">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
+              Recorrido
+            </p>
             <div className="space-y-1">
               {route.stops.map((stop, index) => (
                 <div key={index} className="flex items-start gap-3">
