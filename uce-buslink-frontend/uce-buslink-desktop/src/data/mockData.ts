@@ -130,14 +130,14 @@ export const initialSeats: Seat[] = [
   { number: 1, status: 'available' },
   { number: 2, status: 'occupied' },
   { number: 3, status: 'available' },
-  { number: 4, status: 'occupied' },
+  { number: 4, status: 'unavailable' as const },
   { number: 5, status: 'available' },
   { number: 6, status: 'available' },
   { number: 7, status: 'occupied' },
   { number: 8, status: 'available' },
   { number: 9, status: 'available' },
   { number: 10, status: 'available' },
-  { number: 11, status: 'occupied' },
+  { number: 11, status: 'unavailable' as const },
   { number: 12, status: 'available' },
 ];
 

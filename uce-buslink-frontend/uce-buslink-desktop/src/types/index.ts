@@ -1,4 +1,4 @@
-export type SeatStatus = 'available' | 'occupied' | 'selected';
+export type SeatStatus = 'available' | 'occupied' | 'selected' | 'unavailable';
 export type TripStatus = 'confirmed' | 'unavailable';
 export type RouteDirection = 'north' | 'south' | 'valley';
 export type StopType = 'origin' | 'stop' | 'destination';
