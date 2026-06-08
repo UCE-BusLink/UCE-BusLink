@@ -12,4 +12,6 @@ public interface ManageStopUseCase {
     List<StopResponse> getAllActiveStops();
 
     StopResponse updateStop(UUID id, UpdateStopCommand command);
+
+    void deleteStop(UUID id);
 }

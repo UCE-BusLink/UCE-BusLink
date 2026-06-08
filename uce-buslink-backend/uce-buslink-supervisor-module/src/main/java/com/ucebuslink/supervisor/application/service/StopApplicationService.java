@@ -4,12 +4,16 @@ import com.ucebuslink.supervisor.application.dto.CreateStopCommand;
 import com.ucebuslink.supervisor.application.dto.StopResponse;
 import com.ucebuslink.supervisor.application.dto.UpdateStopCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageStopUseCase;
+import com.ucebuslink.supervisor.domain.model.Route;
+import com.ucebuslink.supervisor.domain.model.RouteStop;
 import com.ucebuslink.supervisor.domain.model.Stop;
+import com.ucebuslink.supervisor.domain.repository.RouteRepository;
 import com.ucebuslink.supervisor.domain.repository.StopRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,9 +22,11 @@ import java.util.stream.Collectors;
 public class StopApplicationService implements ManageStopUseCase {
 
     private final StopRepository stopRepository;
+    private final RouteRepository routeRepository;
 
-    public StopApplicationService(StopRepository stopRepository) {
+    public StopApplicationService(StopRepository stopRepository, RouteRepository routeRepository) {
         this.stopRepository = stopRepository;
+        this.routeRepository = routeRepository;
     }
 
     @Override
@@ -66,5 +72,59 @@ public class StopApplicationService implements ManageStopUseCase {
         stop.setLongitude(command.longitude());
 
         return mapToResponse(stopRepository.save(stop));
+    }
+
+    /*
+    @Override
+    @Transactional
+    public void deleteStop(UUID id) {
+
+        // 1. Soft delete de la parada
+        Stop stop = stopRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Stop not found with id: " + id));
+
+        stop.setIsActive(false);
+        stop.setDeletedAt(LocalDateTime.now());
+        stopRepository.save(stop);
+
+        // 2. Buscar rutas afectadas
+        List<Route> affectedRoutes = routeRepository.findRoutesByStopId(id);
+
+        for (Route route : affectedRoutes) {
+
+            List<RouteStop> stops = route.getRouteStops();
+
+            if (stops == null || stops.isEmpty()) continue;
+
+            // 3. eliminar la parada directamente de la colección existente
+            stops.removeIf(rs -> rs.getStop().getId().equals(id));
+
+            // 4. ordenar la MISMA colección
+            stops.sort(Comparator.comparingInt(RouteStop::getStopOrder));
+
+            // 5. reordenar secuencialmente
+            for (int i = 0; i < stops.size(); i++) {
+                stops.get(i).setStopOrder(i + 1);
+            }
+
+            routeRepository.save(route);
+        }
+    }
+    */
+
+    @Override
+    @Transactional
+    public void deleteStop(UUID id) {
+
+        Stop stop = stopRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Stop not found with id: " + id));
+
+        stop.setIsActive(false);
+        stop.setDeletedAt(LocalDateTime.now());
+
+        stopRepository.save(stop);
+
+        routeRepository.removeStopFromRoutes(id);
     }
 }

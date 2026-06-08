@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.ucebuslink.shared.dto.PageResponse;
-
 public interface RouteRepository {
     Route save(Route route);
     Optional<Route> findById(UUID id);
@@ -15,4 +13,8 @@ public interface RouteRepository {
     void deleteById(UUID id);
 
     PageResponse<Route> findAll(boolean isActive, int page, int size);
+
+    List<Route> findRoutesByStopId(UUID stopId);
+
+    void removeStopFromRoutes(UUID stopId);
 }

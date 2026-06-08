@@ -3,6 +3,8 @@ package com.ucebuslink.supervisor.infrastructure.persistence.repository;
 import com.ucebuslink.supervisor.infrastructure.persistence.entity.RouteJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,4 +19,18 @@ public interface SpringDataRouteRepository extends JpaRepository<RouteJpaEntity,
 
     @Query("SELECT r FROM RouteJpaEntity r WHERE r.deletedAt IS NULL AND r.isActive = true")
     List<RouteJpaEntity> findAllActiveRoutes();
+
+    /*
+    @Query("SELECT r FROM RouteJpaEntity r JOIN r.routeStops rs WHERE rs.stop.id = :stopId AND r.deletedAt IS NULL")
+    List<RouteJpaEntity> findByStopId(@Param("stopId") UUID stopId);
+    */
+
+    @Query("""
+        SELECT DISTINCT r
+        FROM RouteJpaEntity r
+        JOIN FETCH r.routeStops rs
+        WHERE rs.stop.id = :stopId
+        AND r.deletedAt IS NULL
+    """)
+    List<RouteJpaEntity> findByStopId(@Param("stopId") UUID stopId);
 }
