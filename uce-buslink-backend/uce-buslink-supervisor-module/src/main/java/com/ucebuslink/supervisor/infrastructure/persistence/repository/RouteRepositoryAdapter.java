@@ -3,7 +3,10 @@ package com.ucebuslink.supervisor.infrastructure.persistence.repository;
 import com.ucebuslink.supervisor.domain.model.Route;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
 import com.ucebuslink.supervisor.infrastructure.persistence.entity.RouteJpaEntity;
+import com.ucebuslink.supervisor.infrastructure.persistence.entity.RouteStopJpaEntity;
 import com.ucebuslink.supervisor.infrastructure.persistence.mapper.SupervisorMapper;
+
+import jakarta.transaction.Transactional;
 
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
@@ -71,5 +74,32 @@ public class RouteRepositoryAdapter implements RouteRepository {
             entity.setDeletedAt(LocalDateTime.now());
             springDataRouteRepository.save(entity);
         });
+    }
+
+    @Override
+    public List<Route> findRoutesByStopId(UUID stopId) {
+        return springDataRouteRepository.findByStopId(stopId).stream()
+                .map(supervisorMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void removeStopFromRoutes(UUID stopId) {
+
+        List<RouteJpaEntity> routes =
+                springDataRouteRepository.findByStopId(stopId);
+
+        for (RouteJpaEntity route : routes) {
+
+            route.getRouteStops()
+                    .removeIf(rs -> rs.getStop().getId().equals(stopId));
+
+            int order = 1;
+
+            for (RouteStopJpaEntity rs : route.getRouteStops()) {
+                rs.setStopOrder(order++);
+            }
+        }
     }
 }

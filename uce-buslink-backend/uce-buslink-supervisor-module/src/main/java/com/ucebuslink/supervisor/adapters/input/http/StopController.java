@@ -41,4 +41,10 @@ public class StopController {
     public ResponseEntity<StopResponse> updateStop(@PathVariable UUID id, @Valid @RequestBody UpdateStopCommand command) {
         return ResponseEntity.ok(manageStopUseCase.updateStop(id, command));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteStop(@PathVariable UUID id) {
+        manageStopUseCase.deleteStop(id);
+        return ResponseEntity.noContent().build();
+    }
 }
