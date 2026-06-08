@@ -3,6 +3,9 @@ package com.ucebuslink.supervisor.adapters.input.http;
 import com.ucebuslink.supervisor.application.dto.CreateStopCommand;
 import com.ucebuslink.supervisor.application.dto.StopResponse;
 import com.ucebuslink.supervisor.application.usecase.ManageStopUseCase;
+
+import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +25,7 @@ public class StopController {
     }
 
     @PostMapping
-    public ResponseEntity<StopResponse> createStop(@RequestBody CreateStopCommand command) {
+    public ResponseEntity<StopResponse> createStop(@Valid @RequestBody CreateStopCommand command) {
         StopResponse response = manageStopUseCase.createStop(command);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }

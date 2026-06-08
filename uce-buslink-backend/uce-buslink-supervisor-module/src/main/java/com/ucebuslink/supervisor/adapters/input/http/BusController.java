@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +24,7 @@ public class BusController {
     }
 
     @PostMapping
-    public ResponseEntity<BusResponse> createBus(@RequestBody CreateBusCommand command) {
+    public ResponseEntity<BusResponse> createBus(@Valid @RequestBody CreateBusCommand command) {
         BusResponse response = manageBusUseCase.createBus(command);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -34,12 +35,12 @@ public class BusController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BusResponse> getBusById(@PathVariable UUID id) {
+    public ResponseEntity<BusResponse> getBusById(@PathVariable(name = "id") UUID id) {
         return ResponseEntity.ok(manageBusUseCase.getBusById(id));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBus(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteBus(@PathVariable(name = "id") UUID id) {
         manageBusUseCase.deleteBus(id);
         return ResponseEntity.noContent().build();
     }
