@@ -10,6 +10,7 @@ jobs:
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
+
     steps:
       - name: Set environment variables
         run: |
@@ -31,33 +32,18 @@ jobs:
           key: ${{ env.EC2_SSH_KEY }}
           script: |
             cd ~/uce-buslink
-            git pull origin ${{ github.ref_name }}
 
+            # En PROD traemos cambios del repo
+            # En QA no hay repo clonado, solo docker-compose manual
+            if [ "${{ github.ref_name }}" == "main" ]; then
+              git pull origin main
+            fi
+
+            # Crear .env si no existe (aplica principalmente para QA)
             if [ ! -f .env ]; then
               echo "DB_URL=jdbc:postgresql://uce-buslink-db:5432/uce_buslink_db" >> .env
               echo "DB_USERNAME=buslink_user" >> .env
               echo "DB_PASSWORD=BusLink2024Secure!" >> .env
               echo "DB_DRIVER=org.postgresql.Driver" >> .env
               echo "REDIS_HOST=uce-buslink-redis" >> .env
-              echo "REDIS_PASSWORD=" >> .env
-              echo "POSTGRES_USER=buslink_user" >> .env
-              echo "POSTGRES_PASSWORD=BusLink2024Secure!" >> .env
-              echo "POSTGRES_DB=uce_buslink_db" >> .env
-              echo "MICROSOFT_TENANT_ID=common" >> .env
-              echo "MICROSOFT_CLIENT_ID=placeholder" >> .env
-              echo "MICROSOFT_CLIENT_SECRET=placeholder" >> .env
-              echo "GOOGLE_CLIENT_ID=placeholder" >> .env
-              echo "GOOGLE_CLIENT_SECRET=placeholder" >> .env
-              echo "JWT_SECRET=ucebuslink-jwt-secret-key-2024-secure" >> .env
-              echo "JWT_EXPIRATION_MS=900000" >> .env
-            fi
-
-            if [ "${{ github.ref_name }}" == "main" ]; then
-              COMPOSE_OVERRIDE="docker/docker-compose.prod.yml"
-            else
-              COMPOSE_OVERRIDE="docker/docker-compose.qa.yml"
-            fi
-
-            docker compose -f docker/docker-compose.yml -f $COMPOSE_OVERRIDE pull
-            docker compose -f docker/docker-compose.yml -f $COMPOSE_OVERRIDE up -d --remove-orphans
-            docker image prune -f
+              echo "REDIS_PORT=6379" >>
