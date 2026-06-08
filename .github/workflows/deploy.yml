@@ -1,44 +1,30 @@
 name: Deploy to EC2
-
 on:
   push:
     branches:
       - qa
       - main
-
 jobs:
-  deploy:
-    name: Deploy to EC2
+  deploy-qa:
+    name: Deploy to QA
     runs-on: ubuntu-latest
+    if: github.ref_name == 'qa'
     steps:
-      - name: Set environment variables
-        run: |
-          if [ "${{ github.ref_name }}" == "main" ]; then
-            echo "EC2_HOST=${{ secrets.EC2_HOST_PROD }}" >> $GITHUB_ENV
-            echo "EC2_USER=${{ secrets.EC2_USER_PROD }}" >> $GITHUB_ENV
-            echo "EC2_SSH_KEY=${{ secrets.EC2_SSH_KEY_PROD }}" >> $GITHUB_ENV
-          else
-            echo "EC2_HOST=${{ secrets.EC2_HOST_QA }}" >> $GITHUB_ENV
-            echo "EC2_USER=${{ secrets.EC2_USER_QA }}" >> $GITHUB_ENV
-            echo "EC2_SSH_KEY=${{ secrets.EC2_SSH_KEY_QA }}" >> $GITHUB_ENV
-          fi
-
-      - name: Deploy via SSH
+      - name: Deploy via SSH to QA
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USER }}
-          key: ${{ env.EC2_SSH_KEY }}
+          host: ${{ secrets.EC2_HOST_QA }}
+          username: ${{ secrets.EC2_USER_QA }}
+          key: ${{ secrets.EC2_SSH_KEY_QA }}
           script: |
             cd ~/uce-buslink
-            git pull origin ${{ github.ref_name }}
-
             if [ ! -f .env ]; then
               echo "DB_URL=jdbc:postgresql://uce-buslink-db:5432/uce_buslink_db" >> .env
               echo "DB_USERNAME=buslink_user" >> .env
               echo "DB_PASSWORD=BusLink2024Secure!" >> .env
               echo "DB_DRIVER=org.postgresql.Driver" >> .env
               echo "REDIS_HOST=uce-buslink-redis" >> .env
+              echo "REDIS_PORT=6379" >> .env
               echo "REDIS_PASSWORD=" >> .env
               echo "POSTGRES_USER=buslink_user" >> .env
               echo "POSTGRES_PASSWORD=BusLink2024Secure!" >> .env
@@ -51,13 +37,24 @@ jobs:
               echo "JWT_SECRET=ucebuslink-jwt-secret-key-2024-secure" >> .env
               echo "JWT_EXPIRATION_MS=900000" >> .env
             fi
+            docker compose -f docker/docker-compose.yml -f docker/docker-compose.qa.yml pull
+            docker compose -f docker/docker-compose.yml -f docker/docker-compose.qa.yml up -d --remove-orphans
+            docker image prune -f
 
-            if [ "${{ github.ref_name }}" == "main" ]; then
-              COMPOSE_OVERRIDE="docker/docker-compose.prod.yml"
-            else
-              COMPOSE_OVERRIDE="docker/docker-compose.qa.yml"
-            fi
-
-            docker compose -f docker/docker-compose.yml -f $COMPOSE_OVERRIDE pull
-            docker compose -f docker/docker-compose.yml -f $COMPOSE_OVERRIDE up -d --remove-orphans
+  deploy-prod:
+    name: Deploy to PROD
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'main'
+    steps:
+      - name: Deploy via SSH to PROD
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST_PROD }}
+          username: ${{ secrets.EC2_USER_PROD }}
+          key: ${{ secrets.EC2_SSH_KEY_PROD }}
+          script: |
+            cd ~/uce-buslink
+            git pull origin main
+            docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml pull
+            docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
