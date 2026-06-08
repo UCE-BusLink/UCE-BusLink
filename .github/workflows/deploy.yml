@@ -2,7 +2,8 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - dev
+      - qa
+      - main
 jobs:
   deploy:
     name: Deploy to EC2
@@ -28,6 +29,13 @@ jobs:
               echo "POSTGRES_USER=buslink_user" >> .env
               echo "POSTGRES_PASSWORD=BusLink2024Secure!" >> .env
               echo "POSTGRES_DB=uce_buslink_db" >> .env
+              echo "MICROSOFT_TENANT_ID=common" >> .env
+              echo "MICROSOFT_CLIENT_ID=placeholder" >> .env
+              echo "MICROSOFT_CLIENT_SECRET=placeholder" >> .env
+              echo "GOOGLE_CLIENT_ID=placeholder" >> .env
+              echo "GOOGLE_CLIENT_SECRET=placeholder" >> .env
+              echo "JWT_SECRET=ucebuslink-jwt-secret-key-2024-secure" >> .env
+              echo "JWT_EXPIRATION_MS=900000" >> .env
             fi
 
             # Bajar y levantar contenedores con imagen nueva
@@ -36,4 +44,3 @@ jobs:
 
             # Limpiar imagenes viejas
             docker image prune -f
-            
