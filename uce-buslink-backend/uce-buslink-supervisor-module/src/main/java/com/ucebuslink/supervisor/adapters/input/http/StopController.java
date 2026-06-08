@@ -2,6 +2,7 @@ package com.ucebuslink.supervisor.adapters.input.http;
 
 import com.ucebuslink.supervisor.application.dto.CreateStopCommand;
 import com.ucebuslink.supervisor.application.dto.StopResponse;
+import com.ucebuslink.supervisor.application.dto.UpdateStopCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageStopUseCase;
 
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/supervisor/fleet/stops")
@@ -33,5 +35,10 @@ public class StopController {
     @GetMapping
     public ResponseEntity<List<StopResponse>> getAllStops() {
         return ResponseEntity.ok(manageStopUseCase.getAllActiveStops());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<StopResponse> updateStop(@PathVariable UUID id, @Valid @RequestBody UpdateStopCommand command) {
+        return ResponseEntity.ok(manageStopUseCase.updateStop(id, command));
     }
 }

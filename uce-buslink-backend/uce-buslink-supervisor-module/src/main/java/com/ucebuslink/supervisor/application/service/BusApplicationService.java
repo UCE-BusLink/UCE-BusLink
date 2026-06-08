@@ -2,7 +2,9 @@ package com.ucebuslink.supervisor.application.service;
 
 import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.BusResponse;
+import com.ucebuslink.supervisor.application.dto.ChangeBusStatusCommand;
 import com.ucebuslink.supervisor.application.dto.CreateBusCommand;
+import com.ucebuslink.supervisor.application.dto.UpdateBusCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageBusUseCase;
 import com.ucebuslink.supervisor.domain.model.Bus;
 import com.ucebuslink.supervisor.domain.model.BusStatus;
@@ -84,5 +86,31 @@ public class BusApplicationService implements ManageBusUseCase {
                 bus.getModel(),
                 bus.getOperationalStatus()
         );
+    }
+
+    @Override
+    @Transactional
+    public BusResponse updateBus(UUID id, UpdateBusCommand command) {
+        Bus bus = busRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bus not found with id: " + id));
+
+        bus.setPlateNumber(command.plateNumber());
+        bus.setInternalCode(command.internalCode());
+        bus.setSeatCapacity(command.seatCapacity());
+        bus.setManufacturer(command.manufacturer());
+        bus.setModel(command.model());
+        // bus.setManufacturingYear(command.manufacturingYear()); // Si añadiste el setter en la US anterior
+
+        return mapToResponse(busRepository.save(bus));
+    }
+
+    @Override
+    @Transactional
+    public BusResponse changeBusStatus(UUID id, ChangeBusStatusCommand command) {
+        Bus bus = busRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bus not found with id: " + id));
+
+        bus.setOperationalStatus(command.status());
+        return mapToResponse(busRepository.save(bus));
     }
 }

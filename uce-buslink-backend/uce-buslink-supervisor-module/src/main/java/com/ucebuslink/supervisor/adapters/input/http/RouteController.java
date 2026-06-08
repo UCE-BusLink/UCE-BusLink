@@ -57,4 +57,9 @@ public class RouteController {
         manageRouteUseCase.deleteRoute(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<RouteResponse> updateRoute(@PathVariable UUID id, @Valid @RequestBody CreateRouteCommand command) {
+        return ResponseEntity.ok(manageRouteUseCase.updateRoute(id, command));
+    }
 }

@@ -2,6 +2,7 @@ package com.ucebuslink.supervisor.application.service;
 
 import com.ucebuslink.supervisor.application.dto.CreateStopCommand;
 import com.ucebuslink.supervisor.application.dto.StopResponse;
+import com.ucebuslink.supervisor.application.dto.UpdateStopCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageStopUseCase;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.repository.StopRepository;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,5 +53,18 @@ public class StopApplicationService implements ManageStopUseCase {
                 stop.getLongitude(),
                 stop.getIsActive()
         );
+    }
+
+    @Override
+    @Transactional
+    public StopResponse updateStop(UUID id, UpdateStopCommand command) {
+        Stop stop = stopRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Stop not found with id: " + id));
+
+        stop.setName(command.name());
+        stop.setLatitude(command.latitude());
+        stop.setLongitude(command.longitude());
+
+        return mapToResponse(stopRepository.save(stop));
     }
 }
