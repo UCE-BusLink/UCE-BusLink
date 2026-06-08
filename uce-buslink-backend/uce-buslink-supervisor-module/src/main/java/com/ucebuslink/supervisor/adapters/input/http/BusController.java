@@ -2,7 +2,9 @@ package com.ucebuslink.supervisor.adapters.input.http;
 
 import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.BusResponse;
+import com.ucebuslink.supervisor.application.dto.ChangeBusStatusCommand;
 import com.ucebuslink.supervisor.application.dto.CreateBusCommand;
+import com.ucebuslink.supervisor.application.dto.UpdateBusCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageBusUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,5 +55,15 @@ public class BusController {
     public ResponseEntity<Void> deleteBus(@PathVariable(name = "id") UUID id) {
         manageBusUseCase.deleteBus(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<BusResponse> updateBus(@PathVariable UUID id, @Valid @RequestBody UpdateBusCommand command) {
+        return ResponseEntity.ok(manageBusUseCase.updateBus(id, command));
+    }
+
+    @PatchMapping("/{id}/estado")
+    public ResponseEntity<BusResponse> changeBusStatus(@PathVariable UUID id, @Valid @RequestBody ChangeBusStatusCommand command) {
+        return ResponseEntity.ok(manageBusUseCase.changeBusStatus(id, command));
     }
 }

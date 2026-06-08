@@ -103,4 +103,28 @@ public class RouteApplicationService implements ManageRouteUseCase {
                 route.getPathPolyline()
         );
     }
+
+    @Override
+    @Transactional
+    public RouteResponse updateRoute(UUID id, CreateRouteCommand command) {
+        Route route = routeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Route not found with id: " + id));
+
+        route.setName(command.name());
+        route.setDescription(command.description());
+        route.setEstimatedDurationMinutes(command.estimatedDurationMinutes());
+        route.setPathPolyline(command.pathPolyline());
+
+        if (command.stops() != null) {
+            List<RouteStop> updatedStops = command.stops().stream().map(stopCommand -> {
+                Stop stop = stopRepository.findById(stopCommand.stopId())
+                        .orElseThrow(() -> new RuntimeException("Stop not found: " + stopCommand.stopId()));
+                return new RouteStop(stop, stopCommand.stopOrder(), stopCommand.estimatedMinutesFromStart(), java.time.LocalDateTime.now());
+            }).collect(Collectors.toList());
+            
+            route.setRouteStops(updatedStops);
+        }
+
+        return mapToResponse(routeRepository.save(route));
+    }
 }
