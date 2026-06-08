@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.application.service;
 
+import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.CreateRouteCommand;
 import com.ucebuslink.supervisor.application.dto.RouteResponse;
 import com.ucebuslink.supervisor.application.usecase.ManageRouteUseCase;
@@ -64,6 +65,18 @@ public class RouteApplicationService implements ManageRouteUseCase {
         return routeRepository.findAllActive().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<RouteResponse> getRoutes(boolean isActive, int page, int size) {
+        PageResponse<Route> domainPage = routeRepository.findAll(isActive, page, size);
+        
+        List<RouteResponse> dtos = domainPage.content().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+                
+        return new PageResponse<>(dtos, domainPage.pageNumber(), domainPage.pageSize(), domainPage.totalElements(), domainPage.totalPages());
     }
 
     @Override

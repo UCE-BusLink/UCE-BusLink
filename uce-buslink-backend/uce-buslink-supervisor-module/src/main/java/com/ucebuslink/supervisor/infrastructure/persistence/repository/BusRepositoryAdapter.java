@@ -11,6 +11,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.ucebuslink.shared.dto.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
 @Repository
 public class BusRepositoryAdapter implements BusRepository {
 
@@ -47,6 +51,23 @@ public class BusRepositoryAdapter implements BusRepository {
         return springDataBusRepository.findAllActiveBuses().stream()
                 .map(supervisorMapper::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<Bus> findAllActive(int page, int size) {
+        Page<BusJpaEntity> entityPage = springDataBusRepository.findByDeletedAtIsNull(PageRequest.of(page, size));
+        
+        List<Bus> buses = entityPage.getContent().stream()
+                .map(supervisorMapper::toDomain)
+                .collect(Collectors.toList());
+                
+        return new PageResponse<>(
+                buses,
+                entityPage.getNumber(),
+                entityPage.getSize(),
+                entityPage.getTotalElements(),
+                entityPage.getTotalPages()
+        );
     }
 
     @Override

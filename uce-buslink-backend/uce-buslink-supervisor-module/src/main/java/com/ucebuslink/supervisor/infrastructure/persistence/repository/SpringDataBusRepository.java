@@ -7,9 +7,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 public interface SpringDataBusRepository extends JpaRepository<BusJpaEntity, UUID> {
     Optional<BusJpaEntity> findByPlateNumberAndDeletedAtIsNull(String plateNumber);
     Optional<BusJpaEntity> findByIdAndDeletedAtIsNull(UUID id);
+
+    Page<BusJpaEntity> findByDeletedAtIsNull(Pageable pageable);
     
     @Query("SELECT b FROM BusJpaEntity b WHERE b.deletedAt IS NULL")
     List<BusJpaEntity> findAllActiveBuses();

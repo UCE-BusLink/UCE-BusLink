@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
+import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.CreateRouteCommand;
 import com.ucebuslink.supervisor.application.dto.RouteResponse;
 import com.ucebuslink.supervisor.application.usecase.ManageRouteUseCase;
@@ -31,9 +32,19 @@ public class RouteController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    /*
     @GetMapping
     public ResponseEntity<List<RouteResponse>> getAllRoutes() {
         return ResponseEntity.ok(manageRouteUseCase.getAllActiveRoutes());
+    }
+    */
+
+    @GetMapping
+    public ResponseEntity<PageResponse<RouteResponse>> getRoutes(
+            @RequestParam(defaultValue = "true") boolean activa,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(manageRouteUseCase.getRoutes(activa, page, size));
     }
 
     @GetMapping("/{id}")
