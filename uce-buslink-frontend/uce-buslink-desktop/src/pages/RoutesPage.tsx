@@ -39,22 +39,43 @@ function RouteCard({
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
       <div className="flex items-start justify-between mb-5">
         <h3 className="text-lg font-bold text-navy-900 leading-tight">
-          {route.name} – {route.destination}
+          {route.name} - {route.destination}
         </h3>
         <DirectionIcon direction={route.direction} />
       </div>
 
       <div className="flex items-stretch gap-3 mb-5">
-        <div className="flex flex-col items-center gap-1 pt-0.5">
-          <div className="w-2.5 h-2.5 rounded-full border-2 border-gray-400 flex-shrink-0" />
-          <div className="w-px flex-1 bg-gray-200" />
-          <div className="w-2.5 h-2.5 rounded-full bg-navy-900 flex-shrink-0" />
+        <div className="flex flex-col items-center">
+          {route.stops.map((_, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <div
+                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                  i === 0
+                    ? 'border-2 border-gray-400 bg-white'
+                    : i === route.stops.length - 1
+                    ? 'bg-navy-900'
+                    : 'border-2 border-gray-300 bg-white'
+                }`}
+              />
+              {i < route.stops.length - 1 && (
+                <div className="w-px h-4 bg-gray-200" />
+              )}
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col justify-between">
-          <span className="text-sm text-gray-500">{route.stops[0].name}</span>
-          <span className="text-sm font-semibold text-navy-900">
-            {route.stops[route.stops.length - 1].name}
-          </span>
+        <div className="flex flex-col gap-1">
+          {route.stops.map((stop, i) => (
+            <span
+              key={i}
+              className={`text-sm leading-[18px] ${
+                i === 0 || i === route.stops.length - 1
+                  ? 'font-semibold text-navy-900'
+                  : 'text-gray-400'
+              }`}
+            >
+              {stop.name}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -138,7 +159,15 @@ export function RoutesPage() {
         </div>
       </div>
 
-      {filteredRoutes.length > 0 ? (
+      {routes.length === 0 ? (
+        <div className="text-center py-24 text-gray-400">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <SlidersHorizontal size={28} className="opacity-40" />
+          </div>
+          <p className="font-semibold text-gray-500 mb-1">No hay rutas disponibles</p>
+          <p className="text-sm">Por el momento no existen rutas activas. Intenta mas tarde.</p>
+        </div>
+      ) : filteredRoutes.length > 0 ? (
         <div className="grid grid-cols-3 gap-5">
           {filteredRoutes.map((route) => (
             <RouteCard
@@ -151,7 +180,8 @@ export function RoutesPage() {
       ) : (
         <div className="text-center py-20 text-gray-400">
           <Search size={40} className="mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No se encontraron rutas para "{searchQuery}"</p>
+          <p className="text-sm font-medium text-gray-500 mb-1">Sin resultados</p>
+          <p className="text-sm">No se encontraron rutas para &quot;{searchQuery}&quot;</p>
         </div>
       )}
     </div>
