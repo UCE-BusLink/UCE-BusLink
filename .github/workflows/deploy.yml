@@ -1,60 +1,162 @@
-name: Deploy to EC2
+name: Deploy
+
 on:
   push:
     branches:
       - qa
       - main
+
+# Evita deploys paralelos si se pushea dos veces seguido
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
+
+  # ──────────────────────────────────────────
+  # BUILD BACKEND
+  # ──────────────────────────────────────────
+  build-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determinar tag de imagen
+        id: vars
+        run: |
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "tag=prod" >> $GITHUB_OUTPUT
+          else
+            echo "tag=qa" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-backend:${{ steps.vars.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────
+  # BUILD FRONTEND
+  # ──────────────────────────────────────────
+  build-frontend:
+    name: Build & Push Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determinar tag de imagen
+        id: vars
+        run: |
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "tag=prod" >> $GITHUB_OUTPUT
+          else
+            echo "tag=qa" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:${{ steps.vars.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────
+  # DEPLOY QA — automático, sin aprobación
+  # ──────────────────────────────────────────
   deploy-qa:
     name: Deploy to QA
     runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
     if: github.ref_name == 'qa'
+    environment: qa
     steps:
-      - name: Deploy via SSH to QA
-        uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v4
+
+      - name: Copiar archivos Docker al servidor QA
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST_QA }}
           username: ${{ secrets.EC2_USER_QA }}
           key: ${{ secrets.EC2_SSH_KEY_QA }}
+          source: "docker/"
+          target: "~/uce-buslink/"
+
+      - name: Desplegar en QA
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ENV_FILE: ${{ secrets.EC2_ENV_QA }}
+        with:
+          host: ${{ secrets.EC2_HOST_QA }}
+          username: ${{ secrets.EC2_USER_QA }}
+          key: ${{ secrets.EC2_SSH_KEY_QA }}
+          envs: ENV_FILE
           script: |
             cd ~/uce-buslink
-            if [ ! -f .env ]; then
-              echo "DB_URL=jdbc:postgresql://uce-buslink-db:5432/uce_buslink_db" >> .env
-              echo "DB_USERNAME=buslink_user" >> .env
-              echo "DB_PASSWORD=BusLink2024Secure!" >> .env
-              echo "DB_DRIVER=org.postgresql.Driver" >> .env
-              echo "REDIS_HOST=uce-buslink-redis" >> .env
-              echo "REDIS_PORT=6379" >> .env
-              echo "REDIS_PASSWORD=" >> .env
-              echo "POSTGRES_USER=buslink_user" >> .env
-              echo "POSTGRES_PASSWORD=BusLink2024Secure!" >> .env
-              echo "POSTGRES_DB=uce_buslink_db" >> .env
-              echo "MICROSOFT_TENANT_ID=common" >> .env
-              echo "MICROSOFT_CLIENT_ID=placeholder" >> .env
-              echo "MICROSOFT_CLIENT_SECRET=placeholder" >> .env
-              echo "GOOGLE_CLIENT_ID=placeholder" >> .env
-              echo "GOOGLE_CLIENT_SECRET=placeholder" >> .env
-              echo "JWT_SECRET=ucebuslink-jwt-secret-key-2024-secure" >> .env
-              echo "JWT_EXPIRATION_MS=900000" >> .env
-            fi
+            printf '%s\n' "$ENV_FILE" > .env
+            chmod 600 .env
             docker compose -f docker/docker-compose.yml -f docker/docker-compose.qa.yml pull
             docker compose -f docker/docker-compose.yml -f docker/docker-compose.qa.yml up -d --remove-orphans
             docker image prune -f
 
+  # ──────────────────────────────────────────
+  # DEPLOY PROD — requiere aprobación del inge
+  # ──────────────────────────────────────────
   deploy-prod:
-    name: Deploy to PROD
+    name: Deploy to Production
     runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
     if: github.ref_name == 'main'
+    environment: production        # ← aquí está el gate manual
     steps:
-      - name: Deploy via SSH to PROD
-        uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v4
+
+      - name: Copiar archivos Docker al servidor PROD
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST_PROD }}
           username: ${{ secrets.EC2_USER_PROD }}
           key: ${{ secrets.EC2_SSH_KEY_PROD }}
+          source: "docker/"
+          target: "~/uce-buslink/"
+
+      - name: Desplegar en PROD
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ENV_FILE: ${{ secrets.EC2_ENV_PROD }}
+        with:
+          host: ${{ secrets.EC2_HOST_PROD }}
+          username: ${{ secrets.EC2_USER_PROD }}
+          key: ${{ secrets.EC2_SSH_KEY_PROD }}
+          envs: ENV_FILE
           script: |
             cd ~/uce-buslink
-            git pull origin main
+            printf '%s\n' "$ENV_FILE" > .env
+            chmod 600 .env
             docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml pull
             docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
+
