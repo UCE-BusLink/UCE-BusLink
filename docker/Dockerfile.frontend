@@ -1,28 +1,34 @@
+
 # =============================================================================
 # UCE-BUSLINK FRONTEND DESKTOP — Dockerfile (Production Ready)
 # =============================================================================
-
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
 
 # -----------------------------------------------------------------------------
 # STAGE 1: BUILD
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS builder
 
-WORKDIR /app
+# Variables que Vite embebe en el bundle al compilar
+ARG VITE_API_URL=/api
+ARG VITE_GOOGLE_CLIENT_ID
+ARG VITE_MICROSOFT_CLIENT_ID
+ARG VITE_MICROSOFT_TENANT_ID
+ARG VITE_CLERK_PUBLISHABLE_KEY
 
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+ENV VITE_MICROSOFT_CLIENT_ID=$VITE_MICROSOFT_CLIENT_ID
+ENV VITE_MICROSOFT_TENANT_ID=$VITE_MICROSOFT_TENANT_ID
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+
+WORKDIR /app
 
 COPY uce-buslink-frontend/uce-buslink-desktop/package.json ./
 
-# npm install resuelve dependencias nativas para Linux
-# --ignore-scripts: seguridad contra scripts maliciosos
-RUN npm install --ignore-scripts
+RUN npm ci --ignore-scripts
 
-# Copiar el resto del código fuente
 COPY uce-buslink-frontend/uce-buslink-desktop/ ./
 
-# Compilar para producción
 RUN npm run build
 
 # -----------------------------------------------------------------------------
