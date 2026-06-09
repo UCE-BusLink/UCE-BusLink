@@ -18,6 +18,7 @@ public class UserMapper {
                 entity.getRole(),
                 entity.getStatus(),
                 entity.getGoogleId(),
+                entity.getClerkUserId(),
                 entity.getPasswordHash(),
                 entity.getLastLoginAt(),
                 entity.getCreatedAt(),
@@ -37,6 +38,7 @@ public class UserMapper {
                 .role(user.getRole())
                 .status(user.getStatus())
                 .googleId(user.getGoogleId())
+                .clerkUserId(user.getClerkUserId())
                 .passwordHash(user.getPasswordHash())
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
