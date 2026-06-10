@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bus, Calendar, Armchair, ChevronRight, Star } from 'lucide-react';
 import { mockUser, upcomingReservation, routes } from '../data/mockData';
 
-import { useAuth } from "@clerk/clerk-react";
+
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -45,58 +45,6 @@ export function DashboardPage() {
   const greeting = getTimeGreeting();
 
   // ################################################## PRUEBA API #####################################################################
-
-  const { getToken } = useAuth();
-
-  const testBackend = async () => {
-    try {
-      const token = await getToken({
-        template: "uce-buslink"
-      })
-
-      console.log("TOKEN:", token);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/v1/auth/sync`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      console.log("BACKEND:", data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const testAdmin = async () => {
-    try {
-      const token = await getToken({
-        template: "uce-buslink",
-      });
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/v1/auth/test-admin`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const text = await response.text();
-
-      console.log("STATUS:", response.status);
-      console.log("RESPONSE:", text);
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   // ################################################## PRUEBA API #####################################################################
 
