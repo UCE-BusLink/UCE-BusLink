@@ -1,5 +1,5 @@
 
-FROM --platform=linux/amd64 maven:3.9.6-eclipse-temurin-21-alpine AS builder
+FROM --platform=$BUILDPLATFORM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ RUN mvn clean package \
 
 
 # -----------------------------------------------------------------------------
-FROM --platform=linux/amd64 eclipse-temurin:21-jre-alpine AS runtime
+FROM --platform=$TARGETPLATFORM eclipse-temurin:21-jre-alpine AS runtime
 
 
 LABEL maintainer="UCE-BusLink Team"
@@ -70,3 +70,4 @@ ENTRYPOINT ["java", \
     "-XX:+UseContainerSupport", \
     "-XX:MaxRAMPercentage=75.0", \
     "-jar", "app.jar"]
+

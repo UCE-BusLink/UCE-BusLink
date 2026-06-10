@@ -1,34 +1,40 @@
+
 # =============================================================================
 # UCE-BUSLINK FRONTEND DESKTOP — Dockerfile (Production Ready)
 # =============================================================================
 
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-
 # -----------------------------------------------------------------------------
 # STAGE 1: BUILD
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+
+# Variables que Vite embebe en el bundle al compilar
+ARG VITE_API_URL=/api
+ARG VITE_GOOGLE_CLIENT_ID
+ARG VITE_MICROSOFT_CLIENT_ID
+ARG VITE_MICROSOFT_TENANT_ID
+ARG VITE_CLERK_PUBLISHABLE_KEY
+
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+ENV VITE_MICROSOFT_CLIENT_ID=$VITE_MICROSOFT_CLIENT_ID
+ENV VITE_MICROSOFT_TENANT_ID=$VITE_MICROSOFT_TENANT_ID
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 
 WORKDIR /app
 
-
 COPY uce-buslink-frontend/uce-buslink-desktop/package.json ./
 
-# npm install resuelve dependencias nativas para Linux
-# --ignore-scripts: seguridad contra scripts maliciosos
 RUN npm install --ignore-scripts
 
-# Copiar el resto del código fuente
 COPY uce-buslink-frontend/uce-buslink-desktop/ ./
 
-# Compilar para producción
 RUN npm run build
 
 # -----------------------------------------------------------------------------
 # STAGE 2: RUNTIME
 # -----------------------------------------------------------------------------
-FROM nginx:1.27-alpine AS runtime
+FROM --platform=$TARGETPLATFORM nginx:1.27-alpine AS runtime
 
 LABEL maintainer="UCE-BusLink Team"
 LABEL app="uce-buslink-frontend-desktop"
@@ -54,3 +60,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
+

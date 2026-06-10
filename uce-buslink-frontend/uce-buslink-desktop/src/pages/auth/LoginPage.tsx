@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Bus } from 'lucide-react';
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
-import { msalInstance, msalReady, microsoftLoginRequest } from '../../lib/msalConfig';
 import heroImg from '../../assets/hero.png';
 
 export function LoginPage() {
@@ -11,7 +9,6 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -36,60 +33,6 @@ export function LoginPage() {
       setError('No se pudo conectar con el servidor');
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleMicrosoftLogin() {
-    setError('');
-    setMicrosoftLoading(true);
-    try {
-      await msalReady;
-      const result = await msalInstance.loginPopup(microsoftLoginRequest);
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/microsoft`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: result.idToken }),
-      });
-      if (!res.ok) {
-        const msg = await res.text();
-        setError(msg || 'No se pudo iniciar sesión con Microsoft');
-        return;
-      }
-      const data = await res.json();
-      localStorage.setItem('token', data.token);
-      navigate('/dashboard');
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name !== 'BrowserAuthError') {
-        setError('No se pudo conectar con el servidor');
-      }
-    } finally {
-      setMicrosoftLoading(false);
-    }
-  }
-
-  async function handleGoogleSuccess(credentialResponse: CredentialResponse) {
-    setError('');
-    const idToken = credentialResponse.credential;
-    if (!idToken) {
-      setError('No se recibió el token de Google');
-      return;
-    }
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
-      if (!res.ok) {
-        const msg = await res.text();
-        setError(msg || 'No se pudo iniciar sesión');
-        return;
-      }
-      const data = await res.json();
-      localStorage.setItem('token', data.token);
-      navigate('/dashboard');
-    } catch {
-      setError('No se pudo conectar con el servidor');
     }
   }
 
@@ -179,37 +122,6 @@ export function LoginPage() {
               {!loading && <span>→</span>}
             </button>
           </form>
-
-          <div className="flex items-center gap-3 my-6">
-            <hr className="flex-1 border-gray-200" />
-            <span className="text-xs text-gray-400">o continúa con</span>
-            <hr className="flex-1 border-gray-200" />
-          </div>
-
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Error al autenticar con Google')}
-              text="continue_with"
-              shape="pill"
-              width="320"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleMicrosoftLogin}
-            disabled={microsoftLoading}
-            className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="1" width="9" height="9" fill="#F25022" />
-              <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
-              <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
-              <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
-            </svg>
-            {microsoftLoading ? 'Conectando...' : 'Continuar con Microsoft'}
-          </button>
 
           <p className="text-center text-sm text-gray-500 mt-6">
             ¿Aún no tienes cuenta?{' '}
