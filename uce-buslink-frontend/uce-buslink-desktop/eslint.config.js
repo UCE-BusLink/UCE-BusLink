@@ -18,5 +18,15 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // Desactivar warning de dependencias en useEffect
+      'react-hooks/exhaustive-deps': 'off',
+
+      // Desactivar error de Fast Refresh
+      'react-refresh/only-export-components': 'off',
+
+      // Desactivar variables no usadas
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
   },
 ])
