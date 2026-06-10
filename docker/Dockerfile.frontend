@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # STAGE 1: BUILD
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 # Variables que Vite embebe en el bundle al compilar
 ARG VITE_API_URL=/api
@@ -34,7 +34,7 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 # STAGE 2: RUNTIME
 # -----------------------------------------------------------------------------
-FROM nginx:1.27-alpine AS runtime
+FROM --platform=$TARGETPLATFORM nginx:1.27-alpine AS runtime
 
 LABEL maintainer="UCE-BusLink Team"
 LABEL app="uce-buslink-frontend-desktop"
@@ -60,3 +60,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
+

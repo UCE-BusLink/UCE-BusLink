@@ -1,0 +1,44 @@
+Set-Content .dockerignore @'
+# Version control
+.git
+.gitignore
+.gitattributes
+.gitkeep
+
+# CI/CD
+.github
+
+# Documentation
+docs
+*.md
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker Compose (no necesario en el build context)
+docker/docker-compose*.yml
+
+# Environment files
+.env
+.env.*
+
+# Root package files
+package.json
+package-lock.json
+
+# Backend: artefactos de compilacion
+uce-buslink-backend/**/target
+
+# Frontend: dependencias y build
+uce-buslink-frontend/**/node_modules
+uce-buslink-frontend/**/dist
+
+# Logs
+*.log
+'@
