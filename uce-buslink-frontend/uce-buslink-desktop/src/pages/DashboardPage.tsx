@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { Bus, Calendar, Armchair, ChevronRight, Star } from 'lucide-react';
 import { mockUser, upcomingReservation, routes } from '../data/mockData';
 
+
+
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Buenos días';
@@ -41,6 +43,10 @@ function TrustScoreRing({ score }: { score: number }) {
 export function DashboardPage() {
   const navigate = useNavigate();
   const greeting = getTimeGreeting();
+
+  // ################################################## PRUEBA API #####################################################################
+
+  // ################################################## PRUEBA API #####################################################################
 
   return (
     <div>
@@ -130,11 +136,10 @@ export function DashboardPage() {
                   </div>
                   <button
                     onClick={() => navigate(`/routes/${route.id}`)}
-                    className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors ${
-                      route.availableSeats > 0
-                        ? 'bg-navy-900 text-white hover:bg-navy-800'
-                        : 'bg-amber-500 text-white hover:bg-amber-600'
-                    }`}
+                    className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors ${route.availableSeats > 0
+                      ? 'bg-navy-900 text-white hover:bg-navy-800'
+                      : 'bg-amber-500 text-white hover:bg-amber-600'
+                      }`}
                   >
                     {route.availableSeats > 0 ? 'Reservar lugar' : 'Ver viajes'}
                   </button>

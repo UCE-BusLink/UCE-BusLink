@@ -44,6 +44,9 @@ public class UserJpaEntity {
     @Column(name = "google_subject_id", unique = true)
     private String googleId;
 
+    @Column(name = "clerk_user_id", unique = true)
+    private String clerkUserId;
+
     @Column(name = "password_hash")
     private String passwordHash;
 
