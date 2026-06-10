@@ -122,8 +122,9 @@ jobs:
           envs: ENV_FILE
           script: |
             cd ~/uce-buslink
-            printf '%s\n' "$ENV_FILE" > .env
-            chmod 600 .env
+            mkdir -p docker
+            printf '%s\n' "$ENV_FILE" | tr -d '\r' > docker/.env
+            chmod 600 docker/.env
             docker compose -f docker/docker-compose.yml -f docker/docker-compose.qa.yml pull
             docker compose -f docker/docker-compose.yml -f docker/docker-compose.qa.yml up -d --remove-orphans
             docker image prune -f
@@ -160,8 +161,9 @@ jobs:
           envs: ENV_FILE
           script: |
             cd ~/uce-buslink
-            printf '%s\n' "$ENV_FILE" > .env
-            chmod 600 .env
+            mkdir -p docker
+            printf '%s\n' "$ENV_FILE" | tr -d '\r' > docker/.env
+            chmod 600 docker/.env
             docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml pull
             docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f

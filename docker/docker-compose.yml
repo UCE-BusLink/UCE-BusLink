@@ -70,6 +70,8 @@ services:
   uce-buslink-backend:
     image: rodneyandrade/uce-buslink-backend:${BACKEND_TAG:-latest}
     container_name: uce-buslink-backend
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       APP_NAME: ${APP_NAME:-uce-buslink-backend}
