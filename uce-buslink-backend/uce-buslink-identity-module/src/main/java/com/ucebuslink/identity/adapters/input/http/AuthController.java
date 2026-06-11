@@ -1,149 +1,66 @@
 package com.ucebuslink.identity.adapters.input.http;
 
-import com.ucebuslink.identity.application.usecase.GoogleLoginUseCase;
-import com.ucebuslink.identity.application.usecase.LoginUseCase;
-import com.ucebuslink.identity.application.usecase.MicrosoftLoginUseCase;
-import com.ucebuslink.identity.application.usecase.RegisterUseCase;
-
-import com.ucebuslink.shared.dto.AuthResponse;
-import com.ucebuslink.shared.dto.GoogleLoginRequest;
-import com.ucebuslink.shared.dto.LoginRequest;
-import com.ucebuslink.shared.dto.MicrosoftLoginRequest;
-import com.ucebuslink.shared.dto.RegisterRequest;
-
-import org.springframework.http.HttpStatus;
+import com.ucebuslink.identity.application.usecase.SyncUserUseCase;
+import com.ucebuslink.shared.dto.CurrentUserResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-    private final LoginUseCase loginUseCase;
+        private final SyncUserUseCase syncUserUseCase;
 
-    private final RegisterUseCase registerUseCase;
-
-    private final GoogleLoginUseCase googleLoginUseCase;
-
-    private final MicrosoftLoginUseCase microsoftLoginUseCase;
-
-    public AuthController(
-            LoginUseCase loginUseCase,
-            RegisterUseCase registerUseCase,
-            GoogleLoginUseCase googleLoginUseCase,
-            MicrosoftLoginUseCase microsoftLoginUseCase
-    ) {
-        this.loginUseCase = loginUseCase;
-        this.registerUseCase = registerUseCase;
-        this.googleLoginUseCase = googleLoginUseCase;
-        this.microsoftLoginUseCase = microsoftLoginUseCase;
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<?> register(
-            @RequestBody RegisterRequest request
-    ) {
-        try {
-            AuthResponse response = registerUseCase.execute(
-                    request.firstName(),
-                    request.lastName(),
-                    request.email(),
-                    request.password()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalStateException e) {
-            return ResponseEntity
-                    .status(HttpStatus.CONFLICT)
-                    .body(e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(e.getMessage());
+        public AuthController(
+                        SyncUserUseCase syncUserUseCase) {
+                this.syncUserUseCase = syncUserUseCase;
         }
-    }
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @RequestBody LoginRequest request
-    ) {
+        @GetMapping("/me")
+        public ResponseEntity<?> me(
+                        @AuthenticationPrincipal Jwt jwt) {
 
-        try {
+                CurrentUserResponse response = syncUserUseCase.execute(
+                                jwt.getSubject(),
+                                jwt.getClaimAsString("email"),
+                                jwt.getClaimAsString("first_name"),
+                                jwt.getClaimAsString("last_name"));
 
-            AuthResponse response =
-                    loginUseCase.execute(
-                            request.email(),
-                            request.password()
-                    );
-
-            return ResponseEntity.ok(response);
-
-        } catch (IllegalStateException e) {
-
-            return ResponseEntity
-                    .status(HttpStatus.LOCKED)
-                    .body(e.getMessage());
-
-        } catch (IllegalArgumentException e) {
-
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Credenciales inválidas");
+                return ResponseEntity.ok(response);
         }
-    }
 
-    @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(
-            @RequestBody GoogleLoginRequest request
-    ) {
+        @PostMapping("/sync")
+        public ResponseEntity<?> syncUser(
+                        @AuthenticationPrincipal Jwt jwt) {
 
-        try {
+                String clerkUserId = jwt.getSubject();
 
-            AuthResponse response =
-                    googleLoginUseCase.execute(
-                            request.idToken()
-                    );
+                String email = jwt.getClaimAsString("email");
 
-            return ResponseEntity.ok(response);
+                String firstName = jwt.getClaimAsString("first_name");
 
-        } catch (IllegalAccessException e) {
+                String lastName = jwt.getClaimAsString("last_name");
 
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .body(e.getMessage());
+                CurrentUserResponse response = syncUserUseCase.execute(
+                                clerkUserId,
+                                email,
+                                firstName,
+                                lastName);
 
-        } catch (Exception e) {
+                System.out.println(jwt);
 
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Error de autenticación");
+                return ResponseEntity.ok(response);
         }
-    }
 
-    @PostMapping("/microsoft")
-    public ResponseEntity<?> microsoftLogin(
-            @RequestBody MicrosoftLoginRequest request
-    ) {
-
-        try {
-
-            AuthResponse response =
-                    microsoftLoginUseCase.execute(
-                            request.accessToken()
-                    );
-
-            return ResponseEntity.ok(response);
-
-        } catch (IllegalAccessException e) {
-
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .body(e.getMessage());
-
-        } catch (Exception e) {
-
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Error de autenticación Microsoft");
+        @GetMapping("/test-admin")
+        @PreAuthorize("hasRole('ADMIN')")
+        public String adminOnly() {
+                System.out.println("Acceso permitido solo para ADMIN");
+                return "ADMIN OK";
         }
-    }
 }

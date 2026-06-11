@@ -1,5 +1,6 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Bus, Home, Clock, Map, User, LogOut } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react'; // 1. Importamos el hook de Clerk
 
 interface NavItem {
   to: string;
@@ -17,7 +18,8 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const navigate = useNavigate();
+  // 2. Extraemos signOut en lugar de useNavigate
+  const { signOut } = useAuth();
 
   return (
     <aside className="w-60 min-h-screen bg-navy-900 flex flex-col flex-shrink-0">
@@ -64,11 +66,9 @@ export function Sidebar() {
       </nav>
 
       <div className="px-3 pb-6">
+        {/* 3. Ejecutamos signOut y le indicamos a dónde redirigir al terminar */}
         <button
-          onClick={() => {
-            localStorage.removeItem('token');
-            navigate('/login');
-          }}
+          onClick={() => signOut({ redirectUrl: '/login' })}
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition-colors w-full"
         >
           <LogOut size={18} />

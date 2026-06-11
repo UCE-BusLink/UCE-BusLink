@@ -22,6 +22,8 @@ public class User {
 
     private String googleId;
 
+    private String clerkUserId;
+
     private String passwordHash;
 
     private LocalDateTime lastLoginAt;
@@ -45,6 +47,7 @@ public class User {
             Role role,
             UserStatus status,
             String googleId,
+            String clerkUserId,
             String passwordHash,
             LocalDateTime lastLoginAt,
             LocalDateTime createdAt,
@@ -59,6 +62,7 @@ public class User {
         this.role = role;
         this.status = status;
         this.googleId = googleId;
+        this.clerkUserId = clerkUserId;
         this.passwordHash = passwordHash;
         this.lastLoginAt = lastLoginAt;
         this.createdAt = createdAt;
@@ -139,6 +143,14 @@ public class User {
 
     public void setGoogleId(String googleId) {
         this.googleId = googleId;
+    }
+
+    public String getClerkUserId() {
+        return clerkUserId;
+    }
+
+    public void setClerkUserId(String clerkUserId) {
+        this.clerkUserId = clerkUserId;
     }
 
     public String getPasswordHash() {

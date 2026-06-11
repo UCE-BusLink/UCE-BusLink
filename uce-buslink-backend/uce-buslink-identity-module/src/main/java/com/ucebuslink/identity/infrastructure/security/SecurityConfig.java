@@ -8,10 +8,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,15 +21,10 @@ import java.util.List;
 @EnableMethodSecurity // Fundamental para usar @PreAuthorize
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomJwtAuthenticationConverter jwtAuthenticationConverter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public SecurityConfig(CustomJwtAuthenticationConverter jwtAuthenticationConverter) {
+        this.jwtAuthenticationConverter = jwtAuthenticationConverter;
     }
 
     @Bean
@@ -40,32 +32,59 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // Manejo estricto de Errores: 401 y 403 (Criterio de Aceptación)
-            .exceptionHandling(exc -> exc
-                .authenticationEntryPoint((request, response, authException) -> 
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido, expirado o ausente"))
-                .accessDeniedHandler((request, response, accessDeniedException) -> 
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Rol no autorizado para esta acción"))
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+
+            .oauth2ResourceServer(oauth ->
+                oauth.jwt(jwt ->
+                    jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)
+                )
+            )
+
+            .exceptionHandling(exc -> exc
+                .authenticationEntryPoint((request, response, authException) ->
+                    response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Token inválido, expirado o ausente"
+                    ))
+                .accessDeniedHandler((request, response, accessDeniedException) ->
+                    response.sendError(
+                        HttpServletResponse.SC_FORBIDDEN,
+                        "Rol no autorizado para esta acción"
+                    ))
+            )
+
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/**").permitAll()
+                // Endpoints verdaderamente públicos
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                
+                // EXIGIMOS token de Clerk para los endpoints de Auth
+                // Así nos aseguramos de que el objeto Jwt en el controlador nunca sea null
+                .requestMatchers("/api/v1/auth/sync").authenticated()
+                .requestMatchers("/api/v1/auth/me").authenticated()
+                
+                // Las demás rutas requieren autenticación por defecto y
+                // se gestionan con el @PreAuthorize en sus controladores
                 .anyRequest().authenticated()
             );
-        
-        // Agregar nuestro filtro antes del filtro de validación estándar
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        
+
         return http.build();
     }
+
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // CORS actualizado para soportar Web, Mobile y Electron (Criterio de Aceptación)
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:3001", "app://buslink", "file://"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000", 
+                "http://localhost:3001", 
+                "app://buslink", 
+                "file://", 
+                "http://localhost:5173"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
