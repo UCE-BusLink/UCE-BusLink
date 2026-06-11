@@ -61,8 +61,7 @@ UCE-BusLink/
 │   │   ├── public/
 │   │   └── vite.config.ts
 │   └── uce-buslink-mobile/                # Aplicación móvil (React Native)
-│
-├── docs/                                  # Documentación del proyecto
+│                             
 ├── .env.example                           # Plantilla de variables de entorno
 ├── .dockerignore
 └── README.md
