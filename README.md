@@ -21,6 +21,7 @@ UCE-BusLink resuelve los problemas críticos del transporte nocturno universitar
 | Cloud | AWS EC2 · Docker Hub |
 
 ---
+```bash
 
 ## Estructura del Repositorio
 
@@ -65,7 +66,7 @@ UCE-BusLink/
 ├── .env.example                           # Plantilla de variables de entorno
 ├── .dockerignore
 └── README.md
-
+```
 ---
 
 ## Requisitos Previos
