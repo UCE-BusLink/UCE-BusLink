@@ -6,11 +6,14 @@ import com.ucebuslink.shared.constant.Role;
 import com.ucebuslink.shared.constant.UserStatus;
 import com.ucebuslink.shared.dto.CurrentUserResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SyncUserUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(SyncUserUseCase.class);
     private final UserRepository userRepository;
 
     public SyncUserUseCase(UserRepository userRepository) {
@@ -22,6 +25,8 @@ public class SyncUserUseCase {
             String email,
             String firstName,
             String lastName) {
+
+        log.debug("[AUTH] Executing SyncUserUseCase for email: {}", email);
 
         User user = userRepository
                 .findByClerkUserId(clerkUserId)
@@ -45,28 +50,26 @@ public class SyncUserUseCase {
             String firstName,
             String lastName) {
 
-        // SOLO estudiantes UCE
+        // Only UCE students allowed
         if (!email.endsWith("@uce.edu.ec")) {
-
+            log.warn("[AUTH] Rejected user creation. Email {} does not belong to the UCE domain.", email);
             throw new IllegalArgumentException(
                     "Solo se permiten correos institucionales UCE");
         }
 
+        log.info("[AUTH] Creating new STUDENT user in database for email: {}", email);
+
         User user = new User();
-
         user.setClerkUserId(clerkUserId);
-
         user.setEmail(email);
-
         user.setFirstName(firstName);
-
         user.setLastName(lastName);
-
         user.setStatus(UserStatus.ACTIVE);
-
         user.setRole(Role.STUDENT);
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        log.info("[AUTH] User created successfully with internal ID: {}", savedUser.getId());
+        
+        return savedUser;
     }
-
 }
