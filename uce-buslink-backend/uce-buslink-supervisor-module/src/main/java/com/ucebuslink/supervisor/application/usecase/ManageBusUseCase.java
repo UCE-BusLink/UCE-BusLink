@@ -1,13 +1,11 @@
 package com.ucebuslink.supervisor.application.usecase;
 
 import com.ucebuslink.supervisor.application.dto.CreateBusCommand;
-import com.ucebuslink.supervisor.application.dto.RouteResponse;
 import com.ucebuslink.supervisor.application.dto.UpdateBusCommand;
 import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.BusResponse;
 import com.ucebuslink.supervisor.application.dto.ChangeBusStatusCommand;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface ManageBusUseCase {
