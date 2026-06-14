@@ -1,6 +1,8 @@
 package com.ucebuslink.shared.exception;
 
 import com.ucebuslink.shared.dto.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -15,7 +17,9 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Maneja errores de validación de los DTOs (@Valid)
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    // Validación de los DTOs (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -24,6 +28,8 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
+
+        log.warn("[VALIDATION_ERROR] Bad request payload rejected. Details: {}", errors);
 
         ErrorResponse response = new ErrorResponse(
                 "validation_error",
@@ -34,19 +40,35 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    // Maneja errores de negocio genéricos (como "No encontrado")
+    // "No encontrado"
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeExceptions(RuntimeException ex) {
+        // "not found" 404, sino 400
+        HttpStatus status = ex.getMessage().toLowerCase().contains("not found") ? 
+                            HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
+                            
+        log.warn("[BUSINESS_ERROR] Handled runtime exception (HTTP {}): {}", status.value(), ex.getMessage());
+
         ErrorResponse response = new ErrorResponse(
                 "business_error",
                 ex.getMessage(),
                 null,
                 LocalDateTime.now()
         );
-        // Si el mensaje dice "not found", devolvemos 404, sino 400
-        HttpStatus status = ex.getMessage().toLowerCase().contains("not found") ? 
-                            HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
-                            
         return new ResponseEntity<>(response, status);
+    }
+
+    // Errores graves (Fallo de BD, NullPointer, etc.)
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
+        log.error("[CRITICAL_FAILURE] Unhandled server exception caught globally: ", ex);
+        
+        ErrorResponse response = new ErrorResponse(
+                "internal_server_error",
+                "An unexpected internal error occurred. Please contact support.",
+                null,
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
