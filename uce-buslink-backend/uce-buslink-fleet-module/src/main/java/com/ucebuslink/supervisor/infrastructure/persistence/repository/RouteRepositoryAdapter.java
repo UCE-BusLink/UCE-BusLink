@@ -118,6 +118,6 @@ public class RouteRepositoryAdapter implements RouteRepository {
                 }
             }
         }
-        log.info("Stop removal and route reordering completed");
+        log.info("[Route] Stop removal and route reordering completed");
     }
 }
