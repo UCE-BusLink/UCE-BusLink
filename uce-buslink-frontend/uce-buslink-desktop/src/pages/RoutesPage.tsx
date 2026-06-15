@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, Clock, Bus, AlertCircle } from 'lucide-react';
+import { Search, SlidersHorizontal, Clock, Bus, AlertCircle, RefreshCw } from 'lucide-react';
 import { useRoutes } from '../hooks/useRoutes';
+import { useDebounce } from '../hooks/useDebounce';
 import type { ApiRoute } from '../types';
 
 function RouteCardSkeleton() {
@@ -61,12 +62,14 @@ function RouteCard({
 
 export function RoutesPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedQuery = useDebounce(searchQuery, 300);
   const navigate = useNavigate();
-  const { routes, loading, error } = useRoutes();
+  const { routes, loading, error, refetch } = useRoutes();
 
+  const query = debouncedQuery.trim().toLowerCase();
   const filteredRoutes = routes.filter((route) =>
-    route.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (route.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+    route.name.toLowerCase().includes(query) ||
+    (route.description?.toLowerCase().includes(query) ?? false)
   );
 
   return (
@@ -94,6 +97,15 @@ export function RoutesPage() {
           <button className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
             <SlidersHorizontal size={16} />
             Filtrar por horario
+          </button>
+          <button
+            onClick={refetch}
+            disabled={loading}
+            title="Recargar rutas"
+            className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            Recargar
           </button>
         </div>
       </div>
@@ -130,7 +142,7 @@ export function RoutesPage() {
         <div className="text-center py-20 text-gray-400">
           <Search size={40} className="mx-auto mb-3 opacity-40" />
           <p className="text-sm font-medium text-gray-500 mb-1">Sin resultados</p>
-          <p className="text-sm">No se encontraron rutas para &quot;{searchQuery}&quot;</p>
+          <p className="text-sm">No se encontraron rutas para &quot;{debouncedQuery}&quot;</p>
         </div>
       )}
 

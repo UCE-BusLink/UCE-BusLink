@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { fetchRoutes } from '../services/routeService';
 import type { ApiRoute } from '../types';
@@ -7,6 +7,7 @@ interface UseRoutesResult {
   routes: ApiRoute[];
   loading: boolean;
   error: string | null;
+  refetch: () => void;
 }
 
 export function useRoutes(): UseRoutesResult {
@@ -14,11 +15,17 @@ export function useRoutes(): UseRoutesResult {
   const [routes, setRoutes] = useState<ApiRoute[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // HU-243 — recarga manual (equivalente desktop al pull-to-refresh móvil)
+  const refetch = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      setLoading(true);
+      setError(null);
       try {
         const token = await getToken({ template: 'uce-buslink' });
         if (!token) throw new Error('No auth token');
@@ -33,7 +40,7 @@ export function useRoutes(): UseRoutesResult {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken]);
+  }, [getToken, reloadKey]);
 
-  return { routes, loading, error };
+  return { routes, loading, error, refetch };
 }
