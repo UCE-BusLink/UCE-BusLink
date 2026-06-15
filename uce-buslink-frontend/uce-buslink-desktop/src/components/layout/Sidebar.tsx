@@ -12,9 +12,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', icon: Home, label: 'Inicio' },
   { to: '/routes', icon: Bus, label: 'Rutas' },
-  { to: '/trips', icon: Clock, label: 'Viajes', disabled: true },
-  { to: '/map', icon: Map, label: 'Mapa', disabled: true },
-  { to: '/profile', icon: User, label: 'Perfil', disabled: true },
+  { to: '/trips', icon: Clock, label: 'Viajes' },
+  { to: '/map', icon: Map, label: 'Mapa' },
+  { to: '/profile', icon: User, label: 'Perfil' },
 ];
 
 export function Sidebar() {
