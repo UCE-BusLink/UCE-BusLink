@@ -44,7 +44,7 @@
 
         <dependency>
             <groupId>com.ucebuslink</groupId>
-            <artifactId>uce-buslink-supervisor-module</artifactId>
+            <artifactId>uce-buslink-fleet-module</artifactId>
             <version>${project.version}</version>
         </dependency>
 
