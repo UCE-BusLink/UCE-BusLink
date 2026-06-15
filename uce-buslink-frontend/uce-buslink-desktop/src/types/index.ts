@@ -1,3 +1,20 @@
+export interface ApiRoute {
+  id: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  estimatedDurationMinutes: number | null;
+  pathPolyline: string | null;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 export type SeatStatus = 'available' | 'occupied' | 'selected';
 export type TripStatus = 'confirmed' | 'unavailable';
 export type RouteDirection = 'north' | 'south' | 'valley';
@@ -6,6 +23,15 @@ export type StopType = 'origin' | 'stop' | 'destination';
 export interface RouteStop {
   name: string;
   type: StopType;
+}
+
+// HU-244 — parada con orden y coordenadas (GET /rutas/{id}/paradas)
+export interface RouteStopDetail {
+  order: number;
+  name: string;
+  type: StopType;
+  lat: number;
+  lng: number;
 }
 
 export interface Route {

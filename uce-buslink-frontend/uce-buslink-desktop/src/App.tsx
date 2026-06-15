@@ -11,6 +11,9 @@ import { DashboardPage } from './pages/DashboardPage'
 import { RoutesPage } from './pages/RoutesPage'
 import { RouteDetailPage } from './pages/RouteDetailPage'
 import { SeatSelectionPage } from './pages/SeatSelectionPage'
+import { TripsPage } from './pages/TripsPage'
+import { MapPage } from './pages/MapPage'
+import { ProfilePage } from './pages/ProfilePage'
 
 import { SignInPage } from './pages/auth/SignInPage'
 import { SignUpPage } from './pages/auth/SignUpPage'
@@ -74,6 +77,12 @@ export default function App() {
             path="/routes/:routeId/seats/:tripId"
             element={<SeatSelectionPage />}
           />
+
+          <Route path="/trips" element={<TripsPage />} />
+
+          <Route path="/map" element={<MapPage />} />
+
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         {/* ROOT */}

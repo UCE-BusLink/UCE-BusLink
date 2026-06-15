@@ -1,6 +1,6 @@
 import { SignIn } from '@clerk/clerk-react'
-import { Bus } from 'lucide-react'
-import heroImg from '../../assets/hero.png';
+import heroImg from '../../assets/brand/FacePage.webp';
+import brandLogo from '../../assets/brand/Logo.png';
 
 export function SignInPage() {
   return (
@@ -25,17 +25,14 @@ export function SignInPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-sm">
           {/* LOGO */}
-          <div className="flex items-center gap-2 mb-10">
-            <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
-              <Bus size={16} className="text-white" />
-            </div>
-
-            <span className="text-navy-900 font-semibold text-sm">
-              UCE Bus-Link
-            </span>
+          <div className="flex justify-center mb-8">
+            <img
+              src={brandLogo}
+              alt="UCE Bus-Link"
+              className="h-24 w-auto object-contain"
+            />
           </div>
 
-          
 
           {/* CLERK */}
           <SignIn
