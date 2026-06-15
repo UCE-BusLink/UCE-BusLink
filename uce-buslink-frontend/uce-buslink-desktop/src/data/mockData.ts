@@ -1,4 +1,4 @@
-import type { Route, Trip, Seat, StandingSpot, WeekDay } from '../types';
+import type { Route, Trip, Seat, StandingSpot, WeekDay, RouteStopDetail } from '../types';
 
 export const routes: Route[] = [
   {
@@ -197,4 +197,24 @@ export function getTripsByRoute(routeId: string): Trip[] {
 
 export function getTripById(id: string): Trip | undefined {
   return trips.find((t) => t.id === id);
+}
+
+// HU-244 — coordenadas mock (base aprox. Quito) para cada parada de una ruta.
+// Reemplazar por GET /rutas/{id}/paradas cuando el backend esté listo.
+const QUITO_BASE = { lat: -0.1807, lng: -78.4678 };
+
+export function getRouteStops(routeId: string): RouteStopDetail[] {
+  const route = getRouteById(routeId) ?? routes[0];
+  return route.stops.map((stop, i) => ({
+    order: i + 1,
+    name: stop.name,
+    type: stop.type,
+    lat: Number((QUITO_BASE.lat + i * 0.012).toFixed(5)),
+    lng: Number((QUITO_BASE.lng + i * 0.009).toFixed(5)),
+  }));
+}
+
+export function getDepartureTimes(routeId: string): string[] {
+  const route = getRouteById(routeId) ?? routes[0];
+  return route.departureTimes;
 }
