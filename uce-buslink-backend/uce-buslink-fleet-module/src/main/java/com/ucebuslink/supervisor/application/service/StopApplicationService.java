@@ -4,8 +4,6 @@ import com.ucebuslink.supervisor.application.dto.CreateStopCommand;
 import com.ucebuslink.supervisor.application.dto.StopResponse;
 import com.ucebuslink.supervisor.application.dto.UpdateStopCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageStopUseCase;
-import com.ucebuslink.supervisor.domain.model.Route;
-import com.ucebuslink.supervisor.domain.model.RouteStop;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
 import com.ucebuslink.supervisor.domain.repository.StopRepository;
@@ -13,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
