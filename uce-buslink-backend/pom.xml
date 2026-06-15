@@ -87,7 +87,7 @@
         <module>uce-buslink-reservations-module</module>
         <module>uce-buslink-tracking-module</module>
         <module>uce-buslink-notifications-module</module>
-        <module>uce-buslink-supervisor-module</module>
+        <module>uce-buslink-fleet-module</module>
         <module>uce-buslink-main</module>
     </modules>
 

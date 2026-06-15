@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/admin")
-public class AdminController {
+public class DriverAdminController {
 
-    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
+    private static final Logger log = LoggerFactory.getLogger(DriverAdminController.class);
     private final AdminService adminService;
 
-    public AdminController(AdminService adminService) {
+    public DriverAdminController(AdminService adminService) {
         this.adminService = adminService;
     }
 
