@@ -12,12 +12,12 @@ COPY uce-buslink-backend/uce-buslink-identity-module/pom.xml        ./uce-buslin
 COPY uce-buslink-backend/uce-buslink-reservations-module/pom.xml    ./uce-buslink-reservations-module/pom.xml
 COPY uce-buslink-backend/uce-buslink-tracking-module/pom.xml        ./uce-buslink-tracking-module/pom.xml
 COPY uce-buslink-backend/uce-buslink-notifications-module/pom.xml   ./uce-buslink-notifications-module/pom.xml
-COPY uce-buslink-backend/uce-buslink-supervisor-module/pom.xml      ./uce-buslink-supervisor-module/pom.xml
+COPY uce-buslink-backend/uce-buslink-fleet-module/pom.xml           ./uce-buslink-fleet-module/pom.xml
 COPY uce-buslink-backend/uce-buslink-main/pom.xml                   ./uce-buslink-main/pom.xml
 
 
 RUN mvn dependency:go-offline \
-    -pl uce-buslink-shared-kernel,uce-buslink-identity-module,uce-buslink-reservations-module,uce-buslink-tracking-module,uce-buslink-notifications-module,uce-buslink-supervisor-module,uce-buslink-main \
+    -pl uce-buslink-shared-kernel,uce-buslink-identity-module,uce-buslink-reservations-module,uce-buslink-tracking-module,uce-buslink-notifications-module,uce-buslink-fleet-module,uce-buslink-main \
     -am \
     --no-transfer-progress \
     -q
@@ -27,7 +27,7 @@ COPY uce-buslink-backend/uce-buslink-identity-module/src        ./uce-buslink-id
 COPY uce-buslink-backend/uce-buslink-reservations-module/src    ./uce-buslink-reservations-module/src
 COPY uce-buslink-backend/uce-buslink-tracking-module/src        ./uce-buslink-tracking-module/src
 COPY uce-buslink-backend/uce-buslink-notifications-module/src   ./uce-buslink-notifications-module/src
-COPY uce-buslink-backend/uce-buslink-supervisor-module/src      ./uce-buslink-supervisor-module/src
+COPY uce-buslink-backend/uce-buslink-fleet-module/src           ./uce-buslink-fleet-module/src
 COPY uce-buslink-backend/uce-buslink-main/src                   ./uce-buslink-main/src
 
 
