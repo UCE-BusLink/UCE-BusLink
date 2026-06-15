@@ -18,7 +18,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Fundamental para usar @PreAuthorize
+@EnableMethodSecurity // @PreAuthorize
 public class SecurityConfig {
 
     private final CustomJwtAuthenticationConverter jwtAuthenticationConverter;
@@ -61,12 +61,10 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
                 
                 // EXIGIMOS token de Clerk para los endpoints de Auth
-                // Así nos aseguramos de que el objeto Jwt en el controlador nunca sea null
                 .requestMatchers("/api/v1/auth/sync").authenticated()
                 .requestMatchers("/api/v1/auth/me").authenticated()
                 
-                // Las demás rutas requieren autenticación por defecto y
-                // se gestionan con el @PreAuthorize en sus controladores
+                // @PreAuthorize en sus controladores
                 .anyRequest().authenticated()
             );
 
@@ -77,7 +75,6 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // CORS actualizado para soportar Web, Mobile y Electron (Criterio de Aceptación)
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000", 
                 "http://localhost:3001", 

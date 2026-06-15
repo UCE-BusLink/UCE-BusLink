@@ -11,7 +11,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>uce-buslink-supervisor-module</artifactId>
+    <artifactId>uce-buslink-fleet-module</artifactId>
 
     <dependencies>
 
