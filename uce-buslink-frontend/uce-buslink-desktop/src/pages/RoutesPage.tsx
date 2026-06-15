@@ -1,27 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Search,
-  SlidersHorizontal,
-  ArrowUp,
-  ArrowDown,
-  ArrowRight,
-  Armchair,
-  User,
-} from 'lucide-react';
-import { routes } from '../data/mockData';
-import type { Route, RouteDirection } from '../types';
+import { Search, SlidersHorizontal, Clock, Bus, AlertCircle } from 'lucide-react';
+import { useRoutes } from '../hooks/useRoutes';
+import type { ApiRoute } from '../types';
 
-function DirectionIcon({ direction }: { direction: RouteDirection }) {
-  const iconMap = {
-    north: ArrowUp,
-    south: ArrowDown,
-    valley: ArrowRight,
-  };
-  const Icon = iconMap[direction];
+function RouteCardSkeleton() {
   return (
-    <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-      <Icon size={16} className="text-gray-600" />
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 animate-pulse">
+      <div className="h-5 bg-gray-100 rounded w-3/4 mb-5" />
+      <div className="h-4 bg-gray-100 rounded w-full mb-2" />
+      <div className="h-4 bg-gray-100 rounded w-2/3 mb-5" />
+      <div className="h-8 bg-gray-100 rounded-lg w-1/3 mb-5" />
+      <div className="h-10 bg-gray-100 rounded-xl w-full mt-auto" />
     </div>
   );
 }
@@ -30,89 +20,38 @@ function RouteCard({
   route,
   onViewTrips,
 }: {
-  route: Route;
+  route: ApiRoute;
   onViewTrips: () => void;
 }) {
-  const hasSeats = route.availableSeats > 0;
-
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
-      <div className="flex items-start justify-between mb-5">
-        <h3 className="text-lg font-bold text-navy-900 leading-tight">
-          {route.name} - {route.destination}
+      <div className="flex items-start justify-between mb-4">
+        <h3 className="text-lg font-bold text-navy-900 leading-tight pr-2">
+          {route.name}
         </h3>
-        <DirectionIcon direction={route.direction} />
-      </div>
-
-      <div className="flex items-stretch gap-3 mb-5">
-        <div className="flex flex-col items-center">
-          {route.stops.map((_, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div
-                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  i === 0
-                    ? 'border-2 border-gray-400 bg-white'
-                    : i === route.stops.length - 1
-                    ? 'bg-navy-900'
-                    : 'border-2 border-gray-300 bg-white'
-                }`}
-              />
-              {i < route.stops.length - 1 && (
-                <div className="w-px h-4 bg-gray-200" />
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-col gap-1">
-          {route.stops.map((stop, i) => (
-            <span
-              key={i}
-              className={`text-sm leading-[18px] ${
-                i === 0 || i === route.stops.length - 1
-                  ? 'font-semibold text-navy-900'
-                  : 'text-gray-400'
-              }`}
-            >
-              {stop.name}
-            </span>
-          ))}
+        <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <Bus size={16} className="text-gray-600" />
         </div>
       </div>
 
-      <div className="mb-5">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-          Horarios de salida
+      {route.description && (
+        <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+          {route.description}
         </p>
-        <div className="flex gap-2 flex-wrap">
-          {route.departureTimes.map((time) => (
-            <span
-              key={time}
-              className="text-sm text-navy-900 border border-gray-200 rounded-lg px-3 py-1 font-medium"
-            >
-              {time}
-            </span>
-          ))}
-        </div>
-      </div>
+      )}
 
-      <div className="flex gap-2 mb-5">
-        <div className="flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-medium">
-          <Armchair size={13} />
-          <span>{route.availableSeats} Asientos</span>
+      {route.estimatedDurationMinutes !== null && (
+        <div className="flex items-center gap-1.5 mb-5">
+          <Clock size={14} className="text-gray-400" />
+          <span className="text-sm text-gray-500">
+            {route.estimatedDurationMinutes} min aprox.
+          </span>
         </div>
-        <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium">
-          <User size={13} />
-          <span>{route.standingSpots} De pie</span>
-        </div>
-      </div>
+      )}
 
       <button
         onClick={onViewTrips}
-        className={`w-full py-3 rounded-xl text-sm font-semibold transition-colors mt-auto ${
-          hasSeats
-            ? 'bg-navy-900 text-white hover:bg-navy-800'
-            : 'bg-amber-500 text-white hover:bg-amber-600'
-        }`}
+        className="w-full py-3 rounded-xl text-sm font-semibold bg-navy-900 text-white hover:bg-navy-800 transition-colors mt-auto"
       >
         Ver viajes
       </button>
@@ -123,11 +62,11 @@ function RouteCard({
 export function RoutesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const { routes, loading, error } = useRoutes();
 
-  const filteredRoutes = routes.filter(
-    (route) =>
-      route.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      route.destination.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredRoutes = routes.filter((route) =>
+    route.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (route.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
   return (
@@ -159,7 +98,25 @@ export function RoutesPage() {
         </div>
       </div>
 
-      {routes.length === 0 ? (
+      {loading && (
+        <div className="grid grid-cols-3 gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <RouteCardSkeleton key={i} />
+          ))}
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="text-center py-24">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle size={28} className="text-red-400" />
+          </div>
+          <p className="font-semibold text-gray-700 mb-1">No se pudieron cargar las rutas</p>
+          <p className="text-sm text-gray-400">{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && routes.length === 0 && (
         <div className="text-center py-24 text-gray-400">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <SlidersHorizontal size={28} className="opacity-40" />
@@ -167,7 +124,17 @@ export function RoutesPage() {
           <p className="font-semibold text-gray-500 mb-1">No hay rutas disponibles</p>
           <p className="text-sm">Por el momento no existen rutas activas. Intenta mas tarde.</p>
         </div>
-      ) : filteredRoutes.length > 0 ? (
+      )}
+
+      {!loading && !error && routes.length > 0 && filteredRoutes.length === 0 && (
+        <div className="text-center py-20 text-gray-400">
+          <Search size={40} className="mx-auto mb-3 opacity-40" />
+          <p className="text-sm font-medium text-gray-500 mb-1">Sin resultados</p>
+          <p className="text-sm">No se encontraron rutas para &quot;{searchQuery}&quot;</p>
+        </div>
+      )}
+
+      {!loading && !error && filteredRoutes.length > 0 && (
         <div className="grid grid-cols-3 gap-5">
           {filteredRoutes.map((route) => (
             <RouteCard
@@ -176,12 +143,6 @@ export function RoutesPage() {
               onViewTrips={() => navigate(`/routes/${route.id}`)}
             />
           ))}
-        </div>
-      ) : (
-        <div className="text-center py-20 text-gray-400">
-          <Search size={40} className="mx-auto mb-3 opacity-40" />
-          <p className="text-sm font-medium text-gray-500 mb-1">Sin resultados</p>
-          <p className="text-sm">No se encontraron rutas para &quot;{searchQuery}&quot;</p>
         </div>
       )}
     </div>
