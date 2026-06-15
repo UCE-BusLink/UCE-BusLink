@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { Bus, Home, Clock, Map, User, LogOut } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react'; // 1. Importamos el hook de Clerk
+import brandIcon from '../../assets/brand/Icon.png';
 
 interface NavItem {
   to: string;
@@ -25,8 +26,8 @@ export function Sidebar() {
     <aside className="w-60 min-h-screen bg-navy-900 flex flex-col flex-shrink-0">
       <div className="p-5 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Bus size={20} className="text-white" />
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <img src={brandIcon} alt="UCE Bus-Link" className="w-full h-full object-contain p-1" />
           </div>
           <div>
             <p className="text-white font-bold text-sm leading-tight">UCE Bus-Link</p>

@@ -25,6 +25,15 @@ export interface RouteStop {
   type: StopType;
 }
 
+// HU-244 — parada con orden y coordenadas (GET /rutas/{id}/paradas)
+export interface RouteStopDetail {
+  order: number;
+  name: string;
+  type: StopType;
+  lat: number;
+  lng: number;
+}
+
 export interface Route {
   id: string;
   name: string;
