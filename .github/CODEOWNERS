@@ -1,5 +1,1 @@
-# El inge (project-stakeholders) solo es notificado cuando cambian
-# archivos críticos de producción, no en PRs de features o dev→qa.
-.github/workflows/deploy.yml     @UCE-BusLink/project-stakeholders
-docker/docker-compose.prod.yml   @UCE-BusLink/project-stakeholders
-docker/nginx.prod.conf           @UCE-BusLink/project-stakeholders
+# Sin code owners — la protección de ramas se maneja por rulesets.
