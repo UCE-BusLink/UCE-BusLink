@@ -1,8 +1,0 @@
-services:
-  uce-buslink-frontend:
-    ports:
-      - "80:80"
-    volumes:
-      - ~/uce-buslink/docker/nginx.qa.conf:/etc/nginx/conf.d/app.conf:ro
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80 || exit 1"]
