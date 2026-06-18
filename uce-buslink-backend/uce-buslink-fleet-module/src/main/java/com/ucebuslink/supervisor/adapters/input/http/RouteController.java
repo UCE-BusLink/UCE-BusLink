@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/supervisor/fleet/routes")
-@PreAuthorize("hasRole('ADMIN')")
 public class RouteController {
 
     private static final Logger log = LoggerFactory.getLogger(RouteController.class);
@@ -39,6 +38,7 @@ public class RouteController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RouteResponse> createRoute(@Valid @RequestBody CreateRouteCommand command) {
         log.info("[ROUTE] Registrando nueva ruta: {}", command.name());
         RouteResponse response = manageRouteUseCase.createRoute(command);
@@ -47,6 +47,7 @@ public class RouteController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PageResponse<RouteResponse>> getRoutes(
             @RequestParam(defaultValue = "true") boolean activa,
             @RequestParam(defaultValue = "0") int page,
@@ -56,12 +57,14 @@ public class RouteController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RouteResponse> getRouteById(@PathVariable(name = "id") UUID id) {
         log.debug("[ROUTE] Consultando detalle de la ruta ID: {}", id);
         return ResponseEntity.ok(manageRouteUseCase.getRouteById(id));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteRoute(@PathVariable(name = "id") UUID id) {
         log.info("[ROUTE] Eliminando ruta con ID: {}", id);
         manageRouteUseCase.deleteRoute(id);
@@ -70,12 +73,14 @@ public class RouteController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RouteResponse> updateRoute(@PathVariable UUID id, @Valid @RequestBody CreateRouteCommand command) {
         log.info("[ROUTE] Actualizando ruta con ID: {}", id);
         return ResponseEntity.ok(manageRouteUseCase.updateRoute(id, command));
     }
 
     @PostMapping("/preview")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<GoogleMapsRoutingService.RoutingResult> previewRoute(
             @Valid @RequestBody RoutePreviewRequest request) {
         

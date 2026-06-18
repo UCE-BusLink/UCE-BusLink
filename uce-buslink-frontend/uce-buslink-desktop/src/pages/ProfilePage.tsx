@@ -1,4 +1,5 @@
 import { useUser } from '@clerk/clerk-react';
+import { useCurrentUser } from '../context/AuthContext';
 import {
   Mail,
   IdCard,
@@ -7,7 +8,6 @@ import {
   Clock,
   Award,
 } from 'lucide-react';
-import { mockUser } from '../data/mockData';
 
 function StatCard({
   icon,
@@ -22,9 +22,7 @@ function StatCard({
 }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <div
-        className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${accent}`}
-      >
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${accent}`}>
         {icon}
       </div>
       <p className="text-2xl font-bold text-navy-900">{value}</p>
@@ -57,23 +55,28 @@ function InfoRow({
 
 export function ProfilePage() {
   const { user: clerkUser } = useUser();
+  const { user } = useCurrentUser();
 
-  // Datos de Clerk con fallback a mock mientras el backend de perfil no esté listo.
-  const firstName = clerkUser?.firstName ?? mockUser.name;
-  const lastName = clerkUser?.lastName ?? mockUser.lastName;
-  const fullName = `${firstName} ${lastName}`.trim();
-  const email =
-    clerkUser?.primaryEmailAddress?.emailAddress ?? mockUser.email;
-  const initials =
-    (firstName?.[0] ?? '') + (lastName?.[0] ?? '') || mockUser.initials;
+  const firstName = clerkUser?.firstName ?? '';
+  const lastName = clerkUser?.lastName ?? '';
+  const fullName = `${firstName} ${lastName}`.trim() || 'Sin nombre';
+  const email = clerkUser?.primaryEmailAddress?.emailAddress ?? '';
+  const initials = ((firstName[0] ?? '') + (lastName[0] ?? '')).toUpperCase() || '?';
   const avatarUrl = clerkUser?.imageUrl;
+  const role = user?.role ?? 'STUDENT';
+
+  const roleLabel: Record<string, string> = {
+    ADMIN: 'Administrador',
+    STUDENT: 'Estudiante verificado',
+    DRIVER: 'Conductor',
+  };
 
   return (
     <div>
       <div className="mb-7">
         <h1 className="text-2xl font-bold text-navy-900">Mi perfil</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Tu información de estudiante y tu historial de viajes.
+          Tu información de cuenta en UCE Bus-Link.
         </p>
       </div>
 
@@ -87,20 +90,18 @@ export function ProfilePage() {
             />
           ) : (
             <div className="w-20 h-20 rounded-2xl bg-amber-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl font-bold text-white">
-                {initials.toUpperCase()}
-              </span>
+              <span className="text-2xl font-bold text-white">{initials}</span>
             </div>
           )}
           <div className="min-w-0">
             <h2 className="text-2xl font-bold text-white truncate">{fullName}</h2>
             <p className="text-white/50 text-sm flex items-center gap-1.5 mt-1">
               <Mail size={14} />
-              {email}
+              {email || '—'}
             </p>
             <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold bg-green-500/15 text-green-400 px-3 py-1 rounded-full">
               <ShieldCheck size={13} />
-              Estudiante verificado
+              {roleLabel[role] ?? role}
             </span>
           </div>
         </div>
@@ -109,19 +110,19 @@ export function ProfilePage() {
       <div className="grid grid-cols-3 gap-5 mb-6">
         <StatCard
           icon={<Award size={20} className="text-green-600" />}
-          value={`${mockUser.trustScore}%`}
+          value="--"
           label="Índice de confianza"
           accent="bg-green-50"
         />
         <StatCard
           icon={<Bus size={20} className="text-navy-700" />}
-          value={`${mockUser.totalTrips}`}
+          value="--"
           label="Viajes realizados"
           accent="bg-blue-50"
         />
         <StatCard
           icon={<Clock size={20} className="text-amber-600" />}
-          value={`${mockUser.punctualityRate}%`}
+          value="--"
           label="Puntualidad"
           accent="bg-amber-50"
         />
@@ -131,17 +132,10 @@ export function ProfilePage() {
         <h3 className="text-sm font-semibold text-navy-900 uppercase tracking-wide mb-2">
           Datos de la cuenta
         </h3>
-        <InfoRow
-          icon={<IdCard size={16} />}
-          label="Identificación universitaria"
-          value={mockUser.universityId}
-        />
-        <InfoRow icon={<Mail size={16} />} label="Correo institucional" value={email} />
-        <InfoRow
-          icon={<ShieldCheck size={16} />}
-          label="Estado de la cuenta"
-          value="Activa"
-        />
+        <InfoRow icon={<IdCard size={16} />} label="Nombre completo" value={fullName} />
+        <InfoRow icon={<Mail size={16} />} label="Correo institucional" value={email || '—'} />
+        <InfoRow icon={<ShieldCheck size={16} />} label="Rol" value={roleLabel[role] ?? role} />
+        <InfoRow icon={<ShieldCheck size={16} />} label="Estado de la cuenta" value="Activa" />
       </div>
     </div>
   );
