@@ -41,4 +41,18 @@ public class StopRepositoryAdapter implements StopRepository {
                 .map(supervisorMapper::toDomain)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<Stop> saveAll(List<Stop> stops) {
+
+        List<StopJpaEntity> jpaEntities = stops.stream()
+                .map(supervisorMapper::toJpa)
+                .collect(Collectors.toList());
+                
+        List<StopJpaEntity> savedEntities = springDataStopRepository.saveAll(jpaEntities);
+        
+        return savedEntities.stream()
+                .map(supervisorMapper::toDomain)
+                .collect(Collectors.toList());
+    }
 }
