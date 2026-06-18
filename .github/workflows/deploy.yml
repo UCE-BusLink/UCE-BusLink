@@ -1,0 +1,283 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - qa
+      - main
+
+# Evita deploys paralelos si se pushea dos veces seguido
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+
+  # ──────────────────────────────────────────
+  # BUILD BACKEND
+  # ──────────────────────────────────────────
+  build-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Determinar tags de imagen
+        id: vars
+        run: |
+          VERSION=$(grep -m1 '<version>' uce-buslink-backend/pom.xml \
+            | sed 's/.*<version>\(.*\)<\/version>/\1/' \
+            | tr -d '[:space:]')
+          if [ -z "$VERSION" ] || ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: version invalida o no encontrada en pom.xml: '${VERSION}'"
+            exit 1
+          fi
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-backend:prod"
+            TAGS="${TAGS},${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-backend:${VERSION}"
+            TAGS="${TAGS},${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-backend:latest"
+          else
+            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-backend:qa"
+          fi
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: docker/Dockerfile.backend
+          push: true
+          tags: ${{ steps.vars.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────
+  # BUILD FRONTEND
+  # ──────────────────────────────────────────
+  build-frontend:
+    name: Build & Push Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Determinar tags de imagen
+        id: vars
+        run: |
+          # Fuente unica de version: pom.xml del backend (frontend y backend se versionan igual)
+          VERSION=$(grep -m1 '<version>' uce-buslink-backend/pom.xml \
+            | sed 's/.*<version>\(.*\)<\/version>/\1/' \
+            | tr -d '[:space:]')
+          if [ -z "$VERSION" ] || ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: version invalida o no encontrada en pom.xml: '${VERSION}'"
+            exit 1
+          fi
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:prod"
+            TAGS="${TAGS},${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:${VERSION}"
+            TAGS="${TAGS},${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:latest"
+          else
+            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:qa"
+          fi
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: docker/Dockerfile.frontend
+          push: true
+          tags: ${{ steps.vars.outputs.tags }}
+          build-args: |
+            VITE_API_URL=/api
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+            VITE_MICROSOFT_CLIENT_ID=${{ secrets.VITE_MICROSOFT_CLIENT_ID }}
+            VITE_MICROSOFT_TENANT_ID=${{ secrets.VITE_MICROSOFT_TENANT_ID }}
+            VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ──────────────────────────────────────────
+  # DEPLOY QA — automático, sin aprobación
+  # ──────────────────────────────────────────
+  deploy-qa:
+    name: Deploy to QA
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: github.ref_name == 'qa'
+    environment: qa
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Copiar archivos Docker al servidor QA
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST_QA }}
+          username: ${{ secrets.EC2_USER_QA }}
+          key: ${{ secrets.EC2_SSH_KEY_QA }}
+          source: "docker/"
+          target: "~/uce-buslink/"
+
+      - name: Desplegar en QA
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          ENV_FILE: ${{ secrets.EC2_ENV_QA }}
+        with:
+          host: ${{ secrets.EC2_HOST_QA }}
+          username: ${{ secrets.EC2_USER_QA }}
+          key: ${{ secrets.EC2_SSH_KEY_QA }}
+          envs: ENV_FILE
+          script: |
+            cd ~/uce-buslink
+            mkdir -p docker
+            printf '%s\n' "$ENV_FILE" | tr -d '\r' > docker/.env
+            chmod 600 docker/.env
+            docker compose -f docker/docker-compose.yml -f docker/docker-compose.qa.yml pull
+            docker compose -f docker/docker-compose.yml -f docker/docker-compose.qa.yml up -d --remove-orphans
+            docker image prune -f
+
+  # ──────────────────────────────────────────
+  # DEPLOY PROD — requiere aprobación del inge
+  # ──────────────────────────────────────────
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: github.ref_name == 'main'
+    environment: production        # ← aquí está el gate manual
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Copiar archivos Docker al servidor PROD
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST_PROD }}
+          username: ${{ secrets.EC2_USER_PROD }}
+          key: ${{ secrets.EC2_SSH_KEY_PROD }}
+          source: "docker/"
+          target: "~/uce-buslink/"
+
+      - name: Desplegar en PROD
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          ENV_FILE: ${{ secrets.EC2_ENV_PROD }}
+        with:
+          host: ${{ secrets.EC2_HOST_PROD }}
+          username: ${{ secrets.EC2_USER_PROD }}
+          key: ${{ secrets.EC2_SSH_KEY_PROD }}
+          envs: ENV_FILE
+          script: |
+            cd ~/uce-buslink
+            mkdir -p docker
+            printf '%s\n' "$ENV_FILE" | tr -d '\r' > docker/.env
+            chmod 600 docker/.env
+            docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml pull
+            docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
+
+  # ──────────────────────────────────────────
+  # CREATE RELEASE — solo en main, tras deploy exitoso
+  # ──────────────────────────────────────────
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [deploy-prod]
+    if: github.ref_name == 'main'
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Extraer version
+        id: version
+        run: |
+          VERSION=$(grep -m1 '<version>' uce-buslink-backend/pom.xml \
+            | sed 's/.*<version>\(.*\)<\/version>/\1/' \
+            | tr -d '[:space:]')
+          if [ -z "$VERSION" ] || ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: version invalida o no encontrada en pom.xml: '${VERSION}'"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Verificar que el tag no existe
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+            echo "Error: El tag ${TAG} ya existe en origin."
+            echo "Incrementa la version en pom.xml antes de mergear a main."
+            exit 1
+          fi
+
+      - name: Crear y pushear git tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "${TAG}"
+
+      - name: Crear GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          REPO: ${{ github.repository }}
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^${TAG}$" | head -1)
+
+          if [ -z "$PREV_TAG" ]; then
+            COMMIT_COUNT=$(git rev-list --count HEAD)
+            FIRST_COMMIT=$(git rev-list --max-parents=0 HEAD | tail -1)
+            FILE_STATS=$(git diff --shortstat "${FIRST_COMMIT}" HEAD)
+            LOG=$(git log --pretty=format:"* %s" --no-merges | head -20)
+            COMPARE_URL="https://github.com/${REPO}/commits/${TAG}"
+          else
+            COMMIT_COUNT=$(git rev-list --count "${PREV_TAG}..HEAD")
+            FILE_STATS=$(git diff --shortstat "${PREV_TAG}" HEAD)
+            LOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"* %s" --no-merges | head -20)
+            COMPARE_URL="https://github.com/${REPO}/compare/${PREV_TAG}...${TAG}"
+          fi
+
+          {
+            echo "## What's Changed"
+            echo ""
+            printf '%s\n' "${LOG}"
+            echo ""
+            echo "## Stats"
+            echo "- Commits: ${COMMIT_COUNT}"
+            echo "- ${FILE_STATS}"
+            echo "- Docker backend: ${DOCKERHUB_USER}/uce-buslink-backend:${VERSION}"
+            echo "- Docker frontend: ${DOCKERHUB_USER}/uce-buslink-frontend-desktop:${VERSION}"
+            echo "- Build: GitHub Actions run #${RUN_NUMBER}"
+            echo ""
+            echo "[Full Changelog](${COMPARE_URL})"
+          } > /tmp/release-notes.md
+
+          gh release create "${TAG}" \
+            --repo "${REPO}" \
+            --title "Release ${TAG}" \
+            --notes-file /tmp/release-notes.md

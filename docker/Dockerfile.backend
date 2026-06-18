@@ -1,0 +1,73 @@
+
+FROM --platform=$BUILDPLATFORM maven:3.9.6-eclipse-temurin-21-alpine AS builder
+
+WORKDIR /app
+
+
+COPY uce-buslink-backend/pom.xml ./pom.xml
+
+
+COPY uce-buslink-backend/uce-buslink-shared-kernel/pom.xml          ./uce-buslink-shared-kernel/pom.xml
+COPY uce-buslink-backend/uce-buslink-identity-module/pom.xml        ./uce-buslink-identity-module/pom.xml
+COPY uce-buslink-backend/uce-buslink-reservations-module/pom.xml    ./uce-buslink-reservations-module/pom.xml
+COPY uce-buslink-backend/uce-buslink-tracking-module/pom.xml        ./uce-buslink-tracking-module/pom.xml
+COPY uce-buslink-backend/uce-buslink-notifications-module/pom.xml   ./uce-buslink-notifications-module/pom.xml
+COPY uce-buslink-backend/uce-buslink-fleet-module/pom.xml           ./uce-buslink-fleet-module/pom.xml
+COPY uce-buslink-backend/uce-buslink-main/pom.xml                   ./uce-buslink-main/pom.xml
+
+
+RUN mvn dependency:go-offline \
+    -pl uce-buslink-shared-kernel,uce-buslink-identity-module,uce-buslink-reservations-module,uce-buslink-tracking-module,uce-buslink-notifications-module,uce-buslink-fleet-module,uce-buslink-main \
+    -am \
+    --no-transfer-progress \
+    -q
+
+COPY uce-buslink-backend/uce-buslink-shared-kernel/src          ./uce-buslink-shared-kernel/src
+COPY uce-buslink-backend/uce-buslink-identity-module/src        ./uce-buslink-identity-module/src
+COPY uce-buslink-backend/uce-buslink-reservations-module/src    ./uce-buslink-reservations-module/src
+COPY uce-buslink-backend/uce-buslink-tracking-module/src        ./uce-buslink-tracking-module/src
+COPY uce-buslink-backend/uce-buslink-notifications-module/src   ./uce-buslink-notifications-module/src
+COPY uce-buslink-backend/uce-buslink-fleet-module/src           ./uce-buslink-fleet-module/src
+COPY uce-buslink-backend/uce-buslink-main/src                   ./uce-buslink-main/src
+
+
+RUN mvn clean package \
+    -DskipTests \
+    --no-transfer-progress \
+    -q
+
+
+# -----------------------------------------------------------------------------
+FROM --platform=$TARGETPLATFORM eclipse-temurin:21-jre-alpine AS runtime
+
+
+LABEL maintainer="UCE-BusLink Team"
+LABEL app="uce-buslink-backend"
+LABEL version="0.1.0"
+
+WORKDIR /app
+
+
+RUN addgroup -S buslink && adduser -S buslink -G buslink
+
+
+COPY --from=builder /app/uce-buslink-main/target/*.jar app.jar
+
+RUN chown buslink:buslink app.jar
+
+
+USER buslink
+
+
+EXPOSE 8080
+
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+
+
+ENTRYPOINT ["java", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-jar", "app.jar"]
+

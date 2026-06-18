@@ -1,0 +1,27 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - qa
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Monorepo Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Validate required files
+        run: |
+          test -f uce-buslink-backend/pom.xml
+          test -f uce-buslink-frontend/uce-buslink-desktop/package.json
+          test -f docker/Dockerfile.backend
+          test -f docker/Dockerfile.frontend
+          test -f docker/docker-compose.yml
+          test -f .env.example
