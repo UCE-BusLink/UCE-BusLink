@@ -9,9 +9,8 @@ import java.util.UUID;
 
 public interface ManageStopUseCase {
     StopResponse createStop(CreateStopCommand command);
+    List<StopResponse> createStopsBatch(List<CreateStopCommand> commands);
     List<StopResponse> getAllActiveStops();
-
     StopResponse updateStop(UUID id, UpdateStopCommand command);
-
     void deleteStop(UUID id);
 }

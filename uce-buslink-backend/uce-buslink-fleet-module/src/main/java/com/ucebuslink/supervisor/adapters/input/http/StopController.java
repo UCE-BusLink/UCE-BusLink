@@ -56,4 +56,12 @@ public class StopController {
         log.info("[FLEET] Stop with ID {} deleted successfully", id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/batch")
+    public ResponseEntity<List<StopResponse>> createStopsBatch(@Valid @RequestBody List<CreateStopCommand> commands) {
+        log.info("[FLEET] Creating a batch of {} new stops...", commands.size());
+        List<StopResponse> responses = manageStopUseCase.createStopsBatch(commands);
+        log.info("[FLEET] Batch of {} stops created successfully", responses.size());
+        return new ResponseEntity<>(responses, HttpStatus.CREATED);
+    }
 }
