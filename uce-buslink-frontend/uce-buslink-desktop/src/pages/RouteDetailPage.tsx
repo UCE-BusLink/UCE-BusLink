@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ChevronLeft,
   Clock,
@@ -11,7 +11,7 @@ import {
   Star,
   Map as MapIcon,
 } from 'lucide-react';
-import { getCurrentWeekDays, getRouteStops, getDepartureTimes } from '../data/mockData';
+import { getCurrentWeekDays } from '../data/mockData';
 import { useRoute } from '../hooks/useRoute';
 import type { RouteStopDetail, StopType } from '../types';
 
@@ -62,6 +62,8 @@ function StopRow({ stop, isLast }: { stop: RouteStopDetail; isLast: boolean }) {
 export function RouteDetailPage() {
   const { routeId } = useParams<{ routeId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminContext = location.pathname.startsWith('/admin');
 
   const weekDays = getCurrentWeekDays();
   const todayIndex = weekDays.findIndex((d) => d.isToday);
@@ -119,19 +121,27 @@ export function RouteDetailPage() {
     );
   }
 
-  // HU-244 — paradas y salidas (mock; reemplazar por fetchRouteStops al haber backend)
-  const stops = getRouteStops(routeId ?? '');
-  const departureTimes = getDepartureTimes(routeId ?? '');
+  const stops: RouteStopDetail[] = (route.stops ?? [])
+    .sort((a, b) => a.stopOrder - b.stopOrder)
+    .map((s, i, arr) => ({
+      order: s.stopOrder,
+      name: s.stopName,
+      type: (i === 0 ? 'origin' : i === arr.length - 1 ? 'destination' : 'stop') as StopType,
+      lat: s.latitude,
+      lng: s.longitude,
+    }));
+
+  const departureTimes: string[] = [];
 
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
         <button
-          onClick={() => navigate('/routes')}
+          onClick={() => navigate(isAdminContext ? '/admin/routes' : '/routes')}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-navy-900 transition-colors"
         >
           <ChevronLeft size={16} />
-          Rutas disponibles
+          {isAdminContext ? 'Gestión de rutas' : 'Rutas disponibles'}
         </button>
 
         <div className="flex items-center gap-3">

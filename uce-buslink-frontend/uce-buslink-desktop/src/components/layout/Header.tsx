@@ -7,7 +7,7 @@ export function Header() {
       <img
         src={logoHorizontal}
         alt="UCE Bus-Link"
-        className="h-8 w-auto object-contain"
+        className="h-16 w-auto object-contain"
       />
 
       <UserButton afterSignOutUrl="/login" />
