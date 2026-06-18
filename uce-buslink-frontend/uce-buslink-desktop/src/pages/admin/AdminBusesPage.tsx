@@ -9,24 +9,31 @@ export function AdminBusesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+  const [trigger, setTrigger] = useState(0);
 
-  async function load() {
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const token = await getToken({ template: 'uce-buslink' });
+        if (!token) throw new Error('Sin token');
+        const page = await fetchBuses(token, 0, 50);
+        setBuses(page.content);
+        setTotal(page.totalElements);
+        setError(null);
+      } catch {
+        setError('No se pudieron cargar los buses');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [trigger]);
+
+  function refresh() {
     setLoading(true);
     setError(null);
-    try {
-      const token = await getToken({ template: 'uce-buslink' });
-      if (!token) throw new Error('Sin token');
-      const page = await fetchBuses(token, 0, 50);
-      setBuses(page.content);
-      setTotal(page.totalElements);
-    } catch {
-      setError('No se pudieron cargar los buses');
-    } finally {
-      setLoading(false);
-    }
+    setTrigger((t) => t + 1);
   }
-
-  useEffect(() => { load(); }, []);
 
   return (
     <div>
@@ -36,7 +43,7 @@ export function AdminBusesPage() {
           <p className="text-gray-500 text-sm mt-1">{total} unidades en flota</p>
         </div>
         <button
-          onClick={load}
+          onClick={refresh}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <RefreshCw size={15} />

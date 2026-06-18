@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bus, Truck, MapPin, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
@@ -47,11 +47,7 @@ export function AdminDashboardPage() {
 
   const [busCount, setBusCount] = useState<number | null>(null);
   const [stopCount, setStopCount] = useState<number | null>(null);
-  const [activeRoutes, setActiveRoutes] = useState(0);
-
-  useEffect(() => {
-    setActiveRoutes(routes.filter((r) => r.isActive).length);
-  }, [routes]);
+  const activeRoutes = useMemo(() => routes.filter((r) => r.isActive).length, [routes]);
 
   useEffect(() => {
     async function loadStats() {

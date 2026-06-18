@@ -9,23 +9,30 @@ export function AdminStopsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [trigger, setTrigger] = useState(0);
 
-  async function load() {
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const token = await getToken({ template: 'uce-buslink' });
+        if (!token) throw new Error('Sin token');
+        const data = await fetchStops(token);
+        setStops(data);
+        setError(null);
+      } catch {
+        setError('No se pudieron cargar las paradas');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [trigger]);
+
+  function refresh() {
     setLoading(true);
     setError(null);
-    try {
-      const token = await getToken({ template: 'uce-buslink' });
-      if (!token) throw new Error('Sin token');
-      const data = await fetchStops(token);
-      setStops(data);
-    } catch {
-      setError('No se pudieron cargar las paradas');
-    } finally {
-      setLoading(false);
-    }
+    setTrigger((t) => t + 1);
   }
-
-  useEffect(() => { load(); }, []);
 
   const filtered = stops.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase())
@@ -39,7 +46,7 @@ export function AdminStopsPage() {
           <p className="text-gray-500 text-sm mt-1">{stops.length} paradas registradas</p>
         </div>
         <button
-          onClick={load}
+          onClick={refresh}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <RefreshCw size={15} />

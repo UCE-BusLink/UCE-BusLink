@@ -100,18 +100,13 @@ function MetaCard({ icon, label, value }: { icon: React.ReactNode; label: string
 export function MapPage() {
   const navigate = useNavigate();
   const { routes, loading: routesLoading } = useRoutes();
-  const [selectedId, setSelectedId] = useState<string>('');
+  const [manualSelectedId, setSelectedId] = useState<string>('');
+  const selectedId = manualSelectedId || routes[0]?.id || '';
   const { route: selectedRoute, loading: routeLoading } = useRoute(selectedId);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layersRef = useRef<L.Layer[]>([]);
-
-  useEffect(() => {
-    if (routes.length > 0 && !selectedId) {
-      setSelectedId(routes[0].id);
-    }
-  }, [routes, selectedId]);
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
