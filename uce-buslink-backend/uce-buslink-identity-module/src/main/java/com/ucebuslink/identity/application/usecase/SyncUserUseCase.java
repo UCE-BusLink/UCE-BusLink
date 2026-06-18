@@ -62,8 +62,8 @@ public class SyncUserUseCase {
         User user = new User();
         user.setClerkUserId(clerkUserId);
         user.setEmail(email);
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
+        user.setFirstName(firstName != null ? firstName : "");
+        user.setLastName(lastName != null ? lastName : "");
         user.setStatus(UserStatus.ACTIVE);
         user.setRole(Role.STUDENT);
 
