@@ -6,6 +6,9 @@ import com.ucebuslink.supervisor.infrastructure.persistence.repository.SpringDat
 
 import lombok.RequiredArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -92,57 +95,6 @@ public class SupervisorMapper {
         return route;
     }
 
-    /*
-    @SuppressWarnings("null")
-    public RouteJpaEntity toJpa(Route domain) {
-        if (domain == null) {
-            return null;
-        }
-
-        RouteJpaEntity entity = new RouteJpaEntity();
-        entity.setId(domain.getId());
-        entity.setName(domain.getName());
-        entity.setDescription(domain.getDescription());
-        entity.setIsActive(domain.getIsActive());
-        entity.setEstimatedDurationMinutes(domain.getEstimatedDurationMinutes());
-        entity.setPathPolyline(domain.getPathPolyline());
-        entity.setCreatedBy(domain.getCreatedBy());
-        entity.setUpdatedBy(domain.getUpdatedBy());
-        entity.setDeletedAt(domain.getDeletedAt());
-
-        if (domain.getRouteStops() != null) {
-            domain.getRouteStops().forEach(rs -> {
-
-                RouteStopJpaEntity rsEntity = new RouteStopJpaEntity();
-
-                // NO asignar manualmente la clave compuesta.
-                // Hibernate la construirá mediante @MapsId.
-                //
-                // rsEntity.setId(
-                //     new RouteStopKey(
-                //         domain.getId(),
-                //         rs.getStop().getId()
-                //     )
-                // );
-
-                StopJpaEntity stopEntity =
-                        stopRepository.getReferenceById(
-                                rs.getStop().getId()
-                        );
-
-                rsEntity.setStop(stopEntity);
-                rsEntity.setStopOrder(rs.getStopOrder());
-                rsEntity.setEstimatedMinutesFromStart(
-                        rs.getEstimatedMinutesFromStart()
-                );
-
-                entity.addStop(rsEntity);
-            });
-        }
-
-        return entity;
-    } */
-
     @SuppressWarnings("null")
     public RouteJpaEntity toJpa(Route domain) {
         if (domain == null) {
@@ -181,6 +133,60 @@ public class SupervisorMapper {
         }
 
         return entity;
+    }
+
+
+
+    public ScheduleJpaEntity toEntity(Schedule domain, RouteJpaEntity routeJpaEntity) {
+        if (domain == null) return null;
+
+        ScheduleJpaEntity entity = new ScheduleJpaEntity();
+        entity.setId(domain.getId());
+        entity.setRoute(routeJpaEntity);
+        entity.setIsActive(domain.isActive());
+        
+        // Mapear la lista de detalles
+        if (domain.getDetails() != null) {
+            for (ScheduleDetail detailDomain : domain.getDetails()) {
+                ScheduleDetailJpaEntity detailEntity = new ScheduleDetailJpaEntity();
+                detailEntity.setType(detailDomain.getType());
+                detailEntity.setDaysOfWeek(new HashSet<>(detailDomain.getDaysOfWeek()));
+                detailEntity.setFixedDepartureTimes(new ArrayList<>(detailDomain.getFixedDepartureTimes()));
+                detailEntity.setFrequencyStartTime(detailDomain.getFrequencyStartTime());
+                detailEntity.setFrequencyEndTime(detailDomain.getFrequencyEndTime());
+                detailEntity.setFrequencyIntervalMinutes(detailDomain.getFrequencyIntervalMinutes());
+                
+                // Usamos el helper para que se asigne el schedule_id automáticamente
+                entity.addDetail(detailEntity); 
+            }
+        }
+        
+        return entity;
+    }
+
+    public Schedule toDomain(ScheduleJpaEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        List<ScheduleDetail> details = entity.getDetails()
+                .stream()
+                .map(detail -> new ScheduleDetail(
+                        detail.getType(),
+                        detail.getDaysOfWeek(),
+                        detail.getFixedDepartureTimes(),
+                        detail.getFrequencyStartTime(),
+                        detail.getFrequencyEndTime(),
+                        detail.getFrequencyIntervalMinutes()
+                ))
+                .collect(Collectors.toList());
+
+        return new Schedule(
+                entity.getId(),
+                entity.getRoute() != null ? entity.getRoute().getId() : null,
+                details,
+                entity.getIsActive()
+        );
     }
 
 }
