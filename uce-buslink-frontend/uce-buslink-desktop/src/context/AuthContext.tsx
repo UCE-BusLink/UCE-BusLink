@@ -26,16 +26,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { getToken } = useAuth()
     const syncedRef = useRef(false)
     const [role, setRole] = useState<string>('STUDENT')
-    const [syncDone, setSyncDone] = useState(false)
+    const [syncComplete, setSyncComplete] = useState(false)
+    const syncDone = isLoaded && (!clerkUser || syncComplete)
 
     useEffect(() => {
         if (!isLoaded) return
-
-        if (!clerkUser) {
-            setSyncDone(true)
-            return
-        }
-
+        if (!clerkUser) return
         if (syncedRef.current) return
         syncedRef.current = true
 
@@ -54,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch {
                 // silencioso
             } finally {
-                setSyncDone(true)
+                setSyncComplete(true)
             }
         }
 
