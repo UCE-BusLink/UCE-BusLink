@@ -124,4 +124,25 @@ public class StopApplicationService implements ManageStopUseCase {
 
         routeRepository.removeStopFromRoutes(id);
     }
+
+    @Override
+    @Transactional
+    public List<StopResponse> createStopsBatch(List<CreateStopCommand> commands) {
+        
+        List<Stop> stopsToSave = commands.stream().map(command -> {
+            Stop stop = new Stop();
+            stop.setName(command.name());
+            stop.setLatitude(command.latitude());
+            stop.setLongitude(command.longitude());
+            stop.setIsActive(true);
+            stop.setCreatedAt(LocalDateTime.now());
+            return stop;
+        }).collect(Collectors.toList());
+
+        List<Stop> savedStops = stopRepository.saveAll(stopsToSave);
+
+        return savedStops.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 }
