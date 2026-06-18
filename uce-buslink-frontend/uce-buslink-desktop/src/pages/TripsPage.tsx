@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Clock,
@@ -12,15 +12,8 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react';
-import { trips, getRouteById, upcomingReservation } from '../data/mockData';
 import type { Trip, Route } from '../types';
 import type { ActiveReservation } from '../services/reservationService';
-
-// HU-161 — reserva activa inicial (mock hasta que exista el backend de reservas)
-const INITIAL_RESERVATION: ActiveReservation = {
-  id: 'r1',
-  ...upcomingReservation,
-};
 
 function StatBadge({
   icon,
@@ -210,23 +203,12 @@ function ReservationField({
 
 export function TripsPage() {
   const navigate = useNavigate();
-  const [reservation, setReservation] = useState<ActiveReservation | null>(
-    INITIAL_RESERVATION
-  );
+  const [reservation, setReservation] = useState<ActiveReservation | null>(null);
   const [justCancelled, setJustCancelled] = useState(false);
 
-  // HU-159 — viajes disponibles (mock; reemplazar por fetchAvailableTrips al haber backend)
-  const availableTrips = useMemo(
-    () =>
-      trips
-        .filter((t) => t.status === 'confirmed')
-        .map((trip) => ({ trip, route: getRouteById(trip.routeId) }))
-        .filter((x): x is { trip: Trip; route: Route } => Boolean(x.route)),
-    []
-  );
+  const availableTrips: { trip: Trip; route: Route }[] = [];
 
   function handleCancel() {
-    // HU-161 — al integrar: cancelReservation(token, reservation.id)
     setReservation(null);
     setJustCancelled(true);
   }

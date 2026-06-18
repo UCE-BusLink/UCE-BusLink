@@ -1,3 +1,12 @@
+export interface ApiRouteStop {
+  stopId: string;
+  stopName: string;
+  latitude: number;
+  longitude: number;
+  stopOrder: number;
+  estimatedMinutesFromStart: number | null;
+}
+
 export interface ApiRoute {
   id: string;
   name: string;
@@ -5,6 +14,7 @@ export interface ApiRoute {
   isActive: boolean;
   estimatedDurationMinutes: number | null;
   pathPolyline: string | null;
+  stops: ApiRouteStop[] | null;
 }
 
 export interface PageResponse<T> {

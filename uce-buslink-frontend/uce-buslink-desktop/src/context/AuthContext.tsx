@@ -1,10 +1,4 @@
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState,
-} from "react"
-
+import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { useAuth, useUser } from "@clerk/clerk-react"
 
 interface CurrentUser {
@@ -18,95 +12,68 @@ interface CurrentUser {
 interface AuthContextType {
     user: CurrentUser | null
     loading: boolean
+    syncDone: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
+    syncDone: false,
 })
 
-export function AuthProvider({
-    children,
-}: {
-    children: React.ReactNode
-}) {
-
-    const { getToken, isSignedIn } = useAuth()
-
-    const { user: clerkUser } = useUser()
-
-    const [user, setUser] =
-        useState<CurrentUser | null>(null)
-
-    const [loading, setLoading] = useState(true)
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+    const { user: clerkUser, isLoaded } = useUser()
+    const { getToken } = useAuth()
+    const syncedRef = useRef(false)
+    const [role, setRole] = useState<string>('STUDENT')
+    const [syncComplete, setSyncComplete] = useState(false)
+    const syncDone = isLoaded && (!clerkUser || syncComplete)
 
     useEffect(() => {
+        if (!isLoaded) return
+        if (!clerkUser) return
+        if (syncedRef.current) return
+        syncedRef.current = true
 
-        async function loadUser() {
-
-            if (!isSignedIn || !clerkUser) {
-
-                setLoading(false)
-
-                return
-            }
-
+        async function syncToBackend() {
             try {
-
-                const token = await getToken({
-                    template: "uce-buslink",
-                })
-
-                // sync
-                await fetch(
+                const token = await getToken({ template: "uce-buslink" })
+                if (!token) return
+                const res = await fetch(
                     `${import.meta.env.VITE_API_URL}/api/v1/auth/sync`,
-                    {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
+                    { method: "POST", headers: { Authorization: `Bearer ${token}` } }
                 )
-
-                // me
-                const response = await fetch(
-                    `${import.meta.env.VITE_API_URL}/api/v1/auth/me`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                )
-
-                const data = await response.json()
-
-                setUser(data)
-
-            } catch (error) {
-
-                console.error(error)
+                if (res.ok) {
+                    const data = await res.json()
+                    if (data.role) setRole(data.role)
+                }
+            } catch {
+                // silencioso
+            } finally {
+                setSyncComplete(true)
             }
-
-            setLoading(false)
         }
 
-        loadUser()
+        syncToBackend()
+    }, [isLoaded, clerkUser, getToken])
 
-    }, [isSignedIn, clerkUser])
+    const user: CurrentUser | null = clerkUser
+        ? {
+              id: clerkUser.id,
+              email: clerkUser.primaryEmailAddress?.emailAddress ?? "",
+              firstName: clerkUser.firstName ?? "",
+              lastName: clerkUser.lastName ?? "",
+              role,
+          }
+        : null
 
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                loading,
-            }}
-        >
+        <AuthContext.Provider value={{ user, loading: !isLoaded, syncDone }}>
             {children}
         </AuthContext.Provider>
     )
 }
 
 export function useCurrentUser() {
-
     return useContext(AuthContext)
 }
