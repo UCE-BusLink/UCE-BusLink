@@ -9,4 +9,5 @@ public interface StopRepository {
     Stop save(Stop stop);
     Optional<Stop> findById(UUID id);
     List<Stop> findAllActive();
+    List<Stop> saveAll(List<Stop> stops);
 }

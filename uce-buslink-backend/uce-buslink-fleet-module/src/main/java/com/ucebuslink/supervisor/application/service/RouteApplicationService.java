@@ -143,7 +143,9 @@ public class RouteApplicationService implements ManageRouteUseCase {
                 return new RouteStop(stop, stopCommand.stopOrder(), stopCommand.estimatedMinutesFromStart(), LocalDateTime.now());
             }).collect(Collectors.toList());
             
-            route.setRouteStops(updatedStops);
+            // CORRECCIÓN PARA HIBERNATE: Limpiar y rellenar en lugar de setear una lista nueva
+            route.getRouteStops().clear();
+            route.getRouteStops().addAll(updatedStops);
         }
 
         Route updatedRoute = routeRepository.save(route);
@@ -152,13 +154,36 @@ public class RouteApplicationService implements ManageRouteUseCase {
     }
 
     private RouteResponse mapToResponse(Route route) {
+        
+        List<RouteResponse.RouteStopDetailResponse> stopDetails = null;
+
+        // Verificamos que la ruta tenga paradas para evitar NullPointerExceptions
+        if (route.getRouteStops() != null) {
+            stopDetails = route.getRouteStops().stream()
+                .map(routeStop -> {
+                    // Extraemos la parada asociada a esta relación
+                    Stop stop = routeStop.getStop();
+                    
+                    return new RouteResponse.RouteStopDetailResponse(
+                        stop.getId(),
+                        stop.getName(),
+                        stop.getLatitude(),
+                        stop.getLongitude(),
+                        routeStop.getStopOrder(),
+                        routeStop.getEstimatedMinutesFromStart()
+                    );
+                })
+                .collect(Collectors.toList());
+        }
+
         return new RouteResponse(
                 route.getId(),
                 route.getName(),
                 route.getDescription(),
                 route.getIsActive(),
                 route.getEstimatedDurationMinutes(),
-                route.getPathPolyline()
+                route.getPathPolyline(),
+                stopDetails // <-- Pasamos la lista construida aquí
         );
     }
 }

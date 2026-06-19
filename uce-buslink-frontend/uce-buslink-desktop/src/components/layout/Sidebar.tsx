@@ -1,16 +1,16 @@
 import { NavLink } from 'react-router-dom';
-import { Bus, Home, Clock, Map, User, LogOut } from 'lucide-react';
-import { useAuth } from '@clerk/clerk-react'; // 1. Importamos el hook de Clerk
+import { Bus, Home, Clock, Map, User, LogOut, LayoutDashboard, Truck, MapPin, Settings } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
+import { useCurrentUser } from '../../context/AuthContext';
 import brandIcon from '../../assets/brand/Icon.png';
 
 interface NavItem {
   to: string;
   icon: React.ElementType;
   label: string;
-  disabled?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const STUDENT_NAV: NavItem[] = [
   { to: '/dashboard', icon: Home, label: 'Inicio' },
   { to: '/routes', icon: Bus, label: 'Rutas' },
   { to: '/trips', icon: Clock, label: 'Viajes' },
@@ -18,9 +18,19 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/profile', icon: User, label: 'Perfil' },
 ];
 
+const ADMIN_NAV: NavItem[] = [
+  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/admin/routes', icon: Bus, label: 'Rutas' },
+  { to: '/admin/buses', icon: Truck, label: 'Buses' },
+  { to: '/admin/stops', icon: MapPin, label: 'Paradas' },
+  { to: '/profile', icon: Settings, label: 'Cuenta' },
+];
+
 export function Sidebar() {
-  // 2. Extraemos signOut en lugar de useNavigate
   const { signOut } = useAuth();
+  const { user } = useCurrentUser();
+  const isAdmin = user?.role === 'ADMIN';
+  const navItems = isAdmin ? ADMIN_NAV : STUDENT_NAV;
 
   return (
     <aside className="w-60 min-h-screen bg-navy-900 flex flex-col flex-shrink-0">
@@ -31,43 +41,32 @@ export function Sidebar() {
           </div>
           <div>
             <p className="text-white font-bold text-sm leading-tight">UCE Bus-Link</p>
-            <p className="text-gray-400 text-xs">Night Transport</p>
+            <p className="text-gray-400 text-xs">{isAdmin ? 'Administración' : 'Night Transport'}</p>
           </div>
         </div>
       </div>
 
       <nav className="flex-1 px-3 mt-2">
-        {NAV_ITEMS.map(({ to, icon: Icon, label, disabled }) =>
-          disabled ? (
-            <div
-              key={to}
-              className="flex items-center gap-3 px-4 py-3 text-gray-600 rounded-xl mb-1 cursor-not-allowed select-none"
-            >
-              <Icon size={18} />
-              <span className="text-sm">{label}</span>
-            </div>
-          ) : (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/dashboard'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-sm transition-colors ${
-                  isActive
-                    ? 'bg-white/10 text-white border-l-2 border-amber-400 pl-[14px]'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`
-              }
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </NavLink>
-          )
-        )}
+        {navItems.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/dashboard' || to === '/admin'}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-sm transition-colors ${
+                isActive
+                  ? 'bg-white/10 text-white border-l-2 border-amber-400 pl-[14px]'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`
+            }
+          >
+            <Icon size={18} />
+            <span>{label}</span>
+          </NavLink>
+        ))}
       </nav>
 
       <div className="px-3 pb-6">
-        {/* 3. Ejecutamos signOut y le indicamos a dónde redirigir al terminar */}
         <button
           onClick={() => signOut({ redirectUrl: '/login' })}
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition-colors w-full"
