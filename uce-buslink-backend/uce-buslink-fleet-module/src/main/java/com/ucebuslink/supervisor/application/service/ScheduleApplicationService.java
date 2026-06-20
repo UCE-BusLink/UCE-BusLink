@@ -82,7 +82,7 @@ public class ScheduleApplicationService implements ManageScheduleUseCase {
                 existingSchedule.getId(),
                 existingSchedule.getRouteId(),
                 updatedDetails,
-                command.isActive()
+                command.active()
         );
 
         Schedule savedSchedule = scheduleRepository.save(updatedSchedule);

@@ -11,5 +11,5 @@ public record UpdateScheduleCommand(
     List<ScheduleDetailCommand> details,
     
     @NotNull(message = "El estado activo es obligatorio")
-    Boolean isActive
+    Boolean active
 ) {}
