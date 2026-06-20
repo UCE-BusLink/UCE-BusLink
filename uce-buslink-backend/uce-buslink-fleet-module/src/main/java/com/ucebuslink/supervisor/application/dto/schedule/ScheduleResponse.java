@@ -1,4 +1,4 @@
-package com.ucebuslink.supervisor.application.dto;
+package com.ucebuslink.supervisor.application.dto.schedule;
 
 import java.util.List;
 import java.util.UUID;

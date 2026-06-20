@@ -1,10 +1,10 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
 import com.ucebuslink.shared.dto.PageResponse;
-import com.ucebuslink.supervisor.application.dto.BusResponse;
-import com.ucebuslink.supervisor.application.dto.ChangeBusStatusCommand;
-import com.ucebuslink.supervisor.application.dto.CreateBusCommand;
-import com.ucebuslink.supervisor.application.dto.UpdateBusCommand;
+import com.ucebuslink.supervisor.application.dto.bus.BusResponse;
+import com.ucebuslink.supervisor.application.dto.bus.ChangeBusStatusCommand;
+import com.ucebuslink.supervisor.application.dto.bus.CreateBusCommand;
+import com.ucebuslink.supervisor.application.dto.bus.UpdateBusCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageBusUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

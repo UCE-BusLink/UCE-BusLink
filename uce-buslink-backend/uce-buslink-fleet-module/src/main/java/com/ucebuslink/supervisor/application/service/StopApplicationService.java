@@ -1,8 +1,10 @@
 package com.ucebuslink.supervisor.application.service;
 
-import com.ucebuslink.supervisor.application.dto.CreateStopCommand;
-import com.ucebuslink.supervisor.application.dto.StopResponse;
-import com.ucebuslink.supervisor.application.dto.UpdateStopCommand;
+import com.ucebuslink.shared.dto.PageResponse;
+import com.ucebuslink.supervisor.application.dto.stop.ChangeStopStatusCommand;
+import com.ucebuslink.supervisor.application.dto.stop.CreateStopCommand;
+import com.ucebuslink.supervisor.application.dto.stop.StopResponse;
+import com.ucebuslink.supervisor.application.dto.stop.UpdateStopCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageStopUseCase;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,44 +74,6 @@ public class StopApplicationService implements ManageStopUseCase {
         return mapToResponse(stopRepository.save(stop));
     }
 
-    /*
-    @Override
-    @Transactional
-    public void deleteStop(UUID id) {
-
-        // 1. Soft delete de la parada
-        Stop stop = stopRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Stop not found with id: " + id));
-
-        stop.setIsActive(false);
-        stop.setDeletedAt(LocalDateTime.now());
-        stopRepository.save(stop);
-
-        // 2. Buscar rutas afectadas
-        List<Route> affectedRoutes = routeRepository.findRoutesByStopId(id);
-
-        for (Route route : affectedRoutes) {
-
-            List<RouteStop> stops = route.getRouteStops();
-
-            if (stops == null || stops.isEmpty()) continue;
-
-            // 3. eliminar la parada directamente de la colección existente
-            stops.removeIf(rs -> rs.getStop().getId().equals(id));
-
-            // 4. ordenar la MISMA colección
-            stops.sort(Comparator.comparingInt(RouteStop::getStopOrder));
-
-            // 5. reordenar secuencialmente
-            for (int i = 0; i < stops.size(); i++) {
-                stops.get(i).setStopOrder(i + 1);
-            }
-
-            routeRepository.save(route);
-        }
-    }
-    */
-
     @Override
     @Transactional
     public void deleteStop(UUID id) {
@@ -144,5 +109,30 @@ public class StopApplicationService implements ManageStopUseCase {
         return savedStops.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<StopResponse> getAllStops(boolean isActive, int page, int size){
+
+        PageResponse<Stop> domainPage = stopRepository.findAllStops(isActive, page, size);
+
+        List<StopResponse> Dto = domainPage.content().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(Dto, domainPage.pageNumber(), domainPage.pageSize(), domainPage.totalElements(), domainPage.totalPages());
+    }
+
+    @Override
+    public StopResponse changeStatus(UUID id, ChangeStopStatusCommand command) {
+
+        Stop stop = stopRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Stop not found"));
+
+        stop.setIsActive(command.isActive());
+
+        stopRepository.save(stop);
+
+        return mapToResponse(stop);
     }
 }

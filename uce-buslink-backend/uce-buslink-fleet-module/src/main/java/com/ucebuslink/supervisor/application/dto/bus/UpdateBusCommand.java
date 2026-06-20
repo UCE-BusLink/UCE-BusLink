@@ -1,4 +1,4 @@
-package com.ucebuslink.supervisor.application.dto;
+package com.ucebuslink.supervisor.application.dto.bus;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

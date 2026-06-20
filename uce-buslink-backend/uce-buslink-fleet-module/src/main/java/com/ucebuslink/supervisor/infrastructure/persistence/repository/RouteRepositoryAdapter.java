@@ -1,9 +1,12 @@
 package com.ucebuslink.supervisor.infrastructure.persistence.repository;
 
 import com.ucebuslink.supervisor.domain.model.Route;
+import com.ucebuslink.supervisor.domain.model.RouteStop;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
+import com.ucebuslink.supervisor.domain.repository.StopRepository;
 import com.ucebuslink.supervisor.infrastructure.persistence.entity.RouteJpaEntity;
 import com.ucebuslink.supervisor.infrastructure.persistence.entity.RouteStopJpaEntity;
+import com.ucebuslink.supervisor.infrastructure.persistence.entity.StopJpaEntity;
 import com.ucebuslink.supervisor.infrastructure.persistence.mapper.SupervisorMapper;
 
 import jakarta.transaction.Transactional;
@@ -28,10 +31,12 @@ public class RouteRepositoryAdapter implements RouteRepository {
 
     private final SpringDataRouteRepository springDataRouteRepository;
     private final SupervisorMapper supervisorMapper;
+    private final StopRepository stopRepository;
 
-    public RouteRepositoryAdapter(SpringDataRouteRepository springDataRouteRepository, SupervisorMapper supervisorMapper) {
+    public RouteRepositoryAdapter(SpringDataRouteRepository springDataRouteRepository, SupervisorMapper supervisorMapper, StopRepository stopRepository) {
         this.springDataRouteRepository = springDataRouteRepository;
         this.supervisorMapper = supervisorMapper;
+        this.stopRepository = stopRepository;
     }
 
     @SuppressWarnings("null")
@@ -119,5 +124,65 @@ public class RouteRepositoryAdapter implements RouteRepository {
             }
         }
         log.info("[Route] Stop removal and route reordering completed");
+    }
+
+    @Transactional
+    public Route update(Route route) {
+
+        RouteJpaEntity entity = springDataRouteRepository.findById(route.getId())
+                .orElseThrow(() -> new RuntimeException("Route not found: " + route.getId()));
+
+        // Datos básicos
+        entity.setName(route.getName());
+        entity.setDescription(route.getDescription());
+        entity.setIsActive(route.getIsActive());
+        entity.setEstimatedDurationMinutes(route.getEstimatedDurationMinutes());
+        entity.setPathPolyline(route.getPathPolyline());
+        entity.setUpdatedBy(route.getUpdatedBy());
+
+        // Sincronizar relaciones en lugar de limpiarlas a ciegas
+        if (route.getRouteStops() != null) {
+            
+            // 1. Recopilar los IDs de las paradas entrantes
+            java.util.Set<UUID> incomingStopIds = route.getRouteStops().stream()
+                    .map(rs -> rs.getStop().getId())
+                    .collect(Collectors.toSet());
+
+            // 2. Eliminar de la entidad las paradas que ya no existen en la petición
+            entity.getRouteStops().removeIf(rsEntity -> 
+                    !incomingStopIds.contains(rsEntity.getStop().getId()));
+
+            // 3. Actualizar las paradas que se mantienen o agregar las nuevas
+            for (RouteStop rs : route.getRouteStops()) {
+                UUID stopId = rs.getStop().getId();
+
+                Optional<RouteStopJpaEntity> existingRsOpt = entity.getRouteStops().stream()
+                        .filter(e -> e.getStop().getId().equals(stopId))
+                        .findFirst();
+
+                if (existingRsOpt.isPresent()) {
+                    // Si ya existe la relación, SOLO actualizamos sus atributos
+                    RouteStopJpaEntity existingRs = existingRsOpt.get();
+                    existingRs.setStopOrder(rs.getStopOrder());
+                    existingRs.setEstimatedMinutesFromStart(rs.getEstimatedMinutesFromStart());
+                } else {
+                    // Si no existe, creamos una nueva instancia
+                    StopJpaEntity stopEntity = stopRepository.getReferenceById(stopId);
+                    
+                    RouteStopJpaEntity newRsEntity = new RouteStopJpaEntity();
+                    newRsEntity.setStop(stopEntity);
+                    newRsEntity.setStopOrder(rs.getStopOrder());
+                    newRsEntity.setEstimatedMinutesFromStart(rs.getEstimatedMinutesFromStart());
+
+                    entity.addStop(newRsEntity);
+                }
+            }
+        } else {
+            entity.getRouteStops().clear();
+        }
+
+        RouteJpaEntity saved = springDataRouteRepository.save(entity);
+
+        return supervisorMapper.toDomain(saved);
     }
 }

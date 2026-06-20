@@ -1,6 +1,10 @@
 package com.ucebuslink.supervisor.application.service;
 
-import com.ucebuslink.supervisor.application.dto.*;
+import com.ucebuslink.supervisor.application.dto.schedule.CreateScheduleCommand;
+import com.ucebuslink.supervisor.application.dto.schedule.ScheduleDetailCommand;
+import com.ucebuslink.supervisor.application.dto.schedule.ScheduleDetailResponse;
+import com.ucebuslink.supervisor.application.dto.schedule.ScheduleResponse;
+import com.ucebuslink.supervisor.application.dto.schedule.UpdateScheduleCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageScheduleUseCase;
 import com.ucebuslink.supervisor.domain.model.Schedule;
 import com.ucebuslink.supervisor.domain.model.ScheduleDetail;

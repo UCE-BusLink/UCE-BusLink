@@ -1,4 +1,4 @@
-package com.ucebuslink.supervisor.application.dto;
+package com.ucebuslink.supervisor.application.dto.stop;
 
 import java.util.UUID;
 
