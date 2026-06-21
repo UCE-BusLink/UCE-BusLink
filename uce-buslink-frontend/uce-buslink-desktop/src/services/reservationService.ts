@@ -10,7 +10,7 @@ import { apiFetch } from './api';
  *
  * Las pantallas funcionan con mockData hasta que el backend exista.
  */
-export interface ActiveReservation {
+export interface ReservationHistoryItem {
   id: string;
   routeName: string;
   destination: string;
@@ -27,17 +27,19 @@ export interface CreateReservationCommand {
   standingSpotId?: number;
 }
 
-export async function fetchActiveReservation(
-  token: string
-): Promise<ActiveReservation | null> {
-  return apiFetch<ActiveReservation | null>('/api/v1/reservations/me', token);
+export async function fetchReservationHistory(
+  token: string,
+  page = 0,
+  size = 10
+): Promise<{ content: ReservationHistoryItem[]; totalElements: number }> {
+  return apiFetch(`/api/v1/reservations/my-history?page=${page}&size=${size}`, token);
 }
 
 export async function createReservation(
   token: string,
   command: CreateReservationCommand
-): Promise<ActiveReservation> {
-  return apiFetch<ActiveReservation>('/api/v1/reservations', token, {
+): Promise<ReservationHistoryItem> {
+  return apiFetch<ReservationHistoryItem>('/api/v1/reservations', token, {
     method: 'POST',
     body: JSON.stringify(command),
   });
@@ -47,7 +49,7 @@ export async function cancelReservation(
   token: string,
   reservationId: string
 ): Promise<void> {
-  await apiFetch<void>(`/api/v1/reservations/${reservationId}`, token, {
+  await apiFetch<void>(`/api/v1/reservations/${reservationId}/cancel`, token, {
     method: 'DELETE',
   });
 }

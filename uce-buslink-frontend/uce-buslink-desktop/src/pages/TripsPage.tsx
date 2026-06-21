@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import type { Trip, Route } from '../types';
-import type { ActiveReservation } from '../services/reservationService';
+import type { ReservationHistoryItem as ActiveReservation } from '../services/reservationService';
 
 function StatBadge({
   icon,
