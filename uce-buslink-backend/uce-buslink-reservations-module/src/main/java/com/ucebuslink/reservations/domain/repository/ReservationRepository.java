@@ -19,4 +19,6 @@ public interface ReservationRepository {
     Page<Reservation> findByUserIdAndStatus(UUID userId, ReservationStatus status, Pageable pageable);
 
     Optional<Reservation> findById(UUID id);
+
+    java.util.List<Reservation> findByTripIdAndStatus(UUID tripId, ReservationStatus status);
 }

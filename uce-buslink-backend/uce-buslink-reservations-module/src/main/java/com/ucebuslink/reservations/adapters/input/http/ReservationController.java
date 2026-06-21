@@ -85,4 +85,24 @@ public class ReservationController {
         reservationApplicationService.cancelReservation(id, command);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/admin-cancel")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DRIVER')")
+    public ResponseEntity<Void> cancelReservationByAdmin(
+            @PathVariable("id") UUID id,
+            @RequestBody(required = false) CancelReservationCommand command) {
+        
+        log.debug("[REST-RESERVATIONS] Solicitud PATCH de cancelación administrativa para la reserva ID: {}", id);
+        CancelReservationCommand safeCommand = command != null ? command : new CancelReservationCommand(id, "Cancelación administrativa sin motivo especificado");
+        
+        reservationApplicationService.cancelReservationByAdmin(id, safeCommand);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/scan")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DRIVER')")
+    public ResponseEntity<ReservationResponse> scanReservation(@PathVariable("id") UUID id) {
+        log.debug("[REST-RESERVATIONS] Solicitud PATCH para marcar escaneo (COMPLETED) de la reserva ID: {}", id);
+        return ResponseEntity.ok(reservationApplicationService.scanAndCompleteReservation(id));
+    }
 }

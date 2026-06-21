@@ -91,21 +91,21 @@ public class ReservationApplicationService {
     }
 
     // Nuevo método preparado para cuando el conductor o admin actualicen estados (COMPLETED, NO_SHOW)
-    @Transactional
-    public ReservationResponse updateReservationStatus(UUID reservationId, ReservationStatus newStatus) {
-        log.info("[RESERVATIONS] Cambio operativo de estado para reserva {}. Nuevo estado: {}", reservationId, newStatus);
-        
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada."));
-        
-        reservation.setStatus(newStatus);
-        if (newStatus == ReservationStatus.COMPLETED) {
-            reservation.setBoardedAt(LocalDateTime.now());
-        }
-        
-        Reservation saved = reservationRepository.save(reservation);
-        return mapToResponse(saved);
-    }
+    //@Transactional
+    //public ReservationResponse updateReservationStatus(UUID reservationId, ReservationStatus newStatus) {
+    //    log.info("[RESERVATIONS] Cambio operativo de estado para reserva {}. Nuevo estado: {}", reservationId, newStatus);
+    //    
+    //    Reservation reservation = reservationRepository.findById(reservationId)
+    //            .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada."));
+    //    
+    //    reservation.setStatus(newStatus);
+    //    if (newStatus == ReservationStatus.COMPLETED) {
+    //        reservation.setBoardedAt(LocalDateTime.now());
+    //    }
+    //    
+    //    Reservation saved = reservationRepository.save(reservation);
+    //    return mapToResponse(saved);
+    //}
 
     @Transactional
     public void cancelReservation(UUID reservationId, CancelReservationCommand command) {
@@ -144,5 +144,87 @@ public class ReservationApplicationService {
                 res.getId(), res.getTripId(), 
                 res.getSeatId(), res.getStatus(), res.getQrCode()
         );
+    }
+
+    @Transactional
+    public void cancelReservationByAdmin(UUID reservationId, CancelReservationCommand command) {
+        log.info("[RESERVATIONS] Proceso de cancelación solicitado por ADMIN/CONDUCTOR para reserva {}", reservationId);
+
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada."));
+
+        if (reservation.getStatus() != ReservationStatus.ACTIVE) {
+            throw new IllegalStateException("Solo se pueden cancelar reservas en estado ACTIVE.");
+        }
+
+        Seat seat = seatRepository.findById(reservation.getSeatId())
+                .orElseThrow(() -> new IllegalStateException("Asiento no encontrado."));
+        
+        seat.setState(SeatState.AVAILABLE);
+        seatRepository.save(seat);
+
+        reservation.setStatus(ReservationStatus.CANCELLED_BY_ADMIN);
+        reservation.setCancelledAt(LocalDateTime.now());
+        reservation.setCancelReason(command.reason() != null ? command.reason() : "Cancelada por Administrador/Conductor");
+        
+        reservationRepository.save(reservation);
+
+        // Devolvemos el cupo al bus
+        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId()));
+        log.info("[RESERVATIONS] Reserva {} cancelada por ADMIN y asiento liberado.", reservationId);
+    }
+
+    @Transactional
+    public ReservationResponse scanAndCompleteReservation(UUID reservationId) {
+        log.info("[RESERVATIONS] Escaneo de QR recibido para la reserva: {}", reservationId);
+        
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada."));
+        
+        if (reservation.getStatus() != ReservationStatus.ACTIVE) {
+            throw new IllegalStateException("La reserva no está activa. Estado actual: " + reservation.getStatus());
+        }
+
+        reservation.setStatus(ReservationStatus.COMPLETED);
+        reservation.setBoardedAt(LocalDateTime.now());
+        
+        Reservation saved = reservationRepository.save(reservation);
+        log.info("[RESERVATIONS] Reserva {} marcada como COMPLETED.", reservationId);
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public void processNoShowsForTrip(UUID tripId) {
+        log.info("[RESERVATIONS] Procesando NO_SHOWs automáticos para el viaje finalizado: {}", tripId);
+        
+        java.util.List<Reservation> activeReservations = reservationRepository.findByTripIdAndStatus(tripId, ReservationStatus.ACTIVE);
+        
+        for (Reservation res : activeReservations) {
+            res.setStatus(ReservationStatus.NO_SHOW);
+            // El asiento físico ya no importa porque el viaje terminó, 
+            // pero la reserva queda penalizada para el sistema de confianza (Trust Score).
+            reservationRepository.save(res);
+            log.debug("[RESERVATIONS] Reserva {} marcada automáticamente como NO_SHOW", res.getId());
+        }
+    }
+
+    // Método preparado para cuando el conductor o admin actualicen estados genéricos
+    @Transactional
+    public ReservationResponse updateReservationStatus(UUID reservationId, ReservationStatus newStatus) {
+        log.info("[RESERVATIONS] Cambio operativo de estado para reserva {}. Nuevo estado: {}", reservationId, newStatus);
+        
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada."));
+        
+        reservation.setStatus(newStatus);
+        if (newStatus == ReservationStatus.COMPLETED) {
+            reservation.setBoardedAt(LocalDateTime.now());
+        } else if (newStatus == ReservationStatus.CANCELLED_BY_ADMIN) {
+             reservation.setCancelledAt(LocalDateTime.now());
+             // También se debería liberar el asiento y lanzar el evento aquí si es cancelada por el admin
+        }
+        
+        Reservation saved = reservationRepository.save(reservation);
+        return mapToResponse(saved);
     }
 }

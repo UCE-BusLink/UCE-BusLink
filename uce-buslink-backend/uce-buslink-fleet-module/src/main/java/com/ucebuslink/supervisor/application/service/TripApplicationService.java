@@ -9,6 +9,7 @@ import com.ucebuslink.supervisor.domain.model.Bus;
 import com.ucebuslink.supervisor.domain.model.Schedule;
 import com.ucebuslink.supervisor.domain.model.Trip;
 import com.ucebuslink.shared.constant.*;
+import com.ucebuslink.shared.event.TripCompletedEvent;
 import com.ucebuslink.shared.event.TripCreatedEvent;
 import com.ucebuslink.supervisor.domain.repository.BusRepository;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
@@ -242,6 +243,9 @@ public class TripApplicationService implements ManageTripUseCase {
             trip.setState(TripState.COMPLETED);
             trip.setCompletedAt(LocalDateTime.now());
             trip.setActualArrivalTime(LocalDateTime.now());
+
+            eventPublisher.publishEvent(new TripCompletedEvent(trip.getId()));
+            
         } else {
             throw new IllegalStateException("Transición de estado inválida: de " + currentState + " a " + newState);
         }

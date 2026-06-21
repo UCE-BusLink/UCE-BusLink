@@ -83,5 +83,10 @@ public class ReservationRepositoryAdapter implements ReservationRepository {
         return res;
     }
 
-
+    // NUEVO
+    @Override
+    public java.util.List<Reservation> findByTripIdAndStatus(UUID tripId, ReservationStatus status) {
+        return jpaRepository.findByTripIdAndStatus(tripId, status).stream()
+                .map(this::toDomain).collect(java.util.stream.Collectors.toList());
+    }
 }
