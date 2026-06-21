@@ -9,12 +9,16 @@ import com.ucebuslink.supervisor.domain.model.Bus;
 import com.ucebuslink.supervisor.domain.model.Schedule;
 import com.ucebuslink.supervisor.domain.model.Trip;
 import com.ucebuslink.shared.constant.*;
+import com.ucebuslink.shared.event.TripCompletedEvent;
+import com.ucebuslink.shared.event.TripCreatedEvent;
 import com.ucebuslink.supervisor.domain.repository.BusRepository;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
 import com.ucebuslink.supervisor.domain.repository.ScheduleRepository;
 import com.ucebuslink.supervisor.domain.repository.TripRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.context.ApplicationEventPublisher;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +40,7 @@ public class TripApplicationService implements ManageTripUseCase {
     private final BusRepository busRepository;
     private final RouteRepository routeRepository;
     private final ScheduleRepository scheduleRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -71,6 +76,8 @@ public class TripApplicationService implements ManageTripUseCase {
             trip.setAvailableSeats(bus.getSeatCapacity());
 
             Trip savedTrip = tripRepository.save(trip);
+
+            eventPublisher.publishEvent(new TripCreatedEvent(savedTrip.getId(), bus.getSeatCapacity()));
             
             responses.add(new TripResponse(
                     savedTrip.getId(), savedTrip.getRouteId(), savedTrip.getBusId(),
@@ -236,6 +243,9 @@ public class TripApplicationService implements ManageTripUseCase {
             trip.setState(TripState.COMPLETED);
             trip.setCompletedAt(LocalDateTime.now());
             trip.setActualArrivalTime(LocalDateTime.now());
+
+            eventPublisher.publishEvent(new TripCompletedEvent(trip.getId()));
+            
         } else {
             throw new IllegalStateException("Transición de estado inválida: de " + currentState + " a " + newState);
         }

@@ -20,12 +20,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/supervisor/trips")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class TripController {
 
     private final ManageTripUseCase manageTripUseCase;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<java.util.List<TripResponse>> createTrip(@Valid @RequestBody CreateTripCommand command) {
         log.debug("[REST-FLEET] Solicitud POST recibida para planificar viajes.");
         java.util.List<TripResponse> response = manageTripUseCase.createTrip(command);
@@ -33,7 +33,7 @@ public class TripController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<TripResponse>> getTrips(
             @RequestParam(required = false) TripState state,
             @RequestParam(required = false) java.util.UUID routeId,
@@ -57,7 +57,7 @@ public class TripController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TripResponse> getTripById(@PathVariable java.util.UUID id) {
         log.debug("[REST-FLEET] Solicitud GET para buscar viaje con ID: {}", id);
         return ResponseEntity.ok(manageTripUseCase.getTripById(id));

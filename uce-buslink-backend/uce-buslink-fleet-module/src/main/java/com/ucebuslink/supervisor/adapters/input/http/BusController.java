@@ -18,7 +18,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/supervisor/fleet/buses")
-@PreAuthorize("hasRole('ADMIN')")
 public class BusController {
 
     private static final Logger log = LoggerFactory.getLogger(BusController.class);
@@ -29,6 +28,7 @@ public class BusController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BusResponse> createBus(@Valid @RequestBody CreateBusCommand command) {
         log.info("[FLEET] Creating new bus with plate: {}", command.plateNumber());
         BusResponse response = manageBusUseCase.createBus(command);
@@ -37,6 +37,7 @@ public class BusController {
     }
    
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PageResponse<BusResponse>> getAllBuses(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -45,12 +46,14 @@ public class BusController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<BusResponse> getBusById(@PathVariable(name = "id") UUID id) {
         log.debug("[FLEET] Fetching bus by ID: {}", id);
         return ResponseEntity.ok(manageBusUseCase.getBusById(id));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteBus(@PathVariable(name = "id") UUID id) {
         log.info("[FLEET] Request to delete bus with ID: {}", id);
         manageBusUseCase.deleteBus(id);
@@ -59,12 +62,14 @@ public class BusController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BusResponse> updateBus(@PathVariable UUID id, @Valid @RequestBody UpdateBusCommand command) {
         log.info("[FLEET] Updating bus info for ID: {}", id);
         return ResponseEntity.ok(manageBusUseCase.updateBus(id, command));
     }
 
     @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BusResponse> changeBusStatus(@PathVariable UUID id, @Valid @RequestBody ChangeBusStatusCommand command) {
         log.info("[FLEET] Changing bus {} status to: {}", id, command.status());
         return ResponseEntity.ok(manageBusUseCase.changeBusStatus(id, command));
