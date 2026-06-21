@@ -1,8 +1,8 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
-import com.ucebuslink.supervisor.application.dto.CreateScheduleCommand;
-import com.ucebuslink.supervisor.application.dto.UpdateScheduleCommand;
-import com.ucebuslink.supervisor.application.dto.ScheduleResponse;
+import com.ucebuslink.supervisor.application.dto.schedule.CreateScheduleCommand;
+import com.ucebuslink.supervisor.application.dto.schedule.ScheduleResponse;
+import com.ucebuslink.supervisor.application.dto.schedule.UpdateScheduleCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageScheduleUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

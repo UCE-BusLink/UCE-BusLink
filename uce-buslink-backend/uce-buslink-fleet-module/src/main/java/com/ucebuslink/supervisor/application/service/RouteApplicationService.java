@@ -1,8 +1,8 @@
 package com.ucebuslink.supervisor.application.service;
 
 import com.ucebuslink.shared.dto.PageResponse;
-import com.ucebuslink.supervisor.application.dto.CreateRouteCommand;
-import com.ucebuslink.supervisor.application.dto.RouteResponse;
+import com.ucebuslink.supervisor.application.dto.route.CreateRouteCommand;
+import com.ucebuslink.supervisor.application.dto.route.RouteResponse;
 import com.ucebuslink.supervisor.application.usecase.ManageRouteUseCase;
 import com.ucebuslink.supervisor.domain.model.Route;
 import com.ucebuslink.supervisor.domain.model.RouteStop;
@@ -148,7 +148,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
             route.getRouteStops().addAll(updatedStops);
         }
 
-        Route updatedRoute = routeRepository.save(route);
+        Route updatedRoute = routeRepository.update(route);
         log.info("Route {} updated successfully", id);
         return mapToResponse(updatedRoute);
     }
@@ -185,5 +185,27 @@ public class RouteApplicationService implements ManageRouteUseCase {
                 route.getPathPolyline(),
                 stopDetails // <-- Pasamos la lista construida aquí
         );
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "activeRoutes", allEntries = true)
+    public RouteResponse changeRouteStatus(UUID id, boolean isActive) {
+        log.info("Attempting to change status of route {} to isActive={}", id, isActive);
+        
+        Route route = routeRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.error("Route not found with ID: {}", id);
+                    return new RuntimeException("Route not found with id: " + id);
+                });
+
+        route.setIsActive(isActive);
+        
+        // Usamos el método update que corregimos anteriormente para asegurar 
+        // que las colecciones se sincronicen correctamente
+        Route updatedRoute = routeRepository.update(route); 
+        
+        log.info("Route {} status updated successfully", id);
+        return mapToResponse(updatedRoute);
     }
 }

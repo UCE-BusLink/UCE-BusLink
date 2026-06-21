@@ -1,8 +1,10 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
-import com.ucebuslink.supervisor.application.dto.CreateStopCommand;
-import com.ucebuslink.supervisor.application.dto.StopResponse;
-import com.ucebuslink.supervisor.application.dto.UpdateStopCommand;
+import com.ucebuslink.shared.dto.PageResponse;
+import com.ucebuslink.supervisor.application.dto.stop.ChangeStopStatusCommand;
+import com.ucebuslink.supervisor.application.dto.stop.CreateStopCommand;
+import com.ucebuslink.supervisor.application.dto.stop.StopResponse;
+import com.ucebuslink.supervisor.application.dto.stop.UpdateStopCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageStopUseCase;
 
 import jakarta.validation.Valid;
@@ -38,9 +40,12 @@ public class StopController {
     }
 
     @GetMapping
-    public ResponseEntity<List<StopResponse>> getAllStops() {
-        log.debug("[FLEET] Fetching all active stops");
-        return ResponseEntity.ok(manageStopUseCase.getAllActiveStops());
+    public ResponseEntity<PageResponse<StopResponse>> getAllStops(
+            @RequestParam(defaultValue = "true") boolean activa,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.debug("[FLEET] Fetching paginated stop list (page: {}, size: {})", page, size);
+        return ResponseEntity.ok(manageStopUseCase.getAllStops(activa, page, size));
     }
 
     @PutMapping("/{id}")
@@ -63,5 +68,15 @@ public class StopController {
         List<StopResponse> responses = manageStopUseCase.createStopsBatch(commands);
         log.info("[FLEET] Batch of {} stops created successfully", responses.size());
         return new ResponseEntity<>(responses, HttpStatus.CREATED);
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<StopResponse> changeStatus(
+            @PathVariable UUID id,
+            @RequestBody ChangeStopStatusCommand command) {
+
+        return ResponseEntity.ok(
+                manageStopUseCase.changeStatus(id, command)
+        );
     }
 }
