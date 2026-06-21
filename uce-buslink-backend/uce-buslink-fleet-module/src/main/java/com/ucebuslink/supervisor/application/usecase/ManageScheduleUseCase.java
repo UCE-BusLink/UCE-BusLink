@@ -1,8 +1,8 @@
 package com.ucebuslink.supervisor.application.usecase;
 
-import com.ucebuslink.supervisor.application.dto.CreateScheduleCommand;
-import com.ucebuslink.supervisor.application.dto.UpdateScheduleCommand;
-import com.ucebuslink.supervisor.application.dto.ScheduleResponse;
+import com.ucebuslink.supervisor.application.dto.schedule.CreateScheduleCommand;
+import com.ucebuslink.supervisor.application.dto.schedule.ScheduleResponse;
+import com.ucebuslink.supervisor.application.dto.schedule.UpdateScheduleCommand;
 
 import java.util.List;
 import java.util.UUID;

@@ -135,8 +135,7 @@ public class SupervisorMapper {
         return entity;
     }
 
-
-
+    // --- SCHEDULE MAPPERS ---
     public ScheduleJpaEntity toEntity(Schedule domain, RouteJpaEntity routeJpaEntity) {
         if (domain == null) return null;
 
@@ -189,4 +188,42 @@ public class SupervisorMapper {
         );
     }
 
+    // --- TRIP MAPPERS ---
+    public Trip toDomain(TripJpaEntity entity) {
+        if (entity == null) return null;
+        return new Trip(
+            entity.getId(), entity.getRouteId(), entity.getBusId(),
+            entity.getDriverId(), entity.getState(), entity.getDepartureTime(),
+            entity.getEstimatedArrivalTime(), entity.getActualArrivalTime(),
+            entity.getStartedAt(), entity.getCompletedAt(), entity.getCancelledAt(),
+            entity.getAvailableSeats(), entity.getVersion(), entity.getCreatedBy(),
+            entity.getUpdatedBy(), entity.getCreatedAt(), entity.getUpdatedAt(),
+            entity.getDeletedAt()
+        );
+    }
+
+    public TripJpaEntity toJpa(Trip domain) {
+        if (domain == null) return null;
+        TripJpaEntity entity = new TripJpaEntity();
+        entity.setId(domain.getId());
+        entity.setRouteId(domain.getRouteId());
+        entity.setBusId(domain.getBusId());
+        entity.setDriverId(domain.getDriverId());
+        entity.setState(domain.getState());
+        entity.setDepartureTime(domain.getDepartureTime());
+        entity.setEstimatedArrivalTime(domain.getEstimatedArrivalTime());
+        entity.setActualArrivalTime(domain.getActualArrivalTime());
+        entity.setStartedAt(domain.getStartedAt());
+        entity.setCompletedAt(domain.getCompletedAt());
+        entity.setCancelledAt(domain.getCancelledAt());
+        entity.setAvailableSeats(domain.getAvailableSeats());
+        // El versionado lo maneja Spring JPA automáticamente mediante la anotación @Version, pero podemos pasarlo.
+        if (domain.getVersion() != null) {
+            entity.setVersion(domain.getVersion());
+        }
+        entity.setCreatedBy(domain.getCreatedBy());
+        entity.setUpdatedBy(domain.getUpdatedBy());
+        entity.setDeletedAt(domain.getDeletedAt());
+        return entity;
+    }
 }

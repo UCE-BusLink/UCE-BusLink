@@ -17,4 +17,6 @@ public interface RouteRepository {
     List<Route> findRoutesByStopId(UUID stopId);
 
     void removeStopFromRoutes(UUID stopId);
+
+    Route update(Route route);
 }

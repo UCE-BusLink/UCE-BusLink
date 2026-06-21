@@ -23,11 +23,13 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
+
         String clerkUserId = jwt.getSubject();
         Optional<User> userOpt = userRepository.findByClerkUserId(clerkUserId);
 
-        // Si el usuario no existe en la BD, le damos un rol temporal
+        // Usuario NO sincronizado
         if (userOpt.isEmpty()) {
+
             return new JwtAuthenticationToken(
                     jwt,
                     List.of(new SimpleGrantedAuthority("ROLE_UNSYNCED")),
@@ -35,10 +37,22 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
             );
         }
 
-        // Si existe, le asignamos su rol real (STUDENT, ADMIN, DRIVER)
+        // Usuario sincronizado
         User user = userOpt.get();
-        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
-        
-        return new JwtAuthenticationToken(jwt, List.of(authority), clerkUserId);
+
+        SimpleGrantedAuthority authority =
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+
+        JwtAuthenticationToken token =
+                new JwtAuthenticationToken(
+                        jwt,
+                        List.of(authority),
+                        clerkUserId
+                );
+
+        // ⭐ AQUÍ guardas el UUID interno SIN romper nada
+        token.setDetails(user.getId());
+
+        return token;
     }
 }
