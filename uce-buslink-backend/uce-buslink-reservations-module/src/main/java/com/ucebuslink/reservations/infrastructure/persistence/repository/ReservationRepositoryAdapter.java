@@ -3,9 +3,15 @@ package com.ucebuslink.reservations.infrastructure.persistence.repository;
 import com.ucebuslink.reservations.domain.model.Reservation;
 import com.ucebuslink.reservations.domain.repository.ReservationRepository;
 import com.ucebuslink.reservations.infrastructure.persistence.entity.ReservationJpaEntity;
+import com.ucebuslink.shared.constant.ReservationStatus;
+
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -37,4 +43,45 @@ public class ReservationRepositoryAdapter implements ReservationRepository {
     public boolean existsByTripAndUser(UUID tripId, UUID userId) {
         return jpaRepository.existsByTripIdAndUserId(tripId, userId);
     }
+
+    @Override
+    public Page<Reservation> findByUserIdAndStatus(UUID userId, ReservationStatus status, Pageable pageable) {
+        return jpaRepository.findByUserIdAndStatusOrderByReservedAtDesc(userId, status, pageable).map(this::toDomain);
+    }
+
+    @Override
+    public Page<Reservation> findByUserId(UUID userId, Pageable pageable) {
+        return jpaRepository.findByUserIdOrderByReservedAtDesc(userId, pageable).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Reservation> findByIdAndUserId(UUID id, UUID userId) {
+        return jpaRepository.findByIdAndUserId(id, userId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Reservation> findById(UUID id) {
+        return jpaRepository.findById(id).map(this::toDomain);
+    }
+
+    private Reservation toDomain(ReservationJpaEntity entity) {
+        if (entity == null) return null;
+        Reservation res = new Reservation();
+        res.setId(entity.getId());
+        res.setUserId(entity.getUserId());
+        res.setTripId(entity.getTripId());
+        res.setSeatId(entity.getSeatId());
+        res.setBoardingStopId(entity.getBoardingStopId());
+        res.setStatus(entity.getStatus());
+        res.setQrCode(entity.getQrCode());
+        res.setExternalReference(entity.getExternalReference());
+        res.setReservedAt(entity.getReservedAt());
+        res.setCancelledAt(entity.getCancelledAt());
+        res.setBoardedAt(entity.getBoardedAt());
+        res.setCancelReason(entity.getCancelReason());
+        res.setVersion(entity.getVersion());
+        return res;
+    }
+
+
 }
