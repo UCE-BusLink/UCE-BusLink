@@ -21,7 +21,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/supervisor/fleet/stops")
-@PreAuthorize("hasRole('ADMIN')")
 public class StopController {
 
     private static final Logger log = LoggerFactory.getLogger(StopController.class);
@@ -32,6 +31,7 @@ public class StopController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DRIVER')")
     public ResponseEntity<StopResponse> createStop(@Valid @RequestBody CreateStopCommand command) {
         log.info("[FLEET] Creating new stop..."); // Si el command tiene un campo nombre, podrías poner command.name()
         StopResponse response = manageStopUseCase.createStop(command);
@@ -40,6 +40,7 @@ public class StopController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PageResponse<StopResponse>> getAllStops(
             @RequestParam(defaultValue = "true") boolean activa,
             @RequestParam(defaultValue = "0") int page,
@@ -49,12 +50,14 @@ public class StopController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<StopResponse> updateStop(@PathVariable UUID id, @Valid @RequestBody UpdateStopCommand command) {
         log.info("[FLEET] Updating stop info for ID: {}", id);
         return ResponseEntity.ok(manageStopUseCase.updateStop(id, command));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteStop(@PathVariable UUID id) {
         log.info("[FLEET] Request to delete stop with ID: {}", id);
         manageStopUseCase.deleteStop(id);
@@ -63,6 +66,7 @@ public class StopController {
     }
 
     @PostMapping("/batch")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<StopResponse>> createStopsBatch(@Valid @RequestBody List<CreateStopCommand> commands) {
         log.info("[FLEET] Creating a batch of {} new stops...", commands.size());
         List<StopResponse> responses = manageStopUseCase.createStopsBatch(commands);
@@ -71,6 +75,7 @@ public class StopController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<StopResponse> changeStatus(
             @PathVariable UUID id,
             @RequestBody ChangeStopStatusCommand command) {

@@ -26,7 +26,6 @@ public class ReportController {
     }
 
     @GetMapping("/routes/daily")
-    // Aseguramos que solo los administradores puedan acceder a las estadísticas
     @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<PageResponse<DailyRouteStatsProjection>> getDailyRouteStats(
             @RequestParam(defaultValue = "0") int page,

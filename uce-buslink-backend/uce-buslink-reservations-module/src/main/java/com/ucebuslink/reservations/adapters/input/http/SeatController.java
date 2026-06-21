@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -24,6 +25,7 @@ public class SeatController {
     private final SeatApplicationService seatApplicationService;
 
     @GetMapping("/trip/{tripId}")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('USER')")
     public ResponseEntity<Page<SeatResponse>> getSeatsByTrip(
             @PathVariable("tripId") UUID tripId,
             @RequestParam(name = "state", required = false) SeatState state,
