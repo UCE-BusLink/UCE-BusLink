@@ -17,3 +17,6 @@ export { RouteMetaCards } from './RouteMetaCards';
 export { MapStopsSidebar } from './MapStopsSidebar';
 export { TripCard } from './TripCard';
 export { ActiveReservationCard } from './ActiveReservationCard';
+export { ProfileHeroCard } from './ProfileHeroCard';
+export { ProfileStatCard } from './ProfileStatCard';
+export { ProfileInfoCard } from './ProfileInfoCard';

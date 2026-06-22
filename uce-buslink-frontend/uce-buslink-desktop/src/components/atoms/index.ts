@@ -5,3 +5,4 @@ export { SeatButton } from './SeatButton';
 export { LegendItem } from './LegendItem';
 export { MetaCard } from './MetaCard';
 export { StatBadge } from './StatBadge';
+export { InfoRow } from './InfoRow';
