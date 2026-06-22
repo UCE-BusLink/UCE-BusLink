@@ -9,3 +9,5 @@ export { RouteDetailHeader } from './RouteDetailHeader';
 export { DepartureTimesList } from './DepartureTimesList';
 export { RouteStopsList } from './RouteStopsList';
 export { RouteInfoCard } from './RouteInfoCard';
+export { SeatMap } from './SeatMap';
+export { BookingSummary } from './BookingSummary';
