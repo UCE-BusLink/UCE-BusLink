@@ -15,3 +15,5 @@ export { RouteTabBar } from './RouteTabBar';
 export { LeafletMap } from './LeafletMap';
 export { RouteMetaCards } from './RouteMetaCards';
 export { MapStopsSidebar } from './MapStopsSidebar';
+export { TripCard } from './TripCard';
+export { ActiveReservationCard } from './ActiveReservationCard';
