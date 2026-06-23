@@ -274,4 +274,19 @@ public class TripApplicationService implements ManageTripUseCase {
         return tripRepository.findByDriverId(driverId, PageRequest.of(page, size))
                 .map(this::mapToResponse);
     }
+
+    @Transactional(readOnly = true)
+    public UUID getActiveTripIdByBus(UUID busId) {
+        log.debug("[FLEET-TRIP] Consultando viaje activo para el bus {}", busId);
+        
+        // Buscamos entre los viajes ONGOING cuál le pertenece a este bus
+        // Usamos la primera página asumiendo que un bus no tiene 2 viajes activos al mismo tiempo
+        Page<TripResponse> ongoingTrips = getTripsByState(TripState.ONGOING, 0, 50);
+        
+        return ongoingTrips.stream()
+                .filter(trip -> trip.busId().equals(busId))
+                .map(TripResponse::id)
+                .findFirst()
+                .orElse(null);
+    }
 }

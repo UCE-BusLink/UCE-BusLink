@@ -1,11 +1,19 @@
 package com.ucebuslink.tracking.application.service;
 
 import com.ucebuslink.tracking.application.dto.GpsUpdatePayload;
+import com.ucebuslink.tracking.application.dto.LocationBroadcastPayload;
+import com.ucebuslink.tracking.application.port.out.TrackingQueryPort;
 import com.ucebuslink.tracking.domain.model.BusLocation;
 import com.ucebuslink.tracking.domain.repository.BusLocationRepository;
+import com.ucebuslink.tracking.domain.service.ETACalculator;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Slf4j
 @Service
@@ -13,6 +21,9 @@ import org.springframework.stereotype.Service;
 public class TrackingApplicationService {
 
     private final BusLocationRepository busLocationRepository;
+    private final TrackingQueryPort trackingQueryPort;
+    private final ETACalculator etaCalculator;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public void processGpsUpdate(GpsUpdatePayload payload, String driverId) {
         log.debug("[TRACKING] Procesando actualización GPS del bus {} enviada por conductor {}", payload.busId(), driverId);
@@ -34,8 +45,8 @@ public class TrackingApplicationService {
         // - Lanzar evento asíncrono para que se guarde el historial en Postgres sin bloquear el hilo.
         // - Calcular distancia con Haversine y emitir a los estudiantes.
 
-        /* * LÓGICA DE BROADCAST (Descomentar e integrar con trackingQueryPort)
-         * UUID activeTripId = trackingQueryPort.getActiveTripIdByBus(payload.busId());
+        //LÓGICA DE BROADCAST (Descomentar e integrar con trackingQueryPort)
+        UUID activeTripId = trackingQueryPort.getActiveTripIdByBus(payload.busId());
         if (activeTripId == null) {
             return; // El bus está encendido pero no está haciendo ninguna ruta oficial
         }
@@ -63,6 +74,5 @@ public class TrackingApplicationService {
         String destination = "/topic/trip/" + activeTripId + "/location-update";
         messagingTemplate.convertAndSend(destination, broadcast);
         log.trace("[TRACKING] Broadcast enviado a {}", destination);
-        */
     }
 }

@@ -19,7 +19,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SubscriptionSecurityInterceptor implements ChannelInterceptor {
 
-    // private final TrackingQueryPort trackingQueryPort; // Descomentar cuando se implemente
+    private final TrackingQueryPort trackingQueryPort;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -50,13 +50,13 @@ public class SubscriptionSecurityInterceptor implements ChannelInterceptor {
                         UUID tripId = UUID.fromString(parts[3]);
                         UUID userId = UUID.fromString(userAuth.getName());
 
-                        /*
+                        
                         boolean hasReservation = trackingQueryPort.hasActiveReservation(userId, tripId);
                         if (!hasReservation) {
                             log.warn("[WEBSOCKET-SECURITY] Suscripción denegada. Estudiante {} no tiene reserva en viaje {}", userId, tripId);
                             throw new IllegalArgumentException("No tienes reserva activa para este viaje.");
                         }
-                        */
+                        
                     } catch (Exception e) {
                         log.error("[WEBSOCKET-SECURITY] Error parseando TripId de la suscripción: {}", destination);
                         throw new IllegalArgumentException("Destino de suscripción inválido.");
