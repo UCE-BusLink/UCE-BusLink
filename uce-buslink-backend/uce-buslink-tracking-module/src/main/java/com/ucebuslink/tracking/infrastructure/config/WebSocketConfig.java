@@ -1,6 +1,8 @@
 package com.ucebuslink.tracking.infrastructure.config;
 
 import com.ucebuslink.tracking.infrastructure.websocket.JwtChannelInterceptor;
+import com.ucebuslink.tracking.infrastructure.websocket.SubscriptionSecurityInterceptor;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -18,6 +20,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtChannelInterceptor jwtChannelInterceptor;
+    private final SubscriptionSecurityInterceptor subscriptionSecurityInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -37,7 +40,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        // Registramos nuestro interceptor de seguridad para que valide todas las conexiones entrantes
-        registration.interceptors(jwtChannelInterceptor);
+        registration.interceptors(jwtChannelInterceptor, subscriptionSecurityInterceptor);
     }
 }
