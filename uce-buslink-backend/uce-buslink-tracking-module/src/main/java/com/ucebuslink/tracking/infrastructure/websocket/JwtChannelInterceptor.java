@@ -1,5 +1,6 @@
 package com.ucebuslink.tracking.infrastructure.websocket;
 
+import com.ucebuslink.shared.security.TokenAuthenticationPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -8,33 +9,26 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
 
-    private final JwtDecoder jwtDecoder; // O tu servicio de validación de tokens personalizado (ej. ClerkClient)
+    // 🔥 Desacoplamiento total: Usamos el contrato del Shared Kernel
+    private final TokenAuthenticationPort tokenAuthenticationPort;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        // Solo validamos el token en el momento de la conexión (Handshake)
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             log.debug("[WEBSOCKET-SECURITY] Intento de conexión STOMP interceptado.");
 
-            // 1. Extraer JWT del header Authorization
             List<String> authorizationHeaders = accessor.getNativeHeader("Authorization");
             
             if (authorizationHeaders == null || authorizationHeaders.isEmpty()) {
@@ -51,36 +45,19 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             String token = bearerToken.substring(7);
 
             try {
-                // 2. Validar firma y expiración del JWT
-                Jwt jwt = jwtDecoder.decode(token);
-                
-                // 3. Extraer roles del JWT (Ajusta la clave "roles" según cómo lo envíe tu Identity Module o Clerk)
-                List<String> roles = jwt.getClaimAsStringList("roles");
-                if (roles == null || roles.isEmpty()) {
-                    log.warn("[WEBSOCKET-SECURITY] Conexión rechazada: El usuario no tiene roles asignados.");
-                    throw new IllegalArgumentException("Usuario sin roles no puede conectar.");
-                }
-
-                List<SimpleGrantedAuthority> authorities = roles.stream()
-                        .map(role -> new SimpleGrantedAuthority(role.startsWith("ROLE_") ? role : "ROLE_" + role))
-                        .collect(Collectors.toList());
-
-                // 4. Crear la autenticación y asignarla a la sesión WebSocket
-                Authentication userAuth = new UsernamePasswordAuthenticationToken(
-                        jwt.getSubject(), // El ID del usuario (UUID de Clerk o Google)
-                        null,
-                        authorities
-                );
+                // 👉 La magia del Bounded Context: Tracking confía en Identity para la auth
+                Authentication userAuth = tokenAuthenticationPort.authenticate(token);
                 
                 accessor.setUser(userAuth);
-                log.info("[WEBSOCKET-SECURITY] Conexión STOMP autorizada para el usuario: {} con roles: {}", jwt.getSubject(), roles);
+                log.info("[WEBSOCKET-SECURITY] Conexión STOMP autorizada para: {} con roles: {}", 
+                        userAuth.getName(), userAuth.getAuthorities());
 
-            } catch (JwtException e) {
-                log.error("[WEBSOCKET-SECURITY] Conexión rechazada: Token JWT inválido o expirado.", e);
-                throw new IllegalArgumentException("Token JWT inválido o expirado.");
+            } catch (Exception e) {
+                log.error("[WEBSOCKET-SECURITY] Conexión rechazada: Token inválido o problema de identidad.", e);
+                throw new IllegalArgumentException("Autenticación inválida o expirada.");
             }
         }
 
-        return message; // Deja pasar el mensaje si todo está bien
+        return message;
     }
 }

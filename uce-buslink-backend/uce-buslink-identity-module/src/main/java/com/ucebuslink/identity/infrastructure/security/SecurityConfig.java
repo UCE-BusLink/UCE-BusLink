@@ -59,7 +59,10 @@ public class SecurityConfig {
                 // Endpoints verdaderamente públicos
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                
+
+                // 🔥 IMPORTANTE: permitir handshake WebSocket
+                .requestMatchers("/ws/**").permitAll()
+
                 // EXIGIMOS token de Clerk para los endpoints de Auth
                 .requestMatchers("/api/v1/auth/sync").authenticated()
                 .requestMatchers("/api/v1/auth/me").authenticated()
@@ -80,7 +83,8 @@ public class SecurityConfig {
                 "http://localhost:3001", 
                 "app://buslink", 
                 "file://", 
-                "http://localhost:5173"
+                "http://localhost:5173",
+                "http://localhost:9000"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
