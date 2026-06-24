@@ -3,7 +3,7 @@ package com.ucebuslink.tracking.application.service;
 import com.ucebuslink.tracking.application.dto.SupervisorSnapshotPayload;
 import com.ucebuslink.tracking.application.dto.SupervisorSnapshotPayload.BusSnapshot;
 import com.ucebuslink.tracking.application.dto.SupervisorSnapshotPayload.NetworkStatistics;
-import com.ucebuslink.tracking.application.port.out.TrackingQueryPort;
+import com.ucebuslink.tracking.application.port.TrackingQueryPort;
 import com.ucebuslink.tracking.domain.model.BusLocation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

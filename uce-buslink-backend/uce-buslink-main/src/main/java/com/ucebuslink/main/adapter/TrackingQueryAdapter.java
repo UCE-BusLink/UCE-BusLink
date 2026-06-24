@@ -2,7 +2,8 @@ package com.ucebuslink.main.adapter;
 
 import com.ucebuslink.reservations.application.service.ReservationApplicationService;
 import com.ucebuslink.supervisor.application.service.TripApplicationService;
-import com.ucebuslink.tracking.application.port.out.TrackingQueryPort;
+import com.ucebuslink.tracking.application.port.TrackingQueryPort;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

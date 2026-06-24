@@ -3,7 +3,7 @@ package com.ucebuslink.tracking.application.service;
 import com.ucebuslink.tracking.application.dto.GpsLocationReceivedEvent;
 import com.ucebuslink.tracking.application.dto.GpsUpdatePayload;
 import com.ucebuslink.tracking.application.dto.LocationBroadcastPayload;
-import com.ucebuslink.tracking.application.port.out.TrackingQueryPort;
+import com.ucebuslink.tracking.application.port.TrackingQueryPort;
 import com.ucebuslink.tracking.domain.model.BusLocation;
 import com.ucebuslink.tracking.domain.repository.BusLocationRepository;
 import com.ucebuslink.tracking.domain.service.ETACalculator;
