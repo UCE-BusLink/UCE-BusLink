@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useRoute } from '../hooks/useRoute';
@@ -26,33 +26,38 @@ export function SeatSelectionPage() {
   const { apiSeats, loading: seatsLoading, error: seatsError } = useSeatsByTrip(tripId);
   const { confirm, loading: confirming, error: confirmError } = useCreateReservation();
 
-  const [selectedSeatNumber, setSelectedSeatNumber] = useState<number | null>(null);
+  const [seats, setSeats] = useState<Seat[]>([]);
 
-  const seats: Seat[] = apiSeats.map((s) => ({
-    number: s.seatNumber,
-    status:
-      s.state !== 'AVAILABLE'
-        ? 'occupied'
-        : s.seatNumber === selectedSeatNumber
-        ? 'selected'
-        : 'available',
-  }));
+  useEffect(() => {
+    setSeats(
+      apiSeats.map((s) => ({
+        number: s.seatNumber,
+        status: s.state !== 'AVAILABLE' ? 'occupied' : 'available',
+      }))
+    );
+  }, [apiSeats]);
 
-  const selectedSeatApi = apiSeats.find(
-    (s) => s.seatNumber === selectedSeatNumber && s.state === 'AVAILABLE'
-  ) ?? null;
-  const hasSelection = selectedSeatApi !== null;
+  const selectedSeat = seats.find((s) => s.status === 'selected') ?? null;
+  const selectedSeatApi = apiSeats.find((s) => s.seatNumber === selectedSeat?.number) ?? null;
+  const hasSelection = selectedSeat !== null;
 
   function selectSeat(seatNumber: number) {
-    setSelectedSeatNumber((prev) => (prev === seatNumber ? null : seatNumber));
+    setSeats((prev) =>
+      prev.map((s) => {
+        if (s.number === seatNumber) {
+          return { ...s, status: s.status === 'selected' ? 'available' : 'selected' };
+        }
+        return s.status === 'selected' ? { ...s, status: 'available' } : s;
+      })
+    );
   }
 
   async function handleConfirm() {
     if (!tripId || !selectedSeatApi) return;
     const boardingStopId = route?.stops?.[0]?.stopId;
     if (!boardingStopId) return;
-    const success = await confirm(tripId, selectedSeatApi.id, boardingStopId);
-    if (success) navigate('/dashboard');
+    const result = await confirm(tripId, selectedSeatApi.id, boardingStopId);
+    if (result) navigate('/dashboard');
   }
 
   const isLoading = routeLoading || tripLoading || seatsLoading;
@@ -81,7 +86,7 @@ export function SeatSelectionPage() {
   }
 
   const tripTime = formatTime(trip.departureTime);
-  const selectionLabel = selectedSeatNumber !== null ? `Asiento ${selectedSeatNumber}` : null;
+  const selectionLabel = selectedSeat ? `Asiento ${selectedSeat.number}` : null;
 
   return (
     <div>
