@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import { Bus, Clock, User as UserIcon } from 'lucide-react';
-import type { Route, Trip } from '../../types';
+import { Bus, Clock } from 'lucide-react';
 
 function SummaryRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
@@ -15,18 +14,20 @@ function SummaryRow({ icon, label, value }: { icon: ReactNode; label: string; va
 }
 
 interface BookingSummaryProps {
-  route: Route;
-  trip: Trip;
+  routeName: string;
+  tripTime: string;
   selectionLabel: string | null;
   hasSelection: boolean;
+  confirming: boolean;
   onConfirm: () => void;
 }
 
 export function BookingSummary({
-  route,
-  trip,
+  routeName,
+  tripTime,
   selectionLabel,
   hasSelection,
+  confirming,
   onConfirm,
 }: BookingSummaryProps) {
   return (
@@ -34,9 +35,8 @@ export function BookingSummary({
       <h2 className="text-sm font-semibold text-navy-900 mb-5">Resumen de Reserva</h2>
 
       <div className="space-y-4">
-        <SummaryRow icon={<Bus size={14} />} label="Ruta" value={route.name} />
-        <SummaryRow icon={<Clock size={14} />} label="Horario" value={`${trip.time} hrs`} />
-        <SummaryRow icon={<UserIcon size={14} />} label="Conductor" value={trip.driver} />
+        <SummaryRow icon={<Bus size={14} />} label="Ruta" value={routeName} />
+        <SummaryRow icon={<Clock size={14} />} label="Horario" value={`${tripTime} hrs`} />
       </div>
 
       <div className="mt-5 pt-5 border-t border-gray-100">
@@ -50,14 +50,14 @@ export function BookingSummary({
 
       <button
         onClick={onConfirm}
-        disabled={!hasSelection}
+        disabled={!hasSelection || confirming}
         className={`w-full mt-6 py-3 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-          hasSelection
+          hasSelection && !confirming
             ? 'bg-amber-500 text-white hover:bg-amber-600'
             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
         }`}
       >
-        Confirmar reserva →
+        {confirming ? 'Confirmando...' : 'Confirmar reserva →'}
       </button>
     </div>
   );

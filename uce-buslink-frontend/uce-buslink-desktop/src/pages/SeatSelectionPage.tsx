@@ -1,30 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import {
-  getRouteById,
-  getTripById,
-  initialSeats,
-  initialStandingSpots,
-} from '../data/mockData';
+import { useRoute } from '../hooks/useRoute';
+import { useTripById } from '../hooks/useTripById';
+import { useSeatsByTrip } from '../hooks/useSeatsByTrip';
+import { useCreateReservation } from '../hooks/useCreateReservation';
 import type { Seat } from '../types';
 import { SeatMap, BookingSummary } from '../components/molecules';
+import { Spinner } from '../components/atoms';
+
+function formatTime(isoDateTime: string): string {
+  return new Date(isoDateTime).toLocaleTimeString('es-EC', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
 
 export function SeatSelectionPage() {
   const { routeId, tripId } = useParams<{ routeId: string; tripId: string }>();
   const navigate = useNavigate();
 
-  const [seats, setSeats] = useState<Seat[]>(initialSeats);
-  const standingSpots = initialStandingSpots;
-  const [selectedStandingId, setSelectedStandingId] = useState<number | null>(null);
+  const { route, loading: routeLoading, notFound: routeNotFound } = useRoute(routeId);
+  const { trip, loading: tripLoading, notFound: tripNotFound } = useTripById(tripId);
+  const { apiSeats, loading: seatsLoading, error: seatsError } = useSeatsByTrip(tripId);
+  const { confirm, loading: confirming, error: confirmError } = useCreateReservation();
 
-  const route = getRouteById(routeId ?? '');
-  const trip = getTripById(tripId ?? '');
+  const [seats, setSeats] = useState<Seat[]>([]);
+
+  useEffect(() => {
+    setSeats(
+      apiSeats.map((s) => ({
+        number: s.seatNumber,
+        status: s.state !== 'AVAILABLE' ? 'occupied' : 'available',
+      }))
+    );
+  }, [apiSeats]);
+
   const selectedSeat = seats.find((s) => s.status === 'selected') ?? null;
-  const hasSelection = selectedSeat !== null || selectedStandingId !== null;
+  const selectedSeatApi = apiSeats.find((s) => s.seatNumber === selectedSeat?.number) ?? null;
+  const hasSelection = selectedSeat !== null;
 
   function selectSeat(seatNumber: number) {
-    setSelectedStandingId(null);
     setSeats((prev) =>
       prev.map((s) => {
         if (s.number === seatNumber) {
@@ -35,14 +52,26 @@ export function SeatSelectionPage() {
     );
   }
 
-  function selectStanding(spotId: number) {
-    setSeats((prev) =>
-      prev.map((s) => (s.status === 'selected' ? { ...s, status: 'available' } : s))
-    );
-    setSelectedStandingId((prev) => (prev === spotId ? null : spotId));
+  async function handleConfirm() {
+    if (!tripId || !selectedSeatApi) return;
+    const boardingStopId = route?.stops?.[0]?.stopId;
+    if (!boardingStopId) return;
+    const result = await confirm(tripId, selectedSeatApi.id, boardingStopId);
+    if (result) navigate('/dashboard');
   }
 
-  if (!route || !trip) {
+  const isLoading = routeLoading || tripLoading || seatsLoading;
+  const notFound = routeNotFound || tripNotFound;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (notFound || !route || !trip) {
     return (
       <div className="text-center py-20 text-gray-400">
         <p className="mb-4">Viaje no encontrado.</p>
@@ -56,11 +85,8 @@ export function SeatSelectionPage() {
     );
   }
 
-  const selectionLabel = selectedSeat
-    ? `Asiento ${selectedSeat.number}`
-    : selectedStandingId
-    ? 'Lugar de pie'
-    : null;
+  const tripTime = formatTime(trip.departureTime);
+  const selectionLabel = selectedSeat ? `Asiento ${selectedSeat.number}` : null;
 
   return (
     <div>
@@ -73,30 +99,33 @@ export function SeatSelectionPage() {
       </button>
 
       <h1 className="text-2xl font-bold text-navy-900 mb-1">
-        Seleccionar lugar – {route.name} ({trip.time})
+        Seleccionar lugar – {route.name} ({tripTime})
       </h1>
-      <p className="text-gray-500 text-sm mb-8">
-        Elige un asiento o un lugar de pie para tu viaje
-      </p>
+      <p className="text-gray-500 text-sm mb-8">Elige un asiento para tu viaje</p>
+
+      {seatsError && <p className="text-red-500 text-sm mb-4">{seatsError}</p>}
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2">
           <SeatMap
             seats={seats}
-            standingSpots={standingSpots}
-            selectedStandingId={selectedStandingId}
+            standingSpots={[]}
+            selectedStandingId={null}
             onSelectSeat={selectSeat}
-            onSelectStanding={selectStanding}
+            onSelectStanding={() => {}}
           />
         </div>
         <BookingSummary
-          route={route}
-          trip={trip}
+          routeName={route.name}
+          tripTime={tripTime}
           selectionLabel={selectionLabel}
           hasSelection={hasSelection}
-          onConfirm={() => navigate('/dashboard')}
+          confirming={confirming}
+          onConfirm={handleConfirm}
         />
       </div>
+
+      {confirmError && <p className="text-red-500 text-sm mt-4">{confirmError}</p>}
     </div>
   );
 }
