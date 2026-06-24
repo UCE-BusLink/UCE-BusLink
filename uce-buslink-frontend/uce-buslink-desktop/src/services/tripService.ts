@@ -1,5 +1,5 @@
 import { apiFetch } from './api';
-import type { Trip } from '../types';
+import type { Trip, ApiTrip } from '../types';
 
 /**
  * HU-159 — Selección de viajes.
@@ -23,4 +23,8 @@ export async function fetchTripsByRoute(
     `/api/v1/trips?routeId=${routeId}&activa=true`,
     token
   );
+}
+
+export async function fetchTripById(token: string, tripId: string): Promise<ApiTrip> {
+  return apiFetch<ApiTrip>(`/api/v1/supervisor/trips/${tripId}`, token);
 }

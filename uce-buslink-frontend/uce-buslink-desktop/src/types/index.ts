@@ -81,3 +81,31 @@ export interface WeekDay {
   day: number;
   isToday: boolean;
 }
+
+export type SeatState = 'AVAILABLE' | 'RESERVED' | 'OCCUPIED' | 'BLOCKED';
+
+export interface ApiSeat {
+  id: string;
+  tripId: string;
+  seatNumber: number;
+  state: SeatState;
+}
+
+export interface ApiTrip {
+  id: string;
+  routeId: string;
+  busId: string;
+  driverId: string;
+  state: string;
+  departureTime: string;
+  estimatedArrivalTime: string;
+  availableSeats: number;
+}
+
+export interface ApiReservation {
+  id: string;
+  tripId: string;
+  seatId: string;
+  status: string;
+  qrCode: string;
+}
