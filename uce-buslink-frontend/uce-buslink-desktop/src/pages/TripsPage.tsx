@@ -20,13 +20,10 @@ export function TripsPage() {
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
     setCancellingId(item.reservation.id);
-    try {
-      await cancelReservation(token, item.reservation.id, 'Cancelado por el estudiante');
-      refetch();
-    } catch {
-    } finally {
-      setCancellingId(null);
-    }
+    await cancelReservation(token, item.reservation.id, 'Cancelado por el estudiante')
+      .then(() => refetch())
+      .catch(() => undefined)
+      .finally(() => setCancellingId(null));
   }
 
   return (
