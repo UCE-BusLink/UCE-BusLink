@@ -1,12 +1,23 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { Star, Bus, QrCode } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 import { useRoutes } from '../hooks/useRoutes';
 import { useTrustScore } from '../hooks/useTrustScore';
-import { ReservationCard } from '../components/molecules/ReservationCard';
+import { useActiveReservations } from '../hooks/useActiveReservations';
 import { RouteCard } from '../components/molecules/RouteCard';
 import { StatCard } from '../components/molecules/StatCard';
-import { RouteCardSkeleton, TrustScoreRing } from '../components/atoms';
+import { QrModal } from '../components/molecules/QrModal';
+import { RouteCardSkeleton, TrustScoreRing, Button, Spinner } from '../components/atoms';
+import type { ActiveReservationItem } from '../types';
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' });
+}
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -21,6 +32,9 @@ export function DashboardPage() {
   const { user: clerkUser } = useUser();
   const { routes, loading: routesLoading } = useRoutes();
   const trustScore = useTrustScore();
+  const { items, loading: reservationLoading } = useActiveReservations();
+
+  const [qrItem, setQrItem] = useState<ActiveReservationItem | null>(null);
 
   const displayRoutes = routes.slice(0, 3);
 
@@ -39,12 +53,48 @@ export function DashboardPage() {
         <div className="col-span-2 space-y-6">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">
-              Tu próxima reserva
+              Tus reservas activas
             </p>
-            <ReservationCard
-              reservation={null}
-              onNavigateToRoutes={() => navigate('/routes')}
-            />
+
+            {reservationLoading ? (
+              <div className="flex justify-center py-4">
+                <Spinner />
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                  <Bus size={20} className="text-gray-400" />
+                </div>
+                <p className="text-sm font-semibold text-gray-500">Sin reservas activas</p>
+                <p className="text-xs text-gray-400 mt-1">Reserva un lugar en la sección de Rutas</p>
+                <Button size="sm" onClick={() => navigate('/routes')} className="mt-4">
+                  Ver rutas
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {items.map((item) => (
+                  <div
+                    key={item.reservation.id}
+                    className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-navy-900">{item.route.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {formatTime(item.trip.departureTime)} · {formatDate(item.trip.departureTime)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setQrItem(item)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-navy-900 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+                    >
+                      <QrCode size={13} />
+                      Ver QR
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -100,6 +150,15 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {qrItem && (
+        <QrModal
+          qrCode={qrItem.reservation.qrCode}
+          title={qrItem.route.name}
+          subtitle={formatTime(qrItem.trip.departureTime) + ' · ' + formatDate(qrItem.trip.departureTime)}
+          onClose={() => setQrItem(null)}
+        />
+      )}
     </div>
   );
 }

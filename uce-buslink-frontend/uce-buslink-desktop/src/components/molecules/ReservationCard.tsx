@@ -1,14 +1,33 @@
-import { Bus, Calendar, Armchair, ChevronRight } from 'lucide-react';
+import { Bus, Calendar, Clock } from 'lucide-react';
 import { Button } from '../atoms/Button';
-import type { ReservationHistoryItem } from '../../services/reservationService';
+import type { NextReservationData } from '../../hooks/useNextReservation';
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });
+}
 
 interface ReservationCardProps {
-  reservation: ReservationHistoryItem | null;
+  data: NextReservationData | null;
+  loading?: boolean;
   onNavigateToRoutes: () => void;
 }
 
-export function ReservationCard({ reservation, onNavigateToRoutes }: ReservationCardProps) {
-  if (!reservation) {
+export function ReservationCard({ data, loading, onNavigateToRoutes }: ReservationCardProps) {
+  if (loading) {
+    return (
+      <div className="animate-pulse space-y-3 py-4">
+        <div className="h-4 bg-gray-100 rounded w-1/3" />
+        <div className="h-10 bg-gray-100 rounded w-1/2" />
+        <div className="h-3 bg-gray-100 rounded w-2/3" />
+      </div>
+    );
+  }
+
+  if (!data) {
     return (
       <div className="flex flex-col items-center justify-center py-6 text-center">
         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
@@ -23,39 +42,29 @@ export function ReservationCard({ reservation, onNavigateToRoutes }: Reservation
     );
   }
 
+  const { trip, route } = data;
+
   return (
-    <>
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
-              <Bus size={14} className="text-amber-600" />
-            </div>
-            <span className="font-semibold text-navy-900">{reservation.routeName}</span>
-          </div>
-          <p className="text-5xl font-bold text-navy-900">{reservation.time}</p>
-          <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-            <div className="flex items-center gap-1.5">
-              <Calendar size={14} />
-              <span>{reservation.date}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Armchair size={14} />
-              <span>{reservation.seat}</span>
-            </div>
-          </div>
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
+          <Bus size={14} className="text-amber-600" />
         </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-400 mb-0.5">Conductor</p>
-          <p className="text-sm font-semibold text-navy-900">{reservation.driver}</p>
-          <p className="text-xs text-gray-400 mt-2 mb-0.5">Unidad</p>
-          <p className="text-sm font-semibold text-navy-900">{reservation.unit}</p>
+        <span className="font-semibold text-navy-900">{route.name}</span>
+      </div>
+
+      <p className="text-5xl font-bold text-navy-900">{formatTime(trip.departureTime)}</p>
+
+      <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+        <div className="flex items-center gap-1.5">
+          <Calendar size={14} />
+          <span className="capitalize">{formatDate(trip.departureTime)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Clock size={14} />
+          <span>{trip.availableSeats} cupos restantes</span>
         </div>
       </div>
-      <button className="mt-5 flex items-center gap-1.5 text-sm font-semibold text-navy-900 hover:text-amber-600 transition-colors">
-        Pase de abordar
-        <ChevronRight size={16} />
-      </button>
-    </>
+    </div>
   );
 }

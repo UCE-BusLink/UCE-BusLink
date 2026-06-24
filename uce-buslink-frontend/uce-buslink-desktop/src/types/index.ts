@@ -35,7 +35,6 @@ export interface RouteStop {
   type: StopType;
 }
 
-// HU-244 — parada con orden y coordenadas (GET /rutas/{id}/paradas)
 export interface RouteStopDetail {
   order: number;
   name: string;
@@ -108,4 +107,10 @@ export interface ApiReservation {
   seatId: string;
   status: string;
   qrCode: string;
+}
+
+export interface ActiveReservationItem {
+  reservation: ApiReservation;
+  trip: ApiTrip;
+  route: ApiRoute;
 }
