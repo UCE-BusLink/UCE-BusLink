@@ -6,11 +6,11 @@
 services:
 
   uce-buslink-backend:
-    image: rodneyandrade/uce-buslink-backend:${BACKEND_TAG}
+    image: rodneyandrade/uce-buslink-backend:${BACKEND_TAG:-latest}
     environment:
       SPRING_PROFILES_ACTIVE: prod
       JPA_SHOW_SQL: "false"
       HIBERNATE_FORMAT_SQL: "false"
 
   uce-buslink-frontend:
-    image: rodneyandrade/uce-buslink-frontend-desktop:${FRONTEND_TAG}
+    image: rodneyandrade/uce-buslink-frontend-desktop:${FRONTEND_TAG:-latest}
