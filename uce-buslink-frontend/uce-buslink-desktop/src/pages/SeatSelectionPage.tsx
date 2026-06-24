@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useRoute } from '../hooks/useRoute';
@@ -6,8 +6,9 @@ import { useTripById } from '../hooks/useTripById';
 import { useSeatsByTrip } from '../hooks/useSeatsByTrip';
 import { useCreateReservation } from '../hooks/useCreateReservation';
 import type { Seat } from '../types';
-import { SeatMap, BookingSummary } from '../components/molecules';
+import { SeatMap, BookingSummary, ReservationConfirmModal } from '../components/molecules';
 import { Spinner } from '../components/atoms';
+import type { ApiReservation } from '../types';
 
 function formatTime(isoDateTime: string): string {
   return new Date(isoDateTime).toLocaleTimeString('es-EC', {
@@ -26,30 +27,29 @@ export function SeatSelectionPage() {
   const { apiSeats, loading: seatsLoading, error: seatsError } = useSeatsByTrip(tripId);
   const { confirm, loading: confirming, error: confirmError } = useCreateReservation();
 
-  const [seats, setSeats] = useState<Seat[]>([]);
+  const [selectedSeatNumber, setSelectedSeatNumber] = useState<number | null>(null);
+  const [confirmedReservation, setConfirmedReservation] = useState<ApiReservation | null>(null);
 
-  useEffect(() => {
-    setSeats(
+  const seats = useMemo<Seat[]>(
+    () =>
       apiSeats.map((s) => ({
         number: s.seatNumber,
-        status: s.state !== 'AVAILABLE' ? 'occupied' : 'available',
-      }))
-    );
-  }, [apiSeats]);
+        status:
+          s.seatNumber === selectedSeatNumber
+            ? 'selected'
+            : s.state !== 'AVAILABLE'
+              ? 'occupied'
+              : 'available',
+      })),
+    [apiSeats, selectedSeatNumber]
+  );
 
   const selectedSeat = seats.find((s) => s.status === 'selected') ?? null;
   const selectedSeatApi = apiSeats.find((s) => s.seatNumber === selectedSeat?.number) ?? null;
   const hasSelection = selectedSeat !== null;
 
   function selectSeat(seatNumber: number) {
-    setSeats((prev) =>
-      prev.map((s) => {
-        if (s.number === seatNumber) {
-          return { ...s, status: s.status === 'selected' ? 'available' : 'selected' };
-        }
-        return s.status === 'selected' ? { ...s, status: 'available' } : s;
-      })
-    );
+    setSelectedSeatNumber((prev) => (prev === seatNumber ? null : seatNumber));
   }
 
   async function handleConfirm() {
@@ -57,7 +57,7 @@ export function SeatSelectionPage() {
     const boardingStopId = route?.stops?.[0]?.stopId;
     if (!boardingStopId) return;
     const result = await confirm(tripId, selectedSeatApi.id, boardingStopId);
-    if (result) navigate('/dashboard');
+    if (result) setConfirmedReservation(result);
   }
 
   const isLoading = routeLoading || tripLoading || seatsLoading;
@@ -126,6 +126,14 @@ export function SeatSelectionPage() {
       </div>
 
       {confirmError && <p className="text-red-500 text-sm mt-4">{confirmError}</p>}
+
+      {confirmedReservation && selectedSeat && (
+        <ReservationConfirmModal
+          reservation={confirmedReservation}
+          seatNumber={selectedSeat.number}
+          onClose={() => navigate('/dashboard')}
+        />
+      )}
     </div>
   );
 }

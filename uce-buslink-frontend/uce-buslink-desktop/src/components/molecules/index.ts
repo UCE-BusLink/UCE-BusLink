@@ -20,3 +20,5 @@ export { ActiveReservationCard } from './ActiveReservationCard';
 export { ProfileHeroCard } from './ProfileHeroCard';
 export { ProfileStatCard } from './ProfileStatCard';
 export { ProfileInfoCard } from './ProfileInfoCard';
+export { ReservationConfirmModal } from './ReservationConfirmModal';
+export { QrModal } from './QrModal';
