@@ -1,5 +1,6 @@
 package com.ucebuslink.tracking.application.service;
 
+import com.ucebuslink.tracking.application.dto.GpsLocationReceivedEvent;
 import com.ucebuslink.tracking.application.dto.GpsUpdatePayload;
 import com.ucebuslink.tracking.application.dto.LocationBroadcastPayload;
 import com.ucebuslink.tracking.application.port.out.TrackingQueryPort;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Slf4j
@@ -24,6 +26,7 @@ public class TrackingApplicationService {
     private final TrackingQueryPort trackingQueryPort;
     private final ETACalculator etaCalculator;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void processGpsUpdate(GpsUpdatePayload payload, String driverId) {
         log.debug("[TRACKING] Procesando actualización GPS del bus {} enviada por conductor {}", payload.busId(), driverId);
@@ -39,15 +42,19 @@ public class TrackingApplicationService {
 
         busLocationRepository.saveLocation(location);
 
-        // TODO: (Para la Tarea 041 y 042)
-        // - Lanzar evento asíncrono para que se guarde el historial en Postgres sin bloquear el hilo.
-        // - Calcular distancia con Haversine y emitir a los estudiantes.
-
         //BROADCAST
         UUID activeTripId = trackingQueryPort.getActiveTripIdByBus(payload.busId());
         if (activeTripId == null) {
             return;
         }
+
+        eventPublisher.publishEvent(new GpsLocationReceivedEvent(
+                activeTripId,
+                payload.latitude(),
+                payload.longitude(),
+                payload.accuracy(),
+                payload.velocity()
+        ));
 
         // 2. Calcular ETA con Haversine
         double[] nextStopCoords = trackingQueryPort.getNextStopCoordinates(activeTripId);
