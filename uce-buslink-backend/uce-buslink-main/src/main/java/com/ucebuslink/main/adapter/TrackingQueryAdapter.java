@@ -47,4 +47,24 @@ public class TrackingQueryAdapter implements TrackingQueryPort {
         // Igualmente, aquí consultarás el nombre de la parada.
         return "Parada UCE (Mock)";
     }
+
+    @Override
+    public String getBusPlateNumber(UUID busId) {
+        return tripApplicationService.getBusPlateNumber(busId);
+    }
+
+    @Override
+    public String getRouteNameByTrip(UUID tripId) {
+        return tripApplicationService.getRouteNameByTrip(tripId);
+    }
+
+    @Override
+    public int getTripOccupiedSeats(UUID tripId) {
+        return tripApplicationService.getTripOccupiedSeats(tripId);
+    }
+
+    @Override
+    public int getBusTotalCapacity(UUID busId) {
+        return tripApplicationService.getBusTotalCapacity(busId);
+    }
 }

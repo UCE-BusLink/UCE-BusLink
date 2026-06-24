@@ -289,4 +289,41 @@ public class TripApplicationService implements ManageTripUseCase {
                 .findFirst()
                 .orElse(null);
     }
+
+    @Transactional(readOnly = true)
+    public String getBusPlateNumber(UUID busId) {
+        log.debug("[FLEET-TRIP] Consultando placa del bus {}", busId);
+        return busRepository.findById(busId)
+                // Nota: Ajusta ".getPlate()" si tu entidad Bus usa otro nombre (ej. getPlateNumber)
+                .map(Bus::getPlateNumber) 
+                .orElse("Desconocido");
+    }
+
+    @Transactional(readOnly = true)
+    public int getBusTotalCapacity(UUID busId) {
+        log.debug("[FLEET-TRIP] Consultando capacidad total del bus {}", busId);
+        return busRepository.findById(busId)
+                .map(Bus::getSeatCapacity) // Este getter lo vimos en tu código de creación de viajes
+                .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
+    public String getRouteNameByTrip(UUID tripId) {
+        log.debug("[FLEET-TRIP] Consultando nombre de la ruta para el viaje {}", tripId);
+        return tripRepository.findById(tripId)
+                .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
+                // Nota: Ajusta ".getName()" si tu entidad Route usa otro nombre para el nombre de la ruta
+                .map(com.ucebuslink.supervisor.domain.model.Route::getName) 
+                .orElse("Ruta Desconocida");
+    }
+
+    @Transactional(readOnly = true)
+    public int getTripOccupiedSeats(UUID tripId) {
+        log.debug("[FLEET-TRIP] Consultando asientos ocupados para el viaje {}", tripId);
+        return tripRepository.findById(tripId)
+                .flatMap(trip -> busRepository.findById(trip.getBusId())
+                        // Ocupados = Capacidad total - Asientos disponibles actualmente
+                        .map(bus -> bus.getSeatCapacity() - trip.getAvailableSeats()))
+                .orElse(0);
+    }
 }
