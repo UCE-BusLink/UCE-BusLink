@@ -227,4 +227,13 @@ public class ReservationApplicationService {
         Reservation saved = reservationRepository.save(reservation);
         return mapToResponse(saved);
     }
+
+    @Transactional(readOnly = true)
+    public boolean hasActiveUserReservation(UUID userId, UUID tripId) {
+        log.debug("[RESERVATIONS] Consultando desde Tracking si el usuario {} tiene reserva en el viaje {}", userId, tripId);
+        
+        // Usamos la validación que ya tienes en reserveSeat (existsByTripAndUser)
+        // Ojo: En un futuro puedes optimizar esto en el Repository para que valide el Status = ACTIVE
+        return reservationRepository.existsByTripAndUser(tripId, userId);
+    }
 }
