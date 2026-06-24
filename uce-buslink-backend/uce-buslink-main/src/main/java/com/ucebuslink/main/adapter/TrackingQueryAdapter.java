@@ -34,18 +34,14 @@ public class TrackingQueryAdapter implements TrackingQueryPort {
 
     @Override
     public double[] getNextStopCoordinates(UUID tripId) {
-        // TODO: (Para no asumir código) 
-        // Aquí deberás llamar a un método de tu RouteApplicationService que te devuelva 
-        // las coordenadas de la siguiente parada del viaje. 
-        // Por ahora, devolvemos las coordenadas centrales de la UCE para que tu Haversine no falle.
-        return new double[]{-0.1993, -78.5053}; 
+        // 🔥 Datos reales desde la BD de Flotas
+        return tripApplicationService.getNextStopCoordinates(tripId);
     }
 
     @Override
     public String getNextStopName(UUID tripId) {
-        // TODO: (Para no asumir código)
-        // Igualmente, aquí consultarás el nombre de la parada.
-        return "Parada UCE (Mock)";
+        // 🔥 Datos reales desde la BD de Flotas
+        return tripApplicationService.getNextStopName(tripId);
     }
 
     @Override

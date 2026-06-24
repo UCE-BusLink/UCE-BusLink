@@ -28,7 +28,6 @@ public class TrackingApplicationService {
     public void processGpsUpdate(GpsUpdatePayload payload, String driverId) {
         log.debug("[TRACKING] Procesando actualización GPS del bus {} enviada por conductor {}", payload.busId(), driverId);
 
-        // 1. Mapear a nuestro Value Object de dominio
         BusLocation location = new BusLocation(
                 payload.busId(),
                 payload.latitude(),
@@ -38,17 +37,16 @@ public class TrackingApplicationService {
                 payload.timestamp()
         );
 
-        // 2. Guardar en la memoria ultra-rápida de Redis (JSON y GeoSpatial)
         busLocationRepository.saveLocation(location);
 
         // TODO: (Para la Tarea 041 y 042)
         // - Lanzar evento asíncrono para que se guarde el historial en Postgres sin bloquear el hilo.
         // - Calcular distancia con Haversine y emitir a los estudiantes.
 
-        //LÓGICA DE BROADCAST (Descomentar e integrar con trackingQueryPort)
+        //BROADCAST
         UUID activeTripId = trackingQueryPort.getActiveTripIdByBus(payload.busId());
         if (activeTripId == null) {
-            return; // El bus está encendido pero no está haciendo ninguna ruta oficial
+            return;
         }
 
         // 2. Calcular ETA con Haversine

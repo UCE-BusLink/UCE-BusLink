@@ -7,6 +7,7 @@ import com.ucebuslink.supervisor.application.dto.trip.UpdateTripCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageTripUseCase;
 import com.ucebuslink.supervisor.domain.model.Bus;
 import com.ucebuslink.supervisor.domain.model.Schedule;
+import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.model.Trip;
 import com.ucebuslink.shared.constant.*;
 import com.ucebuslink.shared.event.TripCompletedEvent;
@@ -325,5 +326,38 @@ public class TripApplicationService implements ManageTripUseCase {
                         // Ocupados = Capacidad total - Asientos disponibles actualmente
                         .map(bus -> bus.getSeatCapacity() - trip.getAvailableSeats()))
                 .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
+    public double[] getNextStopCoordinates(UUID tripId) {
+        log.debug("[FLEET-TRIP] Consultando coordenadas de la próxima parada para el viaje {}", tripId);
+        return tripRepository.findById(tripId)
+                .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
+                .filter(route -> route.getRouteStops() != null && !route.getRouteStops().isEmpty())
+                .map(route -> {
+                    // Obtenemos la parada inicial de la ruta basándonos en el orden
+                    Stop nextStop = route.getRouteStops().stream()
+                            .min((rs1, rs2) -> Integer.compare(rs1.getStopOrder(), rs2.getStopOrder()))
+                            .orElseThrow()
+                            .getStop();
+                    return new double[]{nextStop.getLatitude(), nextStop.getLongitude()};
+                })
+                .orElse(null); // Retorna null si no hay paradas, el Haversine lo manejará
+    }
+
+    @Transactional(readOnly = true)
+    public String getNextStopName(UUID tripId) {
+        log.debug("[FLEET-TRIP] Consultando nombre de la próxima parada para el viaje {}", tripId);
+        return tripRepository.findById(tripId)
+                .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
+                .filter(route -> route.getRouteStops() != null && !route.getRouteStops().isEmpty())
+                .map(route -> {
+                    Stop nextStop = route.getRouteStops().stream()
+                            .min((rs1, rs2) -> Integer.compare(rs1.getStopOrder(), rs2.getStopOrder()))
+                            .orElseThrow()
+                            .getStop();
+                    return nextStop.getName();
+                })
+                .orElse("Parada Desconocida");
     }
 }
