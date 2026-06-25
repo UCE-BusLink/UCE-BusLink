@@ -1,15 +1,6 @@
 import { apiFetch } from './api';
+import type { ApiReservation } from '../types';
 
-/**
- * HU-161 — Reserva activa y cancelación.
- *
- * Backend PENDIENTE (módulo reservations vacío). Endpoints esperados:
- *   GET    /api/v1/reservations/me   -> reserva activa del estudiante (o null)
- *   POST   /api/v1/reservations      -> crear reserva (asiento o lugar de pie)
- *   DELETE /api/v1/reservations/{id} -> cancelar reserva activa
- *
- * Las pantallas funcionan con mockData hasta que el backend exista.
- */
 export interface ReservationHistoryItem {
   id: string;
   routeName: string;
@@ -19,12 +10,14 @@ export interface ReservationHistoryItem {
   driver: string;
   unit: string;
   date: string;
+  qrCode: string;
+  status: string;
 }
 
 export interface CreateReservationCommand {
   tripId: string;
-  seatNumber?: number;
-  standingSpotId?: number;
+  seatId: string;
+  boardingStopId: string;
 }
 
 export async function fetchReservationHistory(
@@ -38,8 +31,8 @@ export async function fetchReservationHistory(
 export async function createReservation(
   token: string,
   command: CreateReservationCommand
-): Promise<ReservationHistoryItem> {
-  return apiFetch<ReservationHistoryItem>('/api/v1/reservations', token, {
+): Promise<ApiReservation> {
+  return apiFetch<ApiReservation>('/api/v1/reservations', token, {
     method: 'POST',
     body: JSON.stringify(command),
   });
@@ -47,9 +40,11 @@ export async function createReservation(
 
 export async function cancelReservation(
   token: string,
-  reservationId: string
+  reservationId: string,
+  reason: string
 ): Promise<void> {
   await apiFetch<void>(`/api/v1/reservations/${reservationId}/cancel`, token, {
-    method: 'DELETE',
+    method: 'PATCH',
+    body: JSON.stringify({ reason }),
   });
 }

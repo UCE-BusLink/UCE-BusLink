@@ -3,7 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { getCurrentWeekDays } from '../data/mockData';
 import { useRoute } from '../hooks/useRoute';
-import type { RouteStopDetail, StopType } from '../types';
+import { useTripsByRoute } from '../hooks/useTripsByRoute';
+import type { RouteStopDetail, StopType, ApiTrip } from '../types';
 import {
   EmptyState,
   RouteDetailHeader,
@@ -27,6 +28,7 @@ export function RouteDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const { route, loading, error, notFound } = useRoute(routeId);
+  const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(isAdminContext ? undefined : routeId);
 
   if (loading) {
     return (
@@ -76,7 +78,9 @@ export function RouteDetailPage() {
       lng: s.longitude,
     }));
 
-  const departureTimes: string[] = [];
+  function handleSelectTrip(trip: ApiTrip) {
+    navigate(`/routes/${routeId}/seats/${trip.id}`);
+  }
 
   return (
     <div>
@@ -96,7 +100,12 @@ export function RouteDetailPage() {
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">
-          <DepartureTimesList times={departureTimes} />
+          <DepartureTimesList
+            trips={trips}
+            loading={tripsLoading}
+            error={tripsError}
+            onSelect={isAdminContext ? undefined : handleSelectTrip}
+          />
           <RouteStopsList stops={stops} />
         </div>
         <RouteInfoCard
@@ -105,7 +114,7 @@ export function RouteDetailPage() {
           estimatedDurationMinutes={route.estimatedDurationMinutes}
           description={route.description}
           stopsCount={stops.length}
-          departuresCount={departureTimes.length}
+          departuresCount={trips.length}
         />
       </div>
     </div>

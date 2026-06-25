@@ -1,20 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarOff, CheckCircle2 } from 'lucide-react';
-import type { Trip, Route } from '../types';
-import type { ReservationHistoryItem as ActiveReservation } from '../services/reservationService';
-import { TripCard, ActiveReservationCard } from '../components/molecules';
+import { CalendarOff } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
+import { useActiveReservations } from '../hooks/useActiveReservations';
+import { useReservationHistory } from '../hooks/useReservationHistory';
+import { ActiveReservationCard, QrModal, ReservationHistoryCard } from '../components/molecules';
+import { Spinner } from '../components/atoms';
+import { cancelReservation } from '../services/reservationService';
+import type { ActiveReservationItem } from '../types';
 
 export function TripsPage() {
   const navigate = useNavigate();
-  const [reservation, setReservation] = useState<ActiveReservation | null>(null);
-  const [justCancelled, setJustCancelled] = useState(false);
+  const { getToken } = useAuth();
+  const { items, loading, error, refetch } = useActiveReservations();
 
-  const availableTrips: { trip: Trip; route: Route }[] = [];
+  const { items: historyItems, loading: historyLoading, page, setPage, totalPages, refetch: refetchHistory } = useReservationHistory(5);
 
-  function handleCancel() {
-    setReservation(null);
-    setJustCancelled(true);
+  const [qrItem, setQrItem] = useState<ActiveReservationItem | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  async function handleCancel(item: ActiveReservationItem) {
+    const token = await getToken({ template: 'uce-buslink' });
+    if (!token) return;
+    setCancellingId(item.reservation.id);
+    await cancelReservation(token, item.reservation.id, 'Cancelado por el estudiante')
+      .then(() => { refetch(); refetchHistory(); })
+      .catch(() => undefined)
+      .finally(() => setCancellingId(null));
   }
 
   return (
@@ -22,20 +34,17 @@ export function TripsPage() {
       <div className="mb-7">
         <h1 className="text-2xl font-bold text-navy-900">Viajes</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Gestiona tu reserva activa y elige tu próximo viaje nocturno.
+          Gestiona tus reservas activas y elige tu próximo viaje.
         </p>
       </div>
 
-      {justCancelled && (
-        <div className="flex items-center gap-2 bg-green-50 text-green-700 text-sm rounded-xl px-4 py-3 mb-6">
-          <CheckCircle2 size={16} />
-          Tu reserva fue cancelada correctamente.
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Spinner />
         </div>
-      )}
-
-      {reservation ? (
-        <ActiveReservationCard reservation={reservation} onCancel={handleCancel} />
-      ) : (
+      ) : error ? (
+        <p className="text-sm text-red-400 mb-6">{error}</p>
+      ) : items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center text-gray-400 mb-8">
           <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <CalendarOff size={24} className="opacity-40" />
@@ -43,32 +52,90 @@ export function TripsPage() {
           <p className="font-semibold text-gray-500 mb-1">No tienes reservas activas</p>
           <p className="text-sm">Elige un viaje disponible para reservar tu lugar.</p>
         </div>
+      ) : (
+        <div className="mb-8">
+          {items.map((item) => (
+            <ActiveReservationCard
+              key={item.reservation.id}
+              item={item}
+              onViewQr={() => setQrItem(item)}
+              onCancel={() => handleCancel(item)}
+              cancelling={cancellingId === item.reservation.id}
+            />
+          ))}
+        </div>
       )}
+
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wide">
+            Historial
+          </h2>
+        </div>
+
+        {historyLoading ? (
+          <div className="flex justify-center py-6">
+            <Spinner />
+          </div>
+        ) : historyItems.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center text-gray-400">
+            <p className="text-sm">No hay reservas anteriores.</p>
+          </div>
+        ) : (
+          <>
+            {historyItems.map((item) => (
+              <ReservationHistoryCard key={item.id} item={item} />
+            ))}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-2">
+                <button
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page === 0}
+                  className="text-xs font-medium text-navy-900 disabled:opacity-30 hover:underline"
+                >
+                  Anterior
+                </button>
+                <span className="text-xs text-gray-400">{page + 1} / {totalPages}</span>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= totalPages - 1}
+                  className="text-xs font-medium text-navy-900 disabled:opacity-30 hover:underline"
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wide">
           Viajes disponibles
         </h2>
-        <span className="text-xs text-gray-400">{availableTrips.length} viajes</span>
       </div>
 
-      {availableTrips.length > 0 ? (
-        <div className="grid grid-cols-3 gap-5">
-          {availableTrips.map(({ trip, route }) => (
-            <TripCard
-              key={trip.id}
-              trip={trip}
-              route={route}
-              onSelect={() => navigate(`/routes/${route.id}/seats/${trip.id}`)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20 text-gray-400">
-          <CalendarOff size={40} className="mx-auto mb-3 opacity-40" />
-          <p className="text-sm font-medium text-gray-500 mb-1">No hay viajes disponibles</p>
-          <p className="text-sm">Vuelve más tarde para reservar tu lugar.</p>
-        </div>
+      <div className="text-center py-20 text-gray-400">
+        <CalendarOff size={40} className="mx-auto mb-3 opacity-40" />
+        <p className="text-sm font-medium text-gray-500 mb-1">Explora rutas para reservar</p>
+        <button
+          onClick={() => navigate('/routes')}
+          className="text-sm font-semibold text-navy-900 hover:underline mt-2"
+        >
+          Ver rutas disponibles
+        </button>
+      </div>
+
+      {qrItem && (
+        <QrModal
+          qrCode={qrItem.reservation.qrCode}
+          title={qrItem.route.name}
+          subtitle={new Date(qrItem.trip.departureTime).toLocaleString('es-EC', {
+            weekday: 'short', day: 'numeric', month: 'short',
+            hour: '2-digit', minute: '2-digit', hour12: false,
+          })}
+          onClose={() => setQrItem(null)}
+        />
       )}
     </div>
   );

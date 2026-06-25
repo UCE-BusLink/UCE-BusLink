@@ -1,81 +1,92 @@
 import { useState } from 'react';
-import type { ReactNode } from 'react';
-import { Ticket, Clock, Armchair, User as UserIcon, Bus, X } from 'lucide-react';
-import type { ReservationHistoryItem as ActiveReservation } from '../../services/reservationService';
+import { Ticket, Clock, QrCode, X, MapPin } from 'lucide-react';
+import type { ActiveReservationItem } from '../../types';
 
-function ReservationField({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="text-white/40 flex-shrink-0">{icon}</div>
-      <div className="min-w-0">
-        <p className="text-xs text-white/40">{label}</p>
-        <p className="text-sm font-semibold text-white truncate">{value}</p>
-      </div>
-    </div>
-  );
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 interface ActiveReservationCardProps {
-  reservation: ActiveReservation;
+  item: ActiveReservationItem;
+  onViewQr: () => void;
   onCancel: () => void;
+  cancelling?: boolean;
 }
 
-export function ActiveReservationCard({ reservation, onCancel }: ActiveReservationCardProps) {
-  const [confirming, setConfirming] = useState(false);
+export function ActiveReservationCard({ item, onViewQr, onCancel, cancelling }: ActiveReservationCardProps) {
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const { trip, route } = item;
+
+  const stops = route.stops ?? [];
+  const origin = stops[0]?.stopName ?? '—';
+  const destination = stops[stops.length - 1]?.stopName ?? '—';
 
   return (
-    <div className="bg-navy-900 rounded-2xl shadow-sm overflow-hidden mb-8">
+    <div className="bg-navy-900 rounded-2xl shadow-sm overflow-hidden mb-4">
       <div className="px-6 py-5">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-start justify-between mb-1">
+          <div className="flex items-center gap-2">
             <Ticket size={16} className="text-amber-400" />
             <span className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
-              Tu reserva activa
+              Reserva activa
             </span>
           </div>
-          <span className="text-xs bg-white/10 text-white/70 px-2.5 py-1 rounded-full">
-            {reservation.date}
+          <span className="text-xs bg-white/10 text-white/70 px-2.5 py-1 rounded-full capitalize">
+            {formatDate(trip.departureTime)}
           </span>
         </div>
 
-        <h3 className="text-xl font-bold text-white mt-1">
-          {reservation.routeName}{' '}
-          <span className="text-white/50 font-medium text-base">→ {reservation.destination}</span>
-        </h3>
+        <h3 className="text-xl font-bold text-white mt-1">{route.name}</h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-          <ReservationField icon={<Clock size={14} />} label="Horario" value={`${reservation.time} hrs`} />
-          <ReservationField icon={<Armchair size={14} />} label="Lugar" value={reservation.seat} />
-          <ReservationField icon={<UserIcon size={14} />} label="Conductor" value={reservation.driver} />
-          <ReservationField icon={<Bus size={14} />} label="Unidad" value={reservation.unit} />
+        <div className="flex items-center gap-1.5 mt-1 text-sm text-white/50">
+          <MapPin size={12} />
+          <span className="truncate">{origin} → {destination}</span>
+        </div>
+
+        <div className="flex items-center gap-6 mt-4">
+          <div className="flex items-center gap-2 text-white">
+            <Clock size={14} className="text-white/40" />
+            <span className="text-2xl font-bold">{formatTime(trip.departureTime)}</span>
+          </div>
+          <span className="text-xs text-white/40">{trip.availableSeats} cupos restantes</span>
         </div>
       </div>
 
-      <div className="bg-white/5 px-6 py-4 border-t border-white/10">
-        {confirming ? (
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-sm text-white/80">¿Seguro que deseas cancelar esta reserva?</p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setConfirming(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white/70 hover:bg-white/10 transition-colors"
-              >
-                No, mantener
-              </button>
-              <button
-                onClick={onCancel}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors"
-              >
-                Sí, cancelar
-              </button>
-            </div>
+      <div className="bg-white/5 px-6 py-4 border-t border-white/10 flex items-center justify-between gap-3">
+        <button
+          onClick={onViewQr}
+          className="flex items-center gap-1.5 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+        >
+          <QrCode size={15} />
+          Ver QR
+        </button>
+
+        {confirmingCancel ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setConfirmingCancel(false)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/70 hover:bg-white/10 transition-colors"
+            >
+              Mantener
+            </button>
+            <button
+              onClick={() => { setConfirmingCancel(false); onCancel(); }}
+              disabled={cancelling}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              {cancelling ? 'Cancelando...' : 'Confirmar'}
+            </button>
           </div>
         ) : (
           <button
-            onClick={() => setConfirming(true)}
+            onClick={() => setConfirmingCancel(true)}
             className="flex items-center gap-1.5 text-sm font-semibold text-red-400 hover:text-red-300 transition-colors"
           >
-            <X size={16} />
+            <X size={15} />
             Cancelar reserva
           </button>
         )}

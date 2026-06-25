@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Bus, Home, Clock, Map, User, LogOut, LayoutDashboard, Truck, MapPin, Settings } from 'lucide-react';
+import { Bus, Home, Clock, Map, User, LogOut, LayoutDashboard, Truck, MapPin, Settings, Users, CalendarClock } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useCurrentUser } from '../../context/AuthContext';
 import brandIcon from '../../assets/brand/Icon.png';
@@ -23,14 +23,22 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/routes', icon: Bus, label: 'Rutas' },
   { to: '/admin/buses', icon: Truck, label: 'Buses' },
   { to: '/admin/stops', icon: MapPin, label: 'Paradas' },
+  { to: '/admin/drivers', icon: Users, label: 'Choferes' },
+  { to: '/admin/trips', icon: CalendarClock, label: 'Viajes' },
   { to: '/profile', icon: Settings, label: 'Cuenta' },
+];
+
+const DRIVER_NAV: NavItem[] = [
+  { to: '/driver', icon: Home, label: 'Mis Viajes' },
+  { to: '/profile', icon: User, label: 'Perfil' },
 ];
 
 export function Sidebar() {
   const { signOut } = useAuth();
   const { user } = useCurrentUser();
   const isAdmin = user?.role === 'ADMIN';
-  const navItems = isAdmin ? ADMIN_NAV : STUDENT_NAV;
+  const isDriver = user?.role === 'DRIVER';
+  const navItems = isAdmin ? ADMIN_NAV : isDriver ? DRIVER_NAV : STUDENT_NAV;
 
   return (
     <aside className="w-60 min-h-screen bg-navy-900 flex flex-col flex-shrink-0">
@@ -41,7 +49,7 @@ export function Sidebar() {
           </div>
           <div>
             <p className="text-white font-bold text-sm leading-tight">UCE Bus-Link</p>
-            <p className="text-gray-400 text-xs">{isAdmin ? 'Administración' : 'Night Transport'}</p>
+            <p className="text-gray-400 text-xs">{isAdmin ? 'Administración' : isDriver ? 'Conductor' : 'Night Transport'}</p>
           </div>
         </div>
       </div>
