@@ -14,7 +14,7 @@ export function TripsPage() {
   const { getToken } = useAuth();
   const { items, loading, error, refetch } = useActiveReservations();
 
-  const { items: historyItems, loading: historyLoading, page, setPage, totalPages } = useReservationHistory(5);
+  const { items: historyItems, loading: historyLoading, page, setPage, totalPages, refetch: refetchHistory } = useReservationHistory(5);
 
   const [qrItem, setQrItem] = useState<ActiveReservationItem | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function TripsPage() {
     if (!token) return;
     setCancellingId(item.reservation.id);
     await cancelReservation(token, item.reservation.id, 'Cancelado por el estudiante')
-      .then(() => refetch())
+      .then(() => { refetch(); refetchHistory(); })
       .catch(() => undefined)
       .finally(() => setCancellingId(null));
   }

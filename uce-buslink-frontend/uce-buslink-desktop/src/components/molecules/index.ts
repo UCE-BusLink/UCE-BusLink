@@ -23,3 +23,6 @@ export { ProfileInfoCard } from './ProfileInfoCard';
 export { ReservationConfirmModal } from './ReservationConfirmModal';
 export { QrModal } from './QrModal';
 export { ReservationHistoryCard } from './ReservationHistoryCard';
+export { DriverTripCard } from './DriverTripCard';
+export { PassengerRow } from './PassengerRow';
+export { QrScannerModal } from './QrScannerModal';

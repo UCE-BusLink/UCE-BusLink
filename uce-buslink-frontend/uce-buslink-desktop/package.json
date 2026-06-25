@@ -13,6 +13,7 @@
     "@azure/msal-browser": "^5.12.0",
     "@clerk/clerk-react": "^5.61.8",
     "@react-oauth/google": "^0.13.5",
+    "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
