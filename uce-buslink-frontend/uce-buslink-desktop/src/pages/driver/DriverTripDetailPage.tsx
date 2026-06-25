@@ -1,38 +1,37 @@
 import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, QrCode } from 'lucide-react';
+import { ArrowLeft, QrCode, UserX } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
-import { useDriverTripPassengers } from '../../hooks/useDriverTripPassengers';
-import { PassengerRow, QrScannerModal } from '../../components/molecules';
+import { useDriverTrip } from '../../hooks/useDriverTrip';
+import { TripSummaryCard, QrScannerModal } from '../../components/molecules';
 import { Spinner } from '../../components/atoms';
 import { scanReservation, adminCancelReservation } from '../../services/driverService';
+
+type ScannerMode = 'board' | 'cancel' | null;
 
 export function DriverTripDetailPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { getToken } = useAuth();
-  const { passengers, loading, error, refetch } = useDriverTripPassengers(tripId!);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [scannerOpen, setScannerOpen] = useState(false);
+  const { trip, loading, error } = useDriverTrip(tripId!);
+  const [scannerMode, setScannerMode] = useState<ScannerMode>(null);
 
-  async function handleCancel(reservationId: string) {
-    const token = await getToken({ template: 'uce-buslink' });
-    if (!token) return;
-    setCancellingId(reservationId);
-    await adminCancelReservation(token, reservationId, 'Cancelado por el conductor')
-      .then(() => refetch())
-      .catch(() => undefined)
-      .finally(() => setCancellingId(null));
-  }
-
-  const handleScan = useCallback(
+  const handleBoard = useCallback(
     async (reservationId: string) => {
       const token = await getToken({ template: 'uce-buslink' });
       if (!token) throw new Error('No token');
       await scanReservation(token, reservationId);
-      await refetch();
     },
-    [getToken, refetch]
+    [getToken]
+  );
+
+  const handleCancel = useCallback(
+    async (reservationId: string) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No token');
+      await adminCancelReservation(token, reservationId, 'Cancelado por el conductor');
+    },
+    [getToken]
   );
 
   return (
@@ -45,48 +44,61 @@ export function DriverTripDetailPage() {
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-navy-900">Pasajeros</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Lista de reservas para este viaje.</p>
+          <h1 className="text-2xl font-bold text-navy-900">Detalle del viaje</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Escanea el QR del pasajero para abordar o cancelar.</p>
         </div>
-      </div>
-
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setScannerOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-navy-900 text-white text-sm font-semibold rounded-xl hover:bg-navy-800 transition-colors"
-        >
-          <QrCode size={16} />
-          Escanear QR
-        </button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
           <Spinner />
         </div>
-      ) : error ? (
-        <p className="text-sm text-red-400">{error}</p>
-      ) : passengers.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center text-gray-400">
-          <p className="text-sm">No hay pasajeros registrados para este viaje.</p>
+      ) : error || !trip ? (
+        <div className="bg-white rounded-2xl border border-red-100 p-6 text-center">
+          <p className="text-sm text-red-500">{error ?? 'Viaje no encontrado.'}</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-2">
-          {passengers.map((passenger) => (
-            <PassengerRow
-              key={passenger.reservationId}
-              passenger={passenger}
-              onCancel={() => handleCancel(passenger.reservationId)}
-              cancelling={cancellingId === passenger.reservationId}
-            />
-          ))}
+        <div className="space-y-5 max-w-xl">
+          <TripSummaryCard trip={trip} />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => setScannerMode('board')}
+              className="flex items-center justify-center gap-2 px-4 py-4 bg-navy-900 text-white text-sm font-semibold rounded-2xl hover:bg-navy-800 transition-colors"
+            >
+              <QrCode size={18} />
+              Abordar pasajero
+            </button>
+            <button
+              onClick={() => setScannerMode('cancel')}
+              className="flex items-center justify-center gap-2 px-4 py-4 bg-white border border-red-200 text-red-600 text-sm font-semibold rounded-2xl hover:bg-red-50 transition-colors"
+            >
+              <UserX size={18} />
+              Cancelar reserva
+            </button>
+          </div>
+
+          <p className="text-xs text-gray-400 text-center">
+            Apunta la cámara al código QR del estudiante. La acción se aplica al escanear.
+          </p>
         </div>
       )}
 
-      {scannerOpen && (
+      {scannerMode === 'board' && (
         <QrScannerModal
-          onScan={handleScan}
-          onClose={() => { setScannerOpen(false); refetch(); }}
+          title="Abordar pasajero"
+          successMessage="Pasajero marcado como abordado."
+          onScan={handleBoard}
+          onClose={() => setScannerMode(null)}
+        />
+      )}
+
+      {scannerMode === 'cancel' && (
+        <QrScannerModal
+          title="Cancelar reserva"
+          successMessage="Reserva cancelada correctamente."
+          onScan={handleCancel}
+          onClose={() => setScannerMode(null)}
         />
       )}
     </div>

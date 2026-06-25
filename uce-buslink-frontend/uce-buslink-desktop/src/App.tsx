@@ -19,6 +19,7 @@ import { AdminRoutesPage } from './pages/admin/AdminRoutesPage'
 import { AdminBusesPage } from './pages/admin/AdminBusesPage'
 import { AdminStopsPage } from './pages/admin/AdminStopsPage'
 import { AdminDriversPage } from './pages/admin/AdminDriversPage'
+import { AdminTripsPage } from './pages/admin/AdminTripsPage'
 import { DriverDashboardPage } from './pages/driver/DriverDashboardPage'
 import { DriverTripDetailPage } from './pages/driver/DriverTripDetailPage'
 
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="/admin/buses" element={<AdminBusesPage />} />
           <Route path="/admin/stops" element={<AdminStopsPage />} />
           <Route path="/admin/drivers" element={<AdminDriversPage />} />
+          <Route path="/admin/trips" element={<AdminTripsPage />} />
         </Route>
 
         {/* ROOT */}
