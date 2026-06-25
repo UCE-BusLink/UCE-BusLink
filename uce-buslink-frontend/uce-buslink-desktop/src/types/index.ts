@@ -114,3 +114,19 @@ export interface ActiveReservationItem {
   trip: ApiTrip;
   route: ApiRoute;
 }
+
+export interface ApiDriverTrip {
+  id: string;
+  routeId: string;
+  routeName: string;
+  state: string;
+  departureTime: string;
+  reservationCount: number;
+}
+
+export interface DriverPassenger {
+  reservationId: string;
+  studentName: string;
+  seat: string;
+  status: string;
+}

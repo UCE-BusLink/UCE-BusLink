@@ -30,6 +30,7 @@ export function useReservationHistory(pageSize = 5) {
   }, [load, page]);
 
   const totalPages = Math.ceil(totalElements / pageSize);
+  const refetch = useCallback(() => load(page), [load, page]);
 
-  return { items, loading, page, setPage, totalPages, totalElements };
+  return { items, loading, page, setPage, totalPages, totalElements, refetch };
 }
