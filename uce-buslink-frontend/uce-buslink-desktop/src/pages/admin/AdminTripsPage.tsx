@@ -48,6 +48,7 @@ export function AdminTripsPage() {
   const [drivers, setDrivers] = useState<ApiDriver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [driversFailed, setDriversFailed] = useState(false);
   const [tick, setTick] = useState(0);
 
   const [showForm, setShowForm] = useState(false);
@@ -63,20 +64,26 @@ export function AdminTripsPage() {
 
     async function run() {
       setError(null);
+      setDriversFailed(false);
       try {
         const token = await getToken({ template: 'uce-buslink' });
         if (!token || cancelled) return;
-        const [tripsData, routesPage, busesPage, driversData] = await Promise.all([
+        const [tripsResult, routesResult, busesResult, driversResult] = await Promise.allSettled([
           fetchTrips(token),
           fetchRoutes(token, 0, 100),
           fetchBuses(token, 0, 100),
           fetchDrivers(token),
         ]);
         if (cancelled) return;
-        setTrips(tripsData);
-        setRoutes(routesPage.content);
-        setBuses(busesPage.content);
-        setDrivers(driversData);
+
+        if (tripsResult.status === 'fulfilled') setTrips(tripsResult.value);
+        else setError('No se pudieron cargar los viajes.');
+
+        if (routesResult.status === 'fulfilled') setRoutes(routesResult.value.content);
+        if (busesResult.status === 'fulfilled') setBuses(busesResult.value.content);
+
+        if (driversResult.status === 'fulfilled') setDrivers(driversResult.value);
+        else setDriversFailed(true);
       } catch {
         if (!cancelled) setError('No se pudieron cargar los viajes.');
       } finally {
@@ -224,6 +231,12 @@ export function AdminTripsPage() {
             </div>
 
             <form onSubmit={handleCreate} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {driversFailed && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
+                  No se pudo cargar la lista de conductores (el backend devolvió un error en
+                  <span className="font-mono"> /admin/drivers</span>). Podrás asignar el conductor cuando ese endpoint funcione.
+                </div>
+              )}
               <div>
                 <label htmlFor="trip-route" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
                   Ruta

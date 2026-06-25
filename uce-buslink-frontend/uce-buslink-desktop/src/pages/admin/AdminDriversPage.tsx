@@ -10,8 +10,10 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function passwordRules(password: string) {
   return {
     length: password.length >= 8,
-    letter: /[a-zA-Z]/.test(password),
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
   };
 }
 
@@ -49,7 +51,7 @@ export function AdminDriversPage() {
 
   const rules = passwordRules(form.password);
   const emailValid = form.email === '' || EMAIL_REGEX.test(form.email);
-  const passwordValid = rules.length && rules.letter && rules.number;
+  const passwordValid = rules.length && rules.upper && rules.lower && rules.number && rules.special;
   const confirmValid = form.confirmPassword === '' || form.confirmPassword === form.password;
   const formValid =
     form.nombres.trim() !== '' &&
@@ -242,10 +244,12 @@ export function AdminDriversPage() {
                   </button>
                 </div>
                 {form.password !== '' && (
-                  <ul className="mt-2 space-y-1">
+                  <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
                     <RuleItem ok={rules.length} text="Al menos 8 caracteres" />
-                    <RuleItem ok={rules.letter} text="Contiene una letra" />
-                    <RuleItem ok={rules.number} text="Contiene un número" />
+                    <RuleItem ok={rules.upper} text="Una mayúscula" />
+                    <RuleItem ok={rules.lower} text="Una minúscula" />
+                    <RuleItem ok={rules.number} text="Un número" />
+                    <RuleItem ok={rules.special} text="Un carácter especial" />
                   </ul>
                 )}
               </div>
