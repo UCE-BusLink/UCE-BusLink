@@ -145,7 +145,7 @@ export function AdminDriversPage() {
                         <User size={14} className="text-navy-700" />
                       </div>
                       <span className="text-sm font-semibold text-navy-900">
-                        {driver.nombres} {driver.apellidos}
+                        {driver.firstName} {driver.lastName}
                       </span>
                     </div>
                   </td>

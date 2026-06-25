@@ -1,3 +1,4 @@
+// src/components/layout/Sidebar.tsx
 import { NavLink } from 'react-router-dom';
 import { Bus, Home, Clock, Map, User, LogOut, LayoutDashboard, Truck, MapPin, Settings, Users, CalendarClock } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
@@ -20,6 +21,7 @@ const STUDENT_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/admin/map', icon: Map, label: 'Mapa GPS' }, // <-- NUEVA OPCIÓN AGREGADA AQUÍ
   { to: '/admin/routes', icon: Bus, label: 'Rutas' },
   { to: '/admin/buses', icon: Truck, label: 'Buses' },
   { to: '/admin/stops', icon: MapPin, label: 'Paradas' },
