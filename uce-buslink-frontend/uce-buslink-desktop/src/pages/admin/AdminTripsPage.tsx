@@ -48,6 +48,7 @@ export function AdminTripsPage() {
   const [drivers, setDrivers] = useState<ApiDriver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [driversFailed, setDriversFailed] = useState(false);
   const [tick, setTick] = useState(0);
 

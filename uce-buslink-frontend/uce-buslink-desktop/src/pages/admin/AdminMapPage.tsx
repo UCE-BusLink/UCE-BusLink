@@ -96,10 +96,7 @@ export default function AdminMapPage() {
                     reconnectDelay: 5000,
                     heartbeatIncoming: 4000,
                     heartbeatOutgoing: 4000,
-                    debug: (str) => {
-                        // Opcional: comentar en producción para no saturar la consola
-                        // console.log(str); 
-                    },
+                    
                     onConnect: (frame) => {
                         console.log('✅ Conectado al WebSocket:', frame);
                         setIsConnected(true);
