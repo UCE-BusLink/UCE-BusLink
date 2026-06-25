@@ -48,9 +48,12 @@ export function AdminTripsPage() {
   const [drivers, setDrivers] = useState<ApiDriver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [driversFailed, setDriversFailed] = useState(false);
   const [tick, setTick] = useState(0);
+
+  if (driversFailed) {
+    return <div>Error cargando drivers</div>;
+  }
 
   // Estados del Wizard
   const [showForm, setShowForm] = useState(false);
@@ -67,7 +70,7 @@ export function AdminTripsPage() {
   // Paso 2: Horarios por Día Extraídos del Backend
   // routeTimesByDayEnum guarda los horarios disponibles. Ej: { MONDAY: ['06:00', '12:00'] }
   const [routeTimesByDayEnum, setRouteTimesByDayEnum] = useState<Record<string, string[]>>({});
-  
+
   // scheduleBlocks guarda los horarios que el usuario ha seleccionado. Ej: { '2026-06-25': ['06:00'] }
   const [scheduleBlocks, setScheduleBlocks] = useState<Record<string, string[]>>({});
   const [selectedDateIso, setSelectedDateIso] = useState<string>('');
@@ -164,9 +167,9 @@ export function AdminTripsPage() {
       if (!token) return;
 
       const data = await fetchRouteSchedules(token, routeId);
-      
+
       const timesMap: Record<string, string[]> = {};
-      
+
       // Filtrar, agrupar y mapear solo los horarios FIXED
       data.forEach((schedule: any) => {
         if (!schedule.active) return;
@@ -188,7 +191,7 @@ export function AdminTripsPage() {
 
       // Ordenar las horas
       Object.keys(timesMap).forEach(day => timesMap[day].sort());
-      
+
       setRouteTimesByDayEnum(timesMap);
       setCurrentStep(2);
     } catch (err) {
@@ -202,7 +205,7 @@ export function AdminTripsPage() {
   // --- LÓGICA DE SELECCIÓN Y VALIDACIÓN DE 2.5 HORAS (150 MINUTOS) ---
   function toggleTimeSelection(dateIso: string, timeToToggle: string) {
     const currentTimes = scheduleBlocks[dateIso] || [];
-    
+
     // Si ya está seleccionado, lo desmarcamos
     if (currentTimes.includes(timeToToggle)) {
       setScheduleBlocks(prev => ({
@@ -220,9 +223,9 @@ export function AdminTripsPage() {
     for (const existTime of currentTimes) {
       const [eH, eM] = existTime.split(':').map(Number);
       const eMins = eH * 60 + eM;
-      
+
       const diffMins = Math.abs(newMins - eMins);
-      
+
       if (diffMins < 150) {
         setSaveError(`No puedes marcar las ${timeToToggle}. Ya has seleccionado las ${existTime}. Debe haber un margen mínimo de 2.5 horas entre salidas.`);
         return;
@@ -239,7 +242,7 @@ export function AdminTripsPage() {
   // --- FINALIZAR Y ENVIAR AL BACKEND ---
   async function handleCreate() {
     setSaveError(null);
-    
+
     // Formatear los bloques a ISO Strings
     const validDepartures: string[] = [];
     Object.entries(scheduleBlocks).forEach(([dateIso, times]) => {
@@ -256,7 +259,7 @@ export function AdminTripsPage() {
 
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
-    
+
     setSaving(true);
     await createTrip(token, { routeId, busId, driverId, departures: validDepartures })
       .then(() => { closeForm(); refetch(); })
@@ -337,9 +340,8 @@ export function AdminTripsPage() {
                   </td>
                   <td className="px-5 py-4">
                     <span
-                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                        STATE_STYLES[trip.state] ?? 'bg-gray-100 text-gray-600'
-                      }`}
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATE_STYLES[trip.state] ?? 'bg-gray-100 text-gray-600'
+                        }`}
                     >
                       {STATE_LABELS[trip.state] ?? trip.state}
                     </span>
@@ -355,7 +357,7 @@ export function AdminTripsPage() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            
+
             {/* Header del Modal */}
             <div className="px-6 py-4 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center justify-between mb-4">
@@ -373,9 +375,8 @@ export function AdminTripsPage() {
                   { step: 2, label: 'Horarios de Ruta' }
                 ].map((s) => (
                   <div key={s.step} className="flex flex-col items-center bg-white px-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                      currentStep >= s.step ? 'bg-navy-900 text-white' : 'bg-gray-100 text-gray-400'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentStep >= s.step ? 'bg-navy-900 text-white' : 'bg-gray-100 text-gray-400'
+                      }`}>
                       {s.step}
                     </div>
                     <span className={`text-xs mt-1 font-medium ${currentStep >= s.step ? 'text-navy-900' : 'text-gray-400'}`}>
@@ -388,7 +389,7 @@ export function AdminTripsPage() {
 
             {/* Contenido Dinámico */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
-              
+
               {/* PASO 1: Selección de Entidades */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in slide-in-from-right-4">
@@ -446,7 +447,7 @@ export function AdminTripsPage() {
               {/* PASO 2: Selección de Horarios Dinámicos Extraídos de la Ruta */}
               {currentStep === 2 && (
                 <div className="space-y-5 animate-in slide-in-from-right-4">
-                  
+
                   {/* Selector de Días (Tabs) */}
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">
@@ -463,11 +464,10 @@ export function AdminTripsPage() {
                               setSelectedDateIso(day.iso);
                               setSaveError(null);
                             }}
-                            className={`flex-shrink-0 px-4 py-2.5 rounded-xl border text-left transition-all relative ${
-                              selectedDateIso === day.iso
-                                ? 'bg-navy-900 text-white border-navy-900 shadow-md'
-                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                            }`}
+                            className={`flex-shrink-0 px-4 py-2.5 rounded-xl border text-left transition-all relative ${selectedDateIso === day.iso
+                              ? 'bg-navy-900 text-white border-navy-900 shadow-md'
+                              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                              }`}
                           >
                             <span className="block text-sm font-bold capitalize">{day.dayName}</span>
                             <span className={`block text-[10px] ${selectedDateIso === day.iso ? 'text-navy-100' : 'text-gray-400'}`}>
@@ -489,11 +489,11 @@ export function AdminTripsPage() {
                       <Clock size={16} className="text-navy-500" />
                       Horarios disponibles para el {upcomingDays.find(d => d.iso === selectedDateIso)?.dayName}
                     </h4>
-                    
+
                     <p className="text-[11px] text-gray-500 mb-4">
                       Estos son los horarios fijos configurados previamente en esta ruta. Haz clic para asignar.
                     </p>
-                    
+
                     {/* Lista de chips clickeables */}
                     <div className="flex flex-wrap gap-2 min-h-[40px]">
                       {availableTimesForCurrentDay.length === 0 ? (
@@ -508,11 +508,10 @@ export function AdminTripsPage() {
                               key={time}
                               type="button"
                               onClick={() => toggleTimeSelection(selectedDateIso, time)}
-                              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
-                                isSelected 
-                                  ? 'bg-navy-900 text-white border-navy-900 shadow-md ring-2 ring-navy-900/20 ring-offset-1' 
-                                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
-                              }`}
+                              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${isSelected
+                                ? 'bg-navy-900 text-white border-navy-900 shadow-md ring-2 ring-navy-900/20 ring-offset-1'
+                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
+                                }`}
                             >
                               {time}
                             </button>
@@ -565,7 +564,7 @@ export function AdminTripsPage() {
               ) : (
                 <div />
               )}
-              
+
               <div className="flex gap-2">
                 <button
                   type="button"
