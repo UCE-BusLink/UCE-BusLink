@@ -16,7 +16,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Solución para corregir los íconos rotos por defecto de Leaflet en entornos modernos de bundling (Vite/Webpack)
-// @ts-ignore
+//@ts-expect-error
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
