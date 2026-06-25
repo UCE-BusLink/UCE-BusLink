@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { RefreshCw, Plus, X, Clock, Trash2, Bus, User, ChevronRight, Calendar, AlertCircle } from 'lucide-react';
+import { RefreshCw, Plus, X, Clock, Bus, User, ChevronRight, Calendar, AlertCircle } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import {
   fetchTrips,
