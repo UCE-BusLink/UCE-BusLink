@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Bus, Home, Clock, Map, User, LogOut, LayoutDashboard, Truck, MapPin, Settings } from 'lucide-react';
+import { Bus, Home, Clock, Map, User, LogOut, LayoutDashboard, Truck, MapPin, Settings, Users } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useCurrentUser } from '../../context/AuthContext';
 import brandIcon from '../../assets/brand/Icon.png';
@@ -23,6 +23,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/routes', icon: Bus, label: 'Rutas' },
   { to: '/admin/buses', icon: Truck, label: 'Buses' },
   { to: '/admin/stops', icon: MapPin, label: 'Paradas' },
+  { to: '/admin/drivers', icon: Users, label: 'Choferes' },
   { to: '/profile', icon: Settings, label: 'Cuenta' },
 ];
 

@@ -14,7 +14,9 @@ export function QrScannerModal({ onScan, onClose }: QrScannerModalProps) {
   const [message, setMessage] = useState('');
   const [attempt, setAttempt] = useState(0);
   const onScanRef = useRef(onScan);
-  onScanRef.current = onScan;
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
