@@ -55,11 +55,27 @@ export interface CreateTripPayload {
   departures: string[];
 }
 
+export interface CreateBusPayload {
+  plateNumber: string;
+  internalCode: string;
+  seatCapacity: number;
+  manufacturer: string;
+  model: string;
+  operationalStatus: string;
+}
+
 export async function fetchBuses(token: string, page = 0, size = 20): Promise<PageResponse<ApiBus>> {
   return apiFetch<PageResponse<ApiBus>>(
     `/api/v1/supervisor/fleet/buses?page=${page}&size=${size}`,
     token
   );
+}
+
+export async function createBus(token: string, payload: CreateBusPayload): Promise<void> {
+  await apiFetch<unknown>('/api/v1/supervisor/fleet/buses', token, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchStops(token: string): Promise<ApiStop[]> {
