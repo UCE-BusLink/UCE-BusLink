@@ -1,70 +1,101 @@
 package com.ucebuslink.notifications.application.listener;
 
-import com.ucebuslink.notifications.domain.model.DeviceToken;
-import com.ucebuslink.notifications.domain.model.NotificationPreference;
-import com.ucebuslink.notifications.domain.repository.DeviceTokenRepository;
-import com.ucebuslink.notifications.domain.repository.NotificationPreferenceRepository;
-import com.ucebuslink.notifications.infrastructure.external.fcm.FcmNotificationAdapter;
-import com.ucebuslink.notifications.infrastructure.persistence.repository.SpringDataDeviceTokenRepository;
-import com.ucebuslink.shared.event.ReservationCancelledEvent;
-import com.ucebuslink.shared.event.ReservationCreatedEvent;
+import com.ucebuslink.notifications.application.service.NotificationDispatcherService;
+import com.ucebuslink.shared.event.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class NotificationEventListener {
 
-    private final NotificationPreferenceRepository preferenceRepository;
-    private final SpringDataDeviceTokenRepository tokenRepository; // Usamos SpringData directo para traer la lista
-    private final FcmNotificationAdapter fcmAdapter;
+    private final NotificationDispatcherService dispatcher;
 
-    /**
-     * Se dispara DESPUÉS de que la base de datos guarde la reserva con éxito (Commit).
-     */
+    // ==========================================
+    // RESERVAS
+    // ==========================================
+
     @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @EventListener
     public void handleReservationCreated(ReservationCreatedEvent event) {
-        // NOTA: Asegúrate de agregar userId a tu ReservationCreatedEvent en el Shared Kernel
-        UUID userId = event.userId(); 
+        dispatcher.dispatch(
+            event.userId(),
+            "¡Reserva Confirmada! ✅",
+            "Tu asiento ha sido asegurado. Abre la app para ver tu código QR.",
+            pref -> pref.isNotifyReservationConfirmed() // Chequea el booleano
+        );
+    }
 
-        log.info("[NOTIFICATIONS] Evento recibido: Reserva Creada para el usuario {}", userId);
+    @Async
+    @EventListener
+    public void handleReservationCancelled(ReservationCancelledEvent event) {
+        dispatcher.dispatch(
+            event.userId(),
+            "Reserva Cancelada ❌",
+            "Tu reserva ha sido cancelada correctamente.",
+            pref -> pref.isNotifyCancellation() // Chequea el booleano
+        );
+    }
 
-        // 1. Verificamos preferencias (Si no tiene, asume las default que tienen true para reservas)
-        NotificationPreference prefs = preferenceRepository.findByUserId(userId)
-                .orElseGet(() -> NotificationPreference.defaultPreferences(userId));
+    // ==========================================
+    // FLOTA Y TRACKING (VIAJES)
+    // ==========================================
 
-        if (!prefs.isNotifyReservationConfirmed()) {
-            log.debug("[NOTIFICATIONS] Usuario {} tiene las notificaciones de reserva desactivadas. Omitiendo.", userId);
-            return;
-        }
-
-        // 2. Buscamos todos los dispositivos (celulares/web) de este usuario
-        List<com.ucebuslink.notifications.infrastructure.persistence.entity.DeviceTokenJpaEntity> tokens = 
-                tokenRepository.findByUserId(userId);
-
-        if (tokens.isEmpty()) {
-            log.warn("[NOTIFICATIONS] Usuario {} no tiene tokens FCM registrados.", userId);
-            return;
-        }
-
-        // 3. Enviamos el Push a todos sus dispositivos
-        for (var device : tokens) {
-            fcmAdapter.sendPushNotification(
-                    device.getFcmToken(), 
-                    "¡Reserva Confirmada! ✅", 
-                    "Tu asiento para el viaje ha sido asegurado. Abre la app para ver tu código QR."
+    @Async
+    @EventListener
+    public void handleTripStarted(TripStartedEvent event) {
+        // Asumiendo que el evento trae una lista de userIds de todos los que reservaron
+        for (java.util.UUID studentId : event.studentIds()) {
+            dispatcher.dispatch(
+                studentId,
+                "¡Tu bus está en camino! 🚌",
+                "El viaje ha iniciado. Revisa el mapa en tiempo real.",
+                pref -> pref.isNotifyBusLeaving() // Chequea el booleano
             );
         }
+    }
+
+    @Async
+    @EventListener
+    public void handleBusApproaching(BusApproachingEvent event) {
+        dispatcher.dispatch(
+            event.userId(),
+            "¡El bus está cerca! 📍",
+            "Tu bus llegará a la parada en aproximadamente 3 minutos.",
+            pref -> pref.isNotifyBusApproaching() // Chequea el booleano
+        );
+    }
+
+    @Async
+    @EventListener
+    public void handleTripCancelledByAdmin(TripCancelledEvent event) {
+        // ESTO ES UNA EMERGENCIA - Omitimos las preferencias y forzamos el envío
+        for (java.util.UUID studentId : event.studentIds()) {
+            dispatcher.dispatch(
+                studentId,
+                "🚨 VIAJE CANCELADO 🚨",
+                "Por motivos de fuerza mayor tu viaje ha sido cancelado. Razón: " + event.reason(),
+                pref -> true // Forzamos a TRUE porque es información crítica
+            );
+        }
+    }
+
+    // ==========================================
+    // ABORDAJE (QR SCANNED)
+    // ==========================================
+
+    @Async
+    @EventListener
+    public void handleBoardingCompleted(BoardingCompletedEvent event) {
+        dispatcher.dispatch(
+            event.userId(),
+            "¡Bienvenido a bordo! 🎓",
+            "Tu código QR fue escaneado con éxito. ¡Buen viaje hacia la UCE!",
+            pref -> true // Siempre enviamos recibo de abordaje
+        );
     }
 }

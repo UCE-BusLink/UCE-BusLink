@@ -2,7 +2,7 @@ package com.ucebuslink.shared.event;
 
 import java.util.UUID;
 
-public record ReservationCancelledEvent(
+public record BoardingCompletedEvent(
     UUID tripId,
     UUID userId
 ) {}

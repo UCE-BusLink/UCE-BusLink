@@ -3,6 +3,7 @@ package com.ucebuslink.reservations.application.service;
 import com.ucebuslink.reservations.application.dto.CancelReservationCommand;
 import com.ucebuslink.reservations.application.dto.CreateReservationCommand;
 import com.ucebuslink.reservations.application.dto.ReservationResponse;
+import com.ucebuslink.reservations.application.port.out.ReservationToFleetPort;
 import com.ucebuslink.reservations.domain.model.Reservation;
 import com.ucebuslink.shared.constant.*;
 import com.ucebuslink.reservations.domain.model.Seat;
@@ -15,10 +16,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -29,6 +32,7 @@ public class ReservationApplicationService {
     private final ReservationRepository reservationRepository;
     private final SeatRepository seatRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ReservationToFleetPort fleetPort;
 
     @Transactional
     public ReservationResponse reserveSeat(CreateReservationCommand command) {
@@ -134,7 +138,7 @@ public class ReservationApplicationService {
         reservationRepository.save(reservation);
 
         // 4. Lanzar evento para devolver +1 cupo al Trip
-        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId()));
+        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId(), command.userId()));
 
         log.info("[RESERVATIONS] Reserva {} cancelada exitosamente por el usuario. Asiento {} liberado.", reservationId, seat.getId());
     }
@@ -170,7 +174,7 @@ public class ReservationApplicationService {
         reservationRepository.save(reservation);
 
         // Devolvemos el cupo al bus
-        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId()));
+        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId(), command.userId()));
         log.info("[RESERVATIONS] Reserva {} cancelada por ADMIN y asiento liberado.", reservationId);
     }
 
@@ -235,5 +239,45 @@ public class ReservationApplicationService {
         // Usamos la validación que ya tienes en reserveSeat (existsByTripAndUser)
         // Ojo: En un futuro puedes optimizar esto en el Repository para que valide el Status = ACTIVE
         return reservationRepository.existsByTripAndUser(tripId, userId);
+    }
+
+    // ... dentro de ReservationApplicationService ...
+
+    @Transactional(readOnly = true)
+    public List<UUID> getStudentIdsByTrip(UUID tripId) {
+        log.debug("[RESERVATIONS] Consultando estudiantes para el viaje {}", tripId);
+        // Supongamos que tu repositorio tiene un método findByTripId(UUID tripId)
+        return reservationRepository.findByTripId(tripId).stream()
+                // Omitimos los que ya cancelaron
+                .filter(res -> res.getStatus() != ReservationStatus.CANCELLED_BY_STUDENT && 
+                               res.getStatus() != ReservationStatus.CANCELLED_BY_ADMIN)
+                .map(Reservation::getUserId)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> getUnboardedStudentIdsByTrip(UUID tripId) {
+        log.debug("[RESERVATIONS] Consultando estudiantes en espera para el viaje {}", tripId);
+        return reservationRepository.findByTripId(tripId).stream()
+                // Solo traemos a los que están en estado CONFIRMED o PENDING (que aún no abordan)
+                .filter(res -> res.getStatus() == ReservationStatus.ACTIVE)
+                .map(Reservation::getUserId)
+                .toList();
+    }
+
+    public Page<ReservationResponse> getReservationsByTripForDriver(UUID tripId, UUID driverId, int page, int size) {
+        log.info("[APP-RESERVATIONS] Solicitando lista de pasajeros paginada para el viaje ID: {} por el chofer ID: {}", tripId, driverId);
+
+        // Validación inter-módulo utilizando el puerto
+        boolean belongsToDriver = fleetPort.doesTripBelongToDriver(tripId, driverId);
+        if (!belongsToDriver) {
+            log.warn("[APP-RESERVATIONS] Acceso denegado: El chofer {} intentó acceder a pasajeros del viaje {}", driverId, tripId);
+            throw new SecurityException("No tienes permisos para ver los pasajeros de este viaje.");
+        }
+        
+        Pageable pageable = PageRequest.of(page, size);
+
+        return reservationRepository.findActiveReservationsByTripId(tripId, pageable)
+                .map(this::mapToResponse); 
     }
 }

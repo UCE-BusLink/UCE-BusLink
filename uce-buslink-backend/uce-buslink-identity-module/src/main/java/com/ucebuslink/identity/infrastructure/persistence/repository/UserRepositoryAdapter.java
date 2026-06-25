@@ -5,6 +5,10 @@ import com.ucebuslink.identity.domain.repository.UserRepository;
 import com.ucebuslink.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.ucebuslink.identity.infrastructure.persistence.mapper.UserMapper;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import com.ucebuslink.shared.constant.*;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -62,6 +66,12 @@ public class UserRepositoryAdapter implements UserRepository {
     public Optional<User> findByClerkUserId(String clerkUserId) {
         return repository
                 .findByClerkUserId(clerkUserId)
+                .map(UserMapper::toDomain);
+    }
+
+    @Override
+    public Page<User> findUsersByRole(Role role, Pageable pageable) {
+        return repository.findByRole(role, pageable)
                 .map(UserMapper::toDomain);
     }
 }

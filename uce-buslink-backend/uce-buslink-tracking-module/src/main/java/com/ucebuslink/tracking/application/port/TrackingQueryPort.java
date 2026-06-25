@@ -1,5 +1,6 @@
 package com.ucebuslink.tracking.application.port;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -23,4 +24,6 @@ public interface TrackingQueryPort {
     String getRouteNameByTrip(UUID tripId);
     int getTripOccupiedSeats(UUID tripId);
     int getBusTotalCapacity(UUID busId);
+
+    List<UUID> getUnboardedStudentIdsByTrip(UUID tripId);
 }

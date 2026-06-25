@@ -12,6 +12,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -63,5 +66,15 @@ public class TripRepositoryAdapter implements TripRepository {
     public Page<Trip> findByDriverId(UUID driverId, Pageable pageable) {
         log.debug("[FLEET-TRIP] Consultando viajes del conductor {}: página {}, tamaño {}", driverId, pageable.getPageNumber(), pageable.getPageSize());
         return jpaRepository.findByDriverId(driverId, pageable).map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Trip> findTripsByDriverAndDate(UUID driverId, LocalDate date, Pageable pageable) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+
+        return jpaRepository
+                .findByDriverIdAndDepartureTimeBetweenOrderByDepartureTimeAsc(driverId, startOfDay, endOfDay, pageable)
+                .map(mapper::toDomain); // Transforma directamente los elementos de la página
     }
 }

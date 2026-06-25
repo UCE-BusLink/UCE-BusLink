@@ -4,12 +4,14 @@ import com.ucebuslink.supervisor.application.dto.trip.ChangeTripStateCommand;
 import com.ucebuslink.supervisor.application.dto.trip.CreateTripCommand;
 import com.ucebuslink.supervisor.application.dto.trip.TripResponse;
 import com.ucebuslink.supervisor.application.dto.trip.UpdateTripCommand;
+import com.ucebuslink.supervisor.application.port.out.FleetToReservationPort;
 import com.ucebuslink.supervisor.application.usecase.ManageTripUseCase;
 import com.ucebuslink.supervisor.domain.model.Bus;
 import com.ucebuslink.supervisor.domain.model.Schedule;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.model.Trip;
 import com.ucebuslink.shared.constant.*;
+import com.ucebuslink.shared.event.TripCancelledEvent;
 import com.ucebuslink.shared.event.TripCompletedEvent;
 import com.ucebuslink.shared.event.TripCreatedEvent;
 import com.ucebuslink.supervisor.domain.repository.BusRepository;
@@ -23,9 +25,11 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -42,6 +46,7 @@ public class TripApplicationService implements ManageTripUseCase {
     private final RouteRepository routeRepository;
     private final ScheduleRepository scheduleRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final FleetToReservationPort reservationPort;
 
     @Override
     @Transactional
@@ -213,6 +218,16 @@ public class TripApplicationService implements ManageTripUseCase {
         trip.setCancelledAt(LocalDateTime.now());
         trip.setDeletedAt(LocalDateTime.now()); // Borrado lógico para ocultarlo de listados comunes
 
+        List<UUID> students = reservationPort.getStudentIdsByTrip(trip.getId());
+
+        eventPublisher.publishEvent(
+            new TripCancelledEvent(
+                trip.getId(),
+                students,
+                "Viaje cancelado"
+            )
+        );
+
         tripRepository.save(trip);
         log.info("[FLEET-TRIP] Viaje ID: {} cancelado exitosamente.", id);
     }
@@ -359,5 +374,14 @@ public class TripApplicationService implements ManageTripUseCase {
                     return nextStop.getName();
                 })
                 .orElse("Parada Desconocida");
+    }
+
+    public Page<TripResponse> getTripsByDriverAndDate(UUID driverId, LocalDate date, int page, int size) {
+        log.info("[APP-FLEET] Consultando viajes paginados para el chofer ID: {} en la fecha: {}", driverId, date);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        
+        return tripRepository.findTripsByDriverAndDate(driverId, date, pageable)
+                .map(this::mapToResponse);// Transforma Dominio a DTO manteniendo la estructura Page
     }
 }

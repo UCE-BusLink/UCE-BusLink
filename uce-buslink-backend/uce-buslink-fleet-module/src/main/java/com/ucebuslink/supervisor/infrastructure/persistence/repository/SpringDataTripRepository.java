@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Repository
@@ -18,4 +19,11 @@ public interface SpringDataTripRepository extends JpaRepository<TripJpaEntity, U
     Page<TripJpaEntity> findByRouteId(UUID routeId, Pageable pageable);
 
     Page<TripJpaEntity> findByDriverId(UUID driverId, Pageable pageable);
+
+    Page<TripJpaEntity> findByDriverIdAndDepartureTimeBetweenOrderByDepartureTimeAsc(
+            UUID driverId, 
+            LocalDateTime startOfDay, 
+            LocalDateTime endOfDay,
+            Pageable pageable
+    );
 }

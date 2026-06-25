@@ -1,5 +1,6 @@
 package com.ucebuslink.tracking.application.service;
 
+import com.ucebuslink.shared.event.BusApproachingEvent;
 import com.ucebuslink.tracking.application.dto.GpsLocationReceivedEvent;
 import com.ucebuslink.tracking.application.dto.GpsUpdatePayload;
 import com.ucebuslink.tracking.application.dto.LocationBroadcastPayload;
@@ -67,6 +68,22 @@ public class TrackingApplicationService {
                     nextStopCoords[0], nextStopCoords[1]
             );
             eta = etaCalculator.estimateTimeToArriveMinutes(distanceKm, payload.velocity());
+        }
+
+        if (eta <= 3) {
+
+            var studentIds =
+                    trackingQueryPort.getUnboardedStudentIdsByTrip(activeTripId);
+
+            for (UUID studentId : studentIds) {
+                eventPublisher.publishEvent(
+                        new BusApproachingEvent(
+                                activeTripId,
+                                studentId,
+                                eta
+                        )
+                );
+            }
         }
 
         // 3. Crear el JSON ultra-ligero para los celulares
