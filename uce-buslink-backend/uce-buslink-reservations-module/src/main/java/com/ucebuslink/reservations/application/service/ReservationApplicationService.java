@@ -67,7 +67,7 @@ public class ReservationApplicationService {
         Reservation savedRes = reservationRepository.save(reservation);
 
         // 4. Lanzar Evento para que el Fleet Module descuente 1 asiento del Trip General
-        eventPublisher.publishEvent(new ReservationCreatedEvent(command.tripId()));
+        eventPublisher.publishEvent(new ReservationCreatedEvent(command.tripId(), command.userId()));
 
         log.info("[RESERVATIONS] Reserva exitosa. ID Reserva: {}, QR generado.", savedRes.getId());
         

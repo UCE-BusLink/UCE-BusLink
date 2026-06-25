@@ -24,7 +24,7 @@ public class BusSimulatorMock {
     private double currentLat = -0.1993;
     private double currentLon = -78.5053;
 
-    @Scheduled(fixedRate = 2000) // Simula que el celular del chofer envía datos cada 2 segundos
+    //@Scheduled(fixedRate = 2000) // Simula que el celular del chofer envía datos cada 2 segundos
     public void simulateGpsPing() {
         // Movemos el bus un poquito hacia el norte en cada "ping"
         currentLat += 0.0001; 

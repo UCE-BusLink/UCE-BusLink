@@ -22,10 +22,14 @@ public class NotificationController {
     private final NotificationApplicationService notificationService;
 
     @PostMapping("/register-device")
-    public ResponseEntity<?> registerDevice(@Valid @RequestBody RegisterDeviceRequest request, Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName()); // Extraído del JWT interceptado por SecurityConfig
-        
-        DeviceToken savedToken = notificationService.registerDevice(userId, request);
+    public ResponseEntity<?> registerDevice(
+            @Valid @RequestBody RegisterDeviceRequest request,
+            Authentication authentication) {
+
+        UUID userId = (UUID) authentication.getDetails();
+
+        DeviceToken savedToken =
+                notificationService.registerDevice(userId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "id", savedToken.getId(),
