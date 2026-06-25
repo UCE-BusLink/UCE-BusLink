@@ -3,6 +3,7 @@ package com.ucebuslink.reservations.domain.repository;
 import com.ucebuslink.reservations.domain.model.Reservation;
 import com.ucebuslink.shared.constant.ReservationStatus;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,4 +22,8 @@ public interface ReservationRepository {
     Optional<Reservation> findById(UUID id);
 
     java.util.List<Reservation> findByTripIdAndStatus(UUID tripId, ReservationStatus status);
+
+    List<Reservation> findByTripId(UUID tripId);
+
+    Page<Reservation> findActiveReservationsByTripId(UUID tripId, Pageable pageable);
 }

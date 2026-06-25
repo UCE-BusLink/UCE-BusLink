@@ -18,6 +18,10 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminRoutesPage } from './pages/admin/AdminRoutesPage'
 import { AdminBusesPage } from './pages/admin/AdminBusesPage'
 import { AdminStopsPage } from './pages/admin/AdminStopsPage'
+import { AdminDriversPage } from './pages/admin/AdminDriversPage'
+import { AdminTripsPage } from './pages/admin/AdminTripsPage'
+import { DriverDashboardPage } from './pages/driver/DriverDashboardPage'
+import { DriverTripDetailPage } from './pages/driver/DriverTripDetailPage'
 
 import { SignInPage } from './pages/auth/SignInPage'
 import { SignUpPage } from './pages/auth/SignUpPage'
@@ -39,6 +43,14 @@ function StudentOnly({ element }: { element: React.ReactNode }) {
   const { user, syncDone } = useCurrentUser()
   if (!syncDone) return null
   if (user?.role === 'ADMIN') return <Navigate to="/admin" replace />
+  if (user?.role === 'DRIVER') return <Navigate to="/driver" replace />
+  return <>{element}</>
+}
+
+function DriverOnly({ element }: { element: React.ReactNode }) {
+  const { user, syncDone } = useCurrentUser()
+  if (!syncDone) return null
+  if (user?.role !== 'DRIVER') return <Navigate to="/dashboard" replace />
   return <>{element}</>
 }
 
@@ -56,7 +68,7 @@ function RootRedirect() {
   return (
     <>
       <SignedIn>
-        <Navigate to={user?.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />
+        <Navigate to={user?.role === 'ADMIN' ? '/admin' : user?.role === 'DRIVER' ? '/driver' : '/dashboard'} replace />
       </SignedIn>
       <SignedOut>
         <Navigate to="/login" replace />
@@ -100,12 +112,18 @@ export default function App() {
           <Route path="/map" element={<StudentOnly element={<MapPage />} />} />
           <Route path="/profile" element={<ProfilePage />} />
 
+          {/* Driver */}
+          <Route path="/driver" element={<DriverOnly element={<DriverDashboardPage />} />} />
+          <Route path="/driver/trips/:tripId" element={<DriverOnly element={<DriverTripDetailPage />} />} />
+
           {/* Admin */}
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/routes" element={<AdminRoutesPage />} />
           <Route path="/admin/routes/:routeId" element={<RouteDetailPage />} />
           <Route path="/admin/buses" element={<AdminBusesPage />} />
           <Route path="/admin/stops" element={<AdminStopsPage />} />
+          <Route path="/admin/drivers" element={<AdminDriversPage />} />
+          <Route path="/admin/trips" element={<AdminTripsPage />} />
         </Route>
 
         {/* ROOT */}

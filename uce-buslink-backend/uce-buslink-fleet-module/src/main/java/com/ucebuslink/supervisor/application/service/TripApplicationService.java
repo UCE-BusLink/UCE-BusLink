@@ -4,11 +4,14 @@ import com.ucebuslink.supervisor.application.dto.trip.ChangeTripStateCommand;
 import com.ucebuslink.supervisor.application.dto.trip.CreateTripCommand;
 import com.ucebuslink.supervisor.application.dto.trip.TripResponse;
 import com.ucebuslink.supervisor.application.dto.trip.UpdateTripCommand;
+import com.ucebuslink.supervisor.application.port.out.FleetToReservationPort;
 import com.ucebuslink.supervisor.application.usecase.ManageTripUseCase;
 import com.ucebuslink.supervisor.domain.model.Bus;
 import com.ucebuslink.supervisor.domain.model.Schedule;
+import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.model.Trip;
 import com.ucebuslink.shared.constant.*;
+import com.ucebuslink.shared.event.TripCancelledEvent;
 import com.ucebuslink.shared.event.TripCompletedEvent;
 import com.ucebuslink.shared.event.TripCreatedEvent;
 import com.ucebuslink.supervisor.domain.repository.BusRepository;
@@ -22,9 +25,11 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -41,6 +46,7 @@ public class TripApplicationService implements ManageTripUseCase {
     private final RouteRepository routeRepository;
     private final ScheduleRepository scheduleRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final FleetToReservationPort reservationPort;
 
     @Override
     @Transactional
@@ -212,6 +218,16 @@ public class TripApplicationService implements ManageTripUseCase {
         trip.setCancelledAt(LocalDateTime.now());
         trip.setDeletedAt(LocalDateTime.now()); // Borrado lógico para ocultarlo de listados comunes
 
+        List<UUID> students = reservationPort.getStudentIdsByTrip(trip.getId());
+
+        eventPublisher.publishEvent(
+            new TripCancelledEvent(
+                trip.getId(),
+                students,
+                "Viaje cancelado"
+            )
+        );
+
         tripRepository.save(trip);
         log.info("[FLEET-TRIP] Viaje ID: {} cancelado exitosamente.", id);
     }
@@ -273,5 +289,99 @@ public class TripApplicationService implements ManageTripUseCase {
     public Page<TripResponse> getTripsByDriverId(UUID driverId, int page, int size) {
         return tripRepository.findByDriverId(driverId, PageRequest.of(page, size))
                 .map(this::mapToResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public UUID getActiveTripIdByBus(UUID busId) {
+        log.debug("[FLEET-TRIP] Consultando viaje activo para el bus {}", busId);
+        
+        // Buscamos entre los viajes ONGOING cuál le pertenece a este bus
+        // Usamos la primera página asumiendo que un bus no tiene 2 viajes activos al mismo tiempo
+        Page<TripResponse> ongoingTrips = getTripsByState(TripState.ONGOING, 0, 50);
+        
+        return ongoingTrips.stream()
+                .filter(trip -> trip.busId().equals(busId))
+                .map(TripResponse::id)
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public String getBusPlateNumber(UUID busId) {
+        log.debug("[FLEET-TRIP] Consultando placa del bus {}", busId);
+        return busRepository.findById(busId)
+                // Nota: Ajusta ".getPlate()" si tu entidad Bus usa otro nombre (ej. getPlateNumber)
+                .map(Bus::getPlateNumber) 
+                .orElse("Desconocido");
+    }
+
+    @Transactional(readOnly = true)
+    public int getBusTotalCapacity(UUID busId) {
+        log.debug("[FLEET-TRIP] Consultando capacidad total del bus {}", busId);
+        return busRepository.findById(busId)
+                .map(Bus::getSeatCapacity) // Este getter lo vimos en tu código de creación de viajes
+                .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
+    public String getRouteNameByTrip(UUID tripId) {
+        log.debug("[FLEET-TRIP] Consultando nombre de la ruta para el viaje {}", tripId);
+        return tripRepository.findById(tripId)
+                .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
+                // Nota: Ajusta ".getName()" si tu entidad Route usa otro nombre para el nombre de la ruta
+                .map(com.ucebuslink.supervisor.domain.model.Route::getName) 
+                .orElse("Ruta Desconocida");
+    }
+
+    @Transactional(readOnly = true)
+    public int getTripOccupiedSeats(UUID tripId) {
+        log.debug("[FLEET-TRIP] Consultando asientos ocupados para el viaje {}", tripId);
+        return tripRepository.findById(tripId)
+                .flatMap(trip -> busRepository.findById(trip.getBusId())
+                        // Ocupados = Capacidad total - Asientos disponibles actualmente
+                        .map(bus -> bus.getSeatCapacity() - trip.getAvailableSeats()))
+                .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
+    public double[] getNextStopCoordinates(UUID tripId) {
+        log.debug("[FLEET-TRIP] Consultando coordenadas de la próxima parada para el viaje {}", tripId);
+        return tripRepository.findById(tripId)
+                .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
+                .filter(route -> route.getRouteStops() != null && !route.getRouteStops().isEmpty())
+                .map(route -> {
+                    // Obtenemos la parada inicial de la ruta basándonos en el orden
+                    Stop nextStop = route.getRouteStops().stream()
+                            .min((rs1, rs2) -> Integer.compare(rs1.getStopOrder(), rs2.getStopOrder()))
+                            .orElseThrow()
+                            .getStop();
+                    return new double[]{nextStop.getLatitude(), nextStop.getLongitude()};
+                })
+                .orElse(null); // Retorna null si no hay paradas, el Haversine lo manejará
+    }
+
+    @Transactional(readOnly = true)
+    public String getNextStopName(UUID tripId) {
+        log.debug("[FLEET-TRIP] Consultando nombre de la próxima parada para el viaje {}", tripId);
+        return tripRepository.findById(tripId)
+                .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
+                .filter(route -> route.getRouteStops() != null && !route.getRouteStops().isEmpty())
+                .map(route -> {
+                    Stop nextStop = route.getRouteStops().stream()
+                            .min((rs1, rs2) -> Integer.compare(rs1.getStopOrder(), rs2.getStopOrder()))
+                            .orElseThrow()
+                            .getStop();
+                    return nextStop.getName();
+                })
+                .orElse("Parada Desconocida");
+    }
+
+    public Page<TripResponse> getTripsByDriverAndDate(UUID driverId, LocalDate date, int page, int size) {
+        log.info("[APP-FLEET] Consultando viajes paginados para el chofer ID: {} en la fecha: {}", driverId, date);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        
+        return tripRepository.findTripsByDriverAndDate(driverId, date, pageable)
+                .map(this::mapToResponse);// Transforma Dominio a DTO manteniendo la estructura Page
     }
 }

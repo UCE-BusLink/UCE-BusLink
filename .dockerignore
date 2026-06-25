@@ -1,4 +1,3 @@
-Set-Content .dockerignore @'
 # Version control
 .git
 .gitignore
@@ -21,7 +20,7 @@ docs
 .DS_Store
 Thumbs.db
 
-# Docker Compose (no necesario en el build context)
+# Docker Compose
 docker/docker-compose*.yml
 
 # Environment files
@@ -41,4 +40,3 @@ uce-buslink-frontend/**/dist
 
 # Logs
 *.log
-'@

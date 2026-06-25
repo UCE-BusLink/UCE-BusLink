@@ -3,6 +3,7 @@ package com.ucebuslink.supervisor.domain.repository;
 import com.ucebuslink.shared.constant.TripState;
 import com.ucebuslink.supervisor.domain.model.Trip;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,4 +18,6 @@ public interface TripRepository {
     Page<Trip> findByState(TripState state, Pageable pageable);
     Page<Trip> findByRouteId(UUID routeId, Pageable pageable);
     Page<Trip> findByDriverId(UUID driverId, Pageable pageable);
+
+    Page<Trip> findTripsByDriverAndDate(UUID driverId, LocalDate date, Pageable pageable);
 }

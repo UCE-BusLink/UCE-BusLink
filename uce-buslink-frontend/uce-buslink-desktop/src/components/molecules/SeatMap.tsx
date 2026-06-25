@@ -45,36 +45,40 @@ export function SeatMap({
         </div>
       </div>
 
-      <div className="mt-7 pt-6 border-t border-gray-100">
-        <h3 className="text-sm font-semibold text-navy-900 mb-0.5">
-          Zona de pie – {standingSpots.length * 3} lugares
-        </h3>
-        <p className="text-xs text-gray-400 mb-4">
-          Asientos ocupados – puedes reservar un lugar de pie
-        </p>
-        <div className="flex gap-2 flex-wrap">
-          {standingSpots.map((spot) => (
-            <button
-              key={spot.id}
-              onClick={spot.available ? () => onSelectStanding(spot.id) : undefined}
-              disabled={!spot.available}
-              className={`w-8 h-8 rounded-full transition-all ${
-                !spot.available
-                  ? 'bg-gray-200 cursor-not-allowed'
-                  : selectedStandingId === spot.id
-                  ? 'bg-navy-900 ring-2 ring-navy-700 ring-offset-1'
-                  : 'bg-amber-400 hover:bg-amber-500 cursor-pointer'
-              }`}
-            />
-          ))}
+      {standingSpots.length > 0 && (
+        <div className="mt-7 pt-6 border-t border-gray-100">
+          <h3 className="text-sm font-semibold text-navy-900 mb-0.5">
+            Zona de pie – {standingSpots.length * 3} lugares
+          </h3>
+          <p className="text-xs text-gray-400 mb-4">
+            Asientos ocupados – puedes reservar un lugar de pie
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {standingSpots.map((spot) => (
+              <button
+                key={spot.id}
+                onClick={spot.available ? () => onSelectStanding(spot.id) : undefined}
+                disabled={!spot.available}
+                className={`w-8 h-8 rounded-full transition-all ${
+                  !spot.available
+                    ? 'bg-gray-200 cursor-not-allowed'
+                    : selectedStandingId === spot.id
+                    ? 'bg-navy-900 ring-2 ring-navy-700 ring-offset-1'
+                    : 'bg-amber-400 hover:bg-amber-500 cursor-pointer'
+                }`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex items-center gap-6 mt-6 pt-5 border-t border-gray-100 flex-wrap">
         <LegendItem color="bg-green-400" label="Disponible" />
         <LegendItem color="bg-red-400" label="Ocupado" />
         <LegendItem color="bg-navy-900" label="Seleccionado" />
-        <LegendItem color="bg-amber-400" label="Lugar de pie disponible" />
+        {standingSpots.length > 0 && (
+          <LegendItem color="bg-amber-400" label="Lugar de pie disponible" />
+        )}
       </div>
     </div>
   );
