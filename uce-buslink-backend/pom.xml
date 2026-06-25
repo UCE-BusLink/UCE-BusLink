@@ -23,9 +23,27 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
     </properties>
 
-    <!-- Dependencias globales -->
     <dependencyManagement>
         <dependencies>
+
+            <!-- Pines de seguridad: deben ir ANTES del Spring Boot BOM para que Maven
+                 use estas versiones en lugar de las que trae Spring Boot 3.5.0.
+                 Fix CVE-2025-41249 (spring-core) y CVE-2026-22732 (spring-security-web). -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>6.2.11</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-bom</artifactId>
+                <version>6.5.9</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <!-- Spring Boot BOM -->
             <dependency>
