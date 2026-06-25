@@ -1,8 +1,9 @@
 package com.ucebuslink.shared.event;
 
+import java.util.List;
 import java.util.UUID;
 
-public record ReservationCancelledEvent(
+public record TripStartedEvent(
     UUID tripId,
-    UUID userId
+    List<UUID> studentIds
 ) {}

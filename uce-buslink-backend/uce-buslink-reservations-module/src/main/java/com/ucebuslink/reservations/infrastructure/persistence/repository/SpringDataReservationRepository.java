@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,4 +22,9 @@ public interface SpringDataReservationRepository extends JpaRepository<Reservati
     Page<ReservationJpaEntity> findByUserIdAndStatusOrderByReservedAtDesc(UUID userId, ReservationStatus status, Pageable pageable);
     
     java.util.List<ReservationJpaEntity> findByTripIdAndStatus(UUID tripId, ReservationStatus status);
+
+    List<ReservationJpaEntity> findByTripId(UUID tripId);
+
+    // Busca reservas activas/completadas para un viaje (probablemente quieras omitir las canceladas)
+    Page<ReservationJpaEntity> findByTripIdAndStatusNot(UUID tripId, ReservationStatus statusToExclude, Pageable pageable);
 }

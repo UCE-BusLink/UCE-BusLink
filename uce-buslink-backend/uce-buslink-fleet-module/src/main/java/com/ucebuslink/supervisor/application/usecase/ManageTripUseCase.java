@@ -6,6 +6,7 @@ import com.ucebuslink.supervisor.application.dto.trip.CreateTripCommand;
 import com.ucebuslink.supervisor.application.dto.trip.TripResponse;
 import com.ucebuslink.supervisor.application.dto.trip.UpdateTripCommand;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,4 +23,5 @@ public interface ManageTripUseCase {
     Page<TripResponse> getTripsByState(TripState state, int page, int size);
     Page<TripResponse> getTripsByRouteId(UUID routeId, int page, int size);
     Page<TripResponse> getTripsByDriverId(UUID driverId, int page, int size);
+    Page<TripResponse> getTripsByDriverAndDate(UUID driverId, LocalDate today, int page, int size);
 }

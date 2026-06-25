@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -63,5 +64,11 @@ public class TrackingQueryAdapter implements TrackingQueryPort {
     @Override
     public int getBusTotalCapacity(UUID busId) {
         return tripApplicationService.getBusTotalCapacity(busId);
+    }
+
+    @Override
+    public List<UUID> getUnboardedStudentIdsByTrip(UUID tripId) {
+        // Delegamos la llamada real al módulo de reservas
+        return reservationApplicationService.getUnboardedStudentIdsByTrip(tripId);
     }
 }

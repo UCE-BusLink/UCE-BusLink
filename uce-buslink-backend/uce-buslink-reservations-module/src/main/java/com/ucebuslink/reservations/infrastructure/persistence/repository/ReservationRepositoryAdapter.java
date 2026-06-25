@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -88,5 +89,19 @@ public class ReservationRepositoryAdapter implements ReservationRepository {
     public java.util.List<Reservation> findByTripIdAndStatus(UUID tripId, ReservationStatus status) {
         return jpaRepository.findByTripIdAndStatus(tripId, status).stream()
                 .map(this::toDomain).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public List<Reservation> findByTripId (UUID tripId) {
+        return jpaRepository.findByTripId(tripId).stream().
+                map(this::toDomain).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public Page<Reservation> findActiveReservationsByTripId(UUID tripId, Pageable pageable) {
+        return jpaRepository
+                .findByTripIdAndStatusNot(tripId, ReservationStatus.CANCELLED_BY_ADMIN, pageable)
+                .map(this::toDomain) // Descomenta y ajusta al nombre de tu mapper
+                ; 
     }
 }
