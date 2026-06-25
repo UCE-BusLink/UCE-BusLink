@@ -22,3 +22,4 @@ export { ProfileStatCard } from './ProfileStatCard';
 export { ProfileInfoCard } from './ProfileInfoCard';
 export { ReservationConfirmModal } from './ReservationConfirmModal';
 export { QrModal } from './QrModal';
+export { ReservationHistoryCard } from './ReservationHistoryCard';

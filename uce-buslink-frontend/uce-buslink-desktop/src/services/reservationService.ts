@@ -10,6 +10,8 @@ export interface ReservationHistoryItem {
   driver: string;
   unit: string;
   date: string;
+  qrCode: string;
+  status: string;
 }
 
 export interface CreateReservationCommand {
