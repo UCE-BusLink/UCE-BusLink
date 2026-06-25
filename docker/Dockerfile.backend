@@ -40,6 +40,8 @@ RUN mvn clean package \
 # -----------------------------------------------------------------------------
 FROM --platform=$TARGETPLATFORM eclipse-temurin:21-jre-alpine AS runtime
 
+# Actualiza paquetes del OS para parchear CVEs de Alpine (p11-kit, p11-kit-trust)
+RUN apk upgrade --no-cache
 
 LABEL maintainer="UCE-BusLink Team"
 LABEL app="uce-buslink-backend"
@@ -70,4 +72,3 @@ ENTRYPOINT ["java", \
     "-XX:+UseContainerSupport", \
     "-XX:MaxRAMPercentage=75.0", \
     "-jar", "app.jar"]
-
