@@ -19,4 +19,6 @@ public interface ManageBusUseCase {
 
     // Cambia los métodos para retornar PageResponse
     PageResponse<BusResponse> getAllActiveBuses(int page, int size);
+
+    PageResponse<BusResponse> findAll(int page, int size);
 }

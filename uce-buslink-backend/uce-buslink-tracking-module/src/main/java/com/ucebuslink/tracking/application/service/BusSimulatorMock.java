@@ -3,6 +3,8 @@ package com.ucebuslink.tracking.application.service;
 import com.ucebuslink.tracking.application.dto.GpsUpdatePayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -21,7 +23,7 @@ public class BusSimulatorMock {
     private double currentLat = -0.1993;
     private double currentLon = -78.5053;
 
-    //@Scheduled(fixedRate = 2000)
+    @Scheduled(fixedRate = 2000)
     public void simulateGpsPing() {
 
         currentLat += 0.0001; 

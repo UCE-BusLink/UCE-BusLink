@@ -23,6 +23,20 @@ export function AdminBusesPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  const statusLabels: Record<string, string> = {
+    OPERATIONAL: 'Operativo',
+    MAINTENANCE: 'Mantenimiento',
+    OUT_OF_SERVICE: 'Fuera de servicio',
+  };
+
+  const filteredBuses = buses.filter((bus) =>
+    statusFilter === 'ALL'
+      ? true
+      : bus.operationalStatus === statusFilter
+  );
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -80,6 +94,17 @@ export function AdminBusesPage() {
           <p className="text-gray-500 text-sm mt-1">{total} unidades en flota</p>
         </div>
         <div className="flex items-center gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy-900/20"
+          >
+            <option value="ALL">Todos</option>
+            <option value="OPERATIONAL">Operativos</option>
+            <option value="MAINTENANCE">Mantenimiento</option>
+            <option value="OUT_OF_SERVICE">Fuera de servicio</option>
+          </select>
+
           <button
             onClick={refresh}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
@@ -87,6 +112,7 @@ export function AdminBusesPage() {
             <RefreshCw size={15} />
             Recargar
           </button>
+
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy-900 text-white text-sm font-semibold hover:bg-navy-800 transition-colors"
@@ -106,7 +132,7 @@ export function AdminBusesPage() {
           </div>
         ) : error ? (
           <div className="p-8 text-center text-red-400 text-sm">{error}</div>
-        ) : buses.length === 0 ? (
+        ) : filteredBuses.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm">No hay buses registrados.</div>
         ) : (
           <table className="w-full">
@@ -120,7 +146,7 @@ export function AdminBusesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {buses.map((bus) => (
+              {filteredBuses.map((bus) => (
                 <tr key={bus.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2.5">
@@ -136,9 +162,16 @@ export function AdminBusesPage() {
                   </td>
                   <td className="px-5 py-4 text-sm text-gray-600">{bus.seatCapacity} asientos</td>
                   <td className="px-5 py-4">
-                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded-full w-fit">
+                    <span
+                      className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full w-fit ${bus.operationalStatus === 'OPERATIONAL'
+                          ? 'bg-green-50 text-green-600'
+                          : bus.operationalStatus === 'MAINTENANCE'
+                            ? 'bg-yellow-50 text-yellow-600'
+                            : 'bg-red-50 text-red-600'
+                        }`}
+                    >
                       <CheckCircle size={12} />
-                      {bus.operationalStatus}
+                      {statusLabels[bus.operationalStatus] ?? bus.operationalStatus}
                     </span>
                   </td>
                 </tr>

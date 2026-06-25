@@ -1,3 +1,4 @@
+// src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
 import {
@@ -20,6 +21,8 @@ import { AdminBusesPage } from './pages/admin/AdminBusesPage'
 import { AdminStopsPage } from './pages/admin/AdminStopsPage'
 import { AdminDriversPage } from './pages/admin/AdminDriversPage'
 import { AdminTripsPage } from './pages/admin/AdminTripsPage'
+// NUEVA IMPORTACIÓN AQUÍ
+import AdminMapPage from './pages/admin/AdminMapPage' 
 import { DriverDashboardPage } from './pages/driver/DriverDashboardPage'
 import { DriverTripDetailPage } from './pages/driver/DriverTripDetailPage'
 
@@ -118,6 +121,8 @@ export default function App() {
 
           {/* Admin */}
           <Route path="/admin" element={<AdminDashboardPage />} />
+          {/* NUEVA RUTA AQUÍ */}
+          <Route path="/admin/map" element={<AdminMapPage />} />
           <Route path="/admin/routes" element={<AdminRoutesPage />} />
           <Route path="/admin/routes/:routeId" element={<RouteDetailPage />} />
           <Route path="/admin/buses" element={<AdminBusesPage />} />
