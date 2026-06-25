@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarOff } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useActiveReservations } from '../hooks/useActiveReservations';
-import { ActiveReservationCard, QrModal } from '../components/molecules';
+import { useReservationHistory } from '../hooks/useReservationHistory';
+import { ActiveReservationCard, QrModal, ReservationHistoryCard } from '../components/molecules';
 import { Spinner } from '../components/atoms';
 import { cancelReservation } from '../services/reservationService';
 import type { ActiveReservationItem } from '../types';
@@ -12,6 +13,8 @@ export function TripsPage() {
   const navigate = useNavigate();
   const { getToken } = useAuth();
   const { items, loading, error, refetch } = useActiveReservations();
+
+  const { items: historyItems, loading: historyLoading, page, setPage, totalPages } = useReservationHistory(5);
 
   const [qrItem, setQrItem] = useState<ActiveReservationItem | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -62,6 +65,49 @@ export function TripsPage() {
           ))}
         </div>
       )}
+
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wide">
+            Historial
+          </h2>
+        </div>
+
+        {historyLoading ? (
+          <div className="flex justify-center py-6">
+            <Spinner />
+          </div>
+        ) : historyItems.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center text-gray-400">
+            <p className="text-sm">No hay reservas anteriores.</p>
+          </div>
+        ) : (
+          <>
+            {historyItems.map((item) => (
+              <ReservationHistoryCard key={item.id} item={item} />
+            ))}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-2">
+                <button
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page === 0}
+                  className="text-xs font-medium text-navy-900 disabled:opacity-30 hover:underline"
+                >
+                  Anterior
+                </button>
+                <span className="text-xs text-gray-400">{page + 1} / {totalPages}</span>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= totalPages - 1}
+                  className="text-xs font-medium text-navy-900 disabled:opacity-30 hover:underline"
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wide">
