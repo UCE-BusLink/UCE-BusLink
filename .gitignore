@@ -31,7 +31,6 @@ Thumbs.db
 !.env.docker.example
 
 # Build
-out/
 build/
 
 # Node / JavaScript

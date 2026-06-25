@@ -38,11 +38,20 @@ public class BusController {
    
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<PageResponse<BusResponse>> getAllBuses(
+    public ResponseEntity<PageResponse<BusResponse>> getAllBusesActive(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         log.debug("[FLEET] Fetching paginated bus list (page: {}, size: {})", page, size);
         return ResponseEntity.ok(manageBusUseCase.getAllActiveBuses(page, size));
+    }
+
+    @GetMapping("/buses")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<BusResponse>> getAllBuses(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.debug("[FLEET] Fetching paginated bus list (page: {}, size: {})", page, size);
+        return ResponseEntity.ok(manageBusUseCase.findAll(page, size));
     }
 
     @GetMapping("/{id}")

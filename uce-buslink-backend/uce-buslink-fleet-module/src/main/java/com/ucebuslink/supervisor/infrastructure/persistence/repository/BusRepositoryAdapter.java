@@ -77,4 +77,21 @@ public class BusRepositoryAdapter implements BusRepository {
             springDataBusRepository.save(entity);
         });
     }
+
+    @Override
+    public PageResponse<Bus> findAll(int page, int size){
+        Page<BusJpaEntity> entityPage = springDataBusRepository.findAll(PageRequest.of(page, size));
+        
+        List<Bus> buses = entityPage.getContent().stream()
+                .map(supervisorMapper::toDomain)
+                .collect(Collectors.toList());
+                
+        return new PageResponse<>(
+                buses,
+                entityPage.getNumber(),
+                entityPage.getSize(),
+                entityPage.getTotalElements(),
+                entityPage.getTotalPages()
+        );
+    }
 }

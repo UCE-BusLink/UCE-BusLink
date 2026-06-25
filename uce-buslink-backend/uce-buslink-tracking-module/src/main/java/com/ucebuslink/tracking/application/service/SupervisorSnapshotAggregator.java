@@ -41,35 +41,36 @@ public class SupervisorSnapshotAggregator {
             while (cursor.hasNext()) {
                 String key = cursor.next();
                 Object value = redisTemplate.opsForValue().get(key);
-                
+
                 if (value instanceof BusLocation location) {
-                    
-                    //LÓGICA DE AGREGACIÓN (Descomentar al implementar puerto)
+
+                    // LÓGICA DE AGREGACIÓN (Descomentar al implementar puerto)
                     UUID tripId = trackingQueryPort.getActiveTripIdByBus(location.busId());
-                    
+
                     if (tripId != null) {
+
                         String plate = trackingQueryPort.getBusPlateNumber(location.busId());
                         String route = trackingQueryPort.getRouteNameByTrip(tripId);
                         int occupied = trackingQueryPort.getTripOccupiedSeats(tripId);
                         int capacity = trackingQueryPort.getBusTotalCapacity(location.busId());
 
                         activeBuses.add(new BusSnapshot(
-                                location.busId().toString(), plate, location.latitude(), location.longitude(),
-                                location.velocity(), tripId.toString(), route, occupied, capacity, 
-                                "ACTIVE", location.timestamp()
-                        ));
+                                location.busId().toString(),
+                                plate,
+                                location.latitude(),
+                                location.longitude(),
+                                location.velocity(),
+                                tripId.toString(),
+                                route,
+                                occupied,
+                                capacity,
+                                "ACTIVE",
+                                location.timestamp()));
 
                         totalStudents += occupied;
                         availableSeats += (capacity - occupied);
                     }
-                    
-                   
-                   // MOCK temporal para que no falle mientras implementas el puerto
-                   activeBuses.add(new BusSnapshot(
-                                location.busId().toString(), "UIO-123", location.latitude(), location.longitude(),
-                                location.velocity(), "TRIP-UUID-MOCK", "Ruta Mock", 5, 20, 
-                                "ACTIVE", location.timestamp()
-                   ));
+
                 }
             }
         } catch (Exception e) {

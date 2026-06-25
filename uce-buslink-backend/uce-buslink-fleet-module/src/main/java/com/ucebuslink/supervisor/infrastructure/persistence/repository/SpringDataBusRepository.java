@@ -1,5 +1,7 @@
 package com.ucebuslink.supervisor.infrastructure.persistence.repository;
 
+import com.ucebuslink.shared.dto.PageResponse;
+import com.ucebuslink.supervisor.domain.model.Bus;
 import com.ucebuslink.supervisor.infrastructure.persistence.entity.BusJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

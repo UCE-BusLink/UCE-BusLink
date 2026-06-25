@@ -113,4 +113,16 @@ public class BusApplicationService implements ManageBusUseCase {
         bus.setOperationalStatus(command.status());
         return mapToResponse(busRepository.save(bus));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BusResponse> findAll(int page, int size) {
+        PageResponse<Bus> domainPage = busRepository.findAll(page, size);
+        
+        List<BusResponse> dtos = domainPage.content().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+                
+        return new PageResponse<>(dtos, domainPage.pageNumber(), domainPage.pageSize(), domainPage.totalElements(), domainPage.totalPages());
+    }
 }
