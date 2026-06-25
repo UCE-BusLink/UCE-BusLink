@@ -1,5 +1,5 @@
 import { apiFetch } from './api';
-import type { PageResponse } from '../types';
+import type { ApiTrip, PageResponse } from '../types';
 
 export interface ApiBus {
   id: string;
@@ -26,12 +26,19 @@ export interface ApiDriver {
   email: string;
 }
 
+export interface RouteStopPayload {
+  stopId: string;
+  stopOrder: number;
+  estimatedMinutesFromStart: number;
+  stopDurationMinutes: number;
+}
+
 export interface CreateRoutePayload {
   name: string;
   description: string;
   estimatedDurationMinutes: number;
   pathPolyline: string;
-  stops: never[];
+  stops: RouteStopPayload[];
 }
 
 export interface CreateDriverPayload {
@@ -39,6 +46,13 @@ export interface CreateDriverPayload {
   apellidos: string;
   email: string;
   password: string;
+}
+
+export interface CreateTripPayload {
+  routeId: string;
+  busId: string;
+  driverId: string;
+  departures: string[];
 }
 
 export async function fetchBuses(token: string, page = 0, size = 20): Promise<PageResponse<ApiBus>> {
@@ -73,6 +87,21 @@ export async function createRoute(token: string, payload: CreateRoutePayload): P
 
 export async function createDriver(token: string, payload: CreateDriverPayload): Promise<void> {
   await apiFetch<unknown>('/api/v1/admin/drivers', token, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchTrips(token: string): Promise<ApiTrip[]> {
+  const result = await apiFetch<PageResponse<ApiTrip> | ApiTrip[]>(
+    '/api/v1/supervisor/trips?page=0&size=50',
+    token
+  );
+  return Array.isArray(result) ? result : (result.content ?? []);
+}
+
+export async function createTrip(token: string, payload: CreateTripPayload): Promise<void> {
+  await apiFetch<unknown>('/api/v1/supervisor/trips', token, {
     method: 'POST',
     body: JSON.stringify(payload),
   });

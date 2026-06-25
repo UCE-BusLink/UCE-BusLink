@@ -1,15 +1,16 @@
 import { apiFetch } from './api';
-import type { ApiDriverTrip, DriverPassenger } from '../types';
+import type { ApiTrip, PageResponse } from '../types';
 
-export async function fetchDriverTrips(token: string): Promise<ApiDriverTrip[]> {
-  return apiFetch<ApiDriverTrip[]>('/api/v1/driver/trips', token);
+export async function fetchDriverTrips(token: string): Promise<ApiTrip[]> {
+  const result = await apiFetch<PageResponse<ApiTrip> | ApiTrip[]>(
+    '/api/v1/supervisor/trips?page=0&size=50',
+    token
+  );
+  return Array.isArray(result) ? result : (result.content ?? []);
 }
 
-export async function fetchTripPassengers(
-  token: string,
-  tripId: string
-): Promise<DriverPassenger[]> {
-  return apiFetch<DriverPassenger[]>(`/api/v1/driver/trips/${tripId}/reservations`, token);
+export async function fetchDriverTripById(token: string, tripId: string): Promise<ApiTrip> {
+  return apiFetch<ApiTrip>(`/api/v1/supervisor/trips/${tripId}`, token);
 }
 
 export async function scanReservation(token: string, reservationId: string): Promise<void> {

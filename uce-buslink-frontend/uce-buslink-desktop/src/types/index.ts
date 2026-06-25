@@ -115,18 +115,20 @@ export interface ActiveReservationItem {
   route: ApiRoute;
 }
 
-export interface ApiDriverTrip {
+export interface DriverTripView {
   id: string;
   routeId: string;
   routeName: string;
   state: string;
   departureTime: string;
-  reservationCount: number;
+  availableSeats: number;
 }
 
-export interface DriverPassenger {
-  reservationId: string;
-  studentName: string;
-  seat: string;
-  status: string;
+export interface DriverTripDetailView {
+  id: string;
+  routeName: string;
+  state: string;
+  departureTime: string;
+  estimatedArrivalTime: string;
+  availableSeats: number;
 }

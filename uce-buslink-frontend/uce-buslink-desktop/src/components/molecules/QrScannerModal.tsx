@@ -7,16 +7,25 @@ type ScanState = 'scanning' | 'success' | 'error';
 interface QrScannerModalProps {
   onScan: (reservationId: string) => Promise<void>;
   onClose: () => void;
+  title?: string;
+  successMessage?: string;
 }
 
-export function QrScannerModal({ onScan, onClose }: QrScannerModalProps) {
+export function QrScannerModal({
+  onScan,
+  onClose,
+  title = 'Escanear QR',
+  successMessage = 'Pasajero marcado como abordado.',
+}: QrScannerModalProps) {
   const [state, setState] = useState<ScanState>('scanning');
   const [message, setMessage] = useState('');
   const [attempt, setAttempt] = useState(0);
   const onScanRef = useRef(onScan);
+  const successRef = useRef(successMessage);
   useEffect(() => {
     onScanRef.current = onScan;
-  }, [onScan]);
+    successRef.current = successMessage;
+  }, [onScan, successMessage]);
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
@@ -31,7 +40,7 @@ export function QrScannerModal({ onScan, onClose }: QrScannerModalProps) {
         try {
           await onScanRef.current(decodedText);
           setState('success');
-          setMessage('Pasajero marcado como abordado.');
+          setMessage(successRef.current);
         } catch {
           setState('error');
           setMessage('QR inválido o reserva no encontrada.');
@@ -49,7 +58,7 @@ export function QrScannerModal({ onScan, onClose }: QrScannerModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-navy-900 text-sm">Escanear QR</h2>
+          <h2 className="font-semibold text-navy-900 text-sm">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={18} />
           </button>
