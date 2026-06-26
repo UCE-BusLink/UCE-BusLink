@@ -35,7 +35,11 @@ const DRIVER_NAV: NavItem[] = [
   { to: '/profile', icon: User, label: 'Perfil' },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ onMobileClose }: SidebarProps) {
   const { signOut } = useAuth();
   const { user } = useCurrentUser();
   const isAdmin = user?.role === 'ADMIN';
@@ -62,6 +66,7 @@ export function Sidebar() {
             key={to}
             to={to}
             end={to === '/dashboard' || to === '/admin'}
+            onClick={onMobileClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-sm transition-colors ${
                 isActive

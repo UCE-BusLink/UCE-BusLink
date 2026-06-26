@@ -28,6 +28,7 @@ import { DriverTripDetailPage } from './pages/driver/DriverTripDetailPage'
 
 import { SignInPage } from './pages/auth/SignInPage'
 import { SignUpPage } from './pages/auth/SignUpPage'
+import { LandingPage } from './pages/LandingPage'
 
 import { useCurrentUser } from './context/AuthContext'
 
@@ -60,21 +61,19 @@ function DriverOnly({ element }: { element: React.ReactNode }) {
 function RootRedirect() {
   const { user, loading, syncDone } = useCurrentUser()
 
-  if (loading || !syncDone) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-navy-900 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
-
   return (
     <>
       <SignedIn>
-        <Navigate to={user?.role === 'ADMIN' ? '/admin' : user?.role === 'DRIVER' ? '/driver' : '/dashboard'} replace />
+        {loading || !syncDone ? (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-navy-900 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <Navigate to={user?.role === 'ADMIN' ? '/admin' : user?.role === 'DRIVER' ? '/driver' : '/dashboard'} replace />
+        )}
       </SignedIn>
       <SignedOut>
-        <Navigate to="/login" replace />
+        <LandingPage />
       </SignedOut>
     </>
   )
