@@ -35,8 +35,8 @@ export function RouteDetailPage() {
       <div className="animate-pulse">
         <div className="h-4 bg-gray-100 rounded w-32 mb-6" />
         <div className="h-20 bg-gray-100 rounded-2xl mb-6" />
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 h-40 bg-gray-100 rounded-2xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-40 bg-gray-100 rounded-2xl" />
           <div className="h-56 bg-gray-100 rounded-2xl" />
         </div>
       </div>
@@ -98,8 +98,8 @@ export function RouteDetailPage() {
         onSelect={setSelectedDayIndex}
       />
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
           <DepartureTimesList
             trips={trips}
             loading={tripsLoading}

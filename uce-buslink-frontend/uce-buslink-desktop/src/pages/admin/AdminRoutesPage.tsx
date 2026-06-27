@@ -303,8 +303,9 @@ export function AdminRoutesPage() {
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm">No se encontraron rutas.</div>
         ) : (
-          <table className="w-full">
-            <thead>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px]">
+              <thead>
               <tr className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
                 <th className="px-5 py-3">Nombre</th>
                 <th className="px-5 py-3">Descripción</th>
@@ -365,7 +366,8 @@ export function AdminRoutesPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </div>
 

@@ -43,9 +43,10 @@ FROM --platform=$TARGETPLATFORM eclipse-temurin:21-jre-alpine AS runtime
 # Actualiza paquetes del OS para parchear CVEs de Alpine (p11-kit, p11-kit-trust)
 RUN apk upgrade --no-cache
 
+ARG APP_VERSION=0.0.0
 LABEL maintainer="UCE-BusLink Team"
 LABEL app="uce-buslink-backend"
-LABEL version="0.1.0"
+LABEL version="${APP_VERSION}"
 
 WORKDIR /app
 

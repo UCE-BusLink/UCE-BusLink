@@ -20,7 +20,7 @@ export function RoutesPage() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-7">
+      <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4 mb-7">
         <div>
           <h1 className="text-2xl font-bold text-navy-900">Rutas disponibles</h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -36,7 +36,7 @@ export function RoutesPage() {
       </div>
 
       {loading && (
-        <div className="grid grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {Array.from({ length: 6 }).map((_, i) => (
             <RouteCardSkeleton key={i} />
           ))}
@@ -69,7 +69,7 @@ export function RoutesPage() {
       )}
 
       {!loading && !error && filteredRoutes.length > 0 && (
-        <div className="grid grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredRoutes.map((route) => (
             <RouteCard
               key={route.id}
