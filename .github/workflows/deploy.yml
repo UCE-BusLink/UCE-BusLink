@@ -53,7 +53,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: uce-buslink-frontend/uce-buslink-desktop
-        run: npm install
+        run: npm ci
 
       - name: Lint
         working-directory: uce-buslink-frontend/uce-buslink-desktop
@@ -108,11 +108,12 @@ jobs:
           push: false
           outputs: type=docker,dest=/tmp/backend.tar
           tags: ${{ steps.vars.outputs.tags }}
+          build-args: APP_VERSION=${{ steps.vars.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Scan backend image con Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           input: /tmp/backend.tar
           format: table
@@ -156,6 +157,7 @@ jobs:
             TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:qa"
           fi
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
         with:
@@ -173,6 +175,7 @@ jobs:
           outputs: type=docker,dest=/tmp/frontend.tar
           tags: ${{ steps.vars.outputs.tags }}
           build-args: |
+            APP_VERSION=${{ steps.vars.outputs.version }}
             VITE_API_URL=/api
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
             VITE_MICROSOFT_CLIENT_ID=${{ secrets.VITE_MICROSOFT_CLIENT_ID }}
@@ -182,7 +185,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan frontend image con Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           input: /tmp/frontend.tar
           format: table
