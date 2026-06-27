@@ -25,7 +25,7 @@ WORKDIR /app
 
 COPY uce-buslink-frontend/uce-buslink-desktop/package*.json ./
 
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts
 
 COPY uce-buslink-frontend/uce-buslink-desktop/ ./
 

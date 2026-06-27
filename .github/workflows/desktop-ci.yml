@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: uce-buslink-frontend/uce-buslink-desktop
-        run: npm ci
+        run: npm install
 
       - name: Lint
         working-directory: uce-buslink-frontend/uce-buslink-desktop
