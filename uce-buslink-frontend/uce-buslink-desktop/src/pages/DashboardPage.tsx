@@ -49,8 +49,8 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-5">
               Tus reservas activas
@@ -102,13 +102,13 @@ export function DashboardPage() {
               Rutas disponibles hoy
             </h2>
             {routesLoading ? (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <RouteCardSkeleton key={i} />
                 ))}
               </div>
             ) : displayRoutes.length > 0 ? (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {displayRoutes.map((route) => (
                   <RouteCard
                     key={route.id}

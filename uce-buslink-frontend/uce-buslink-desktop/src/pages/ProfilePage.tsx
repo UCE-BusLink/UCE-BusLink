@@ -36,7 +36,7 @@ export function ProfilePage() {
         roleLabel={ROLE_LABEL[role] ?? role}
       />
 
-      <div className="grid grid-cols-3 gap-5 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
         <ProfileStatCard
           icon={<Award size={20} className="text-green-600" />}
           value="--"
