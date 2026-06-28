@@ -30,7 +30,7 @@ public class SeatApplicationService {
         
         List<Seat> seatsToCreate = new ArrayList<>();
         for (int i = 1; i <= capacity; i++) {
-            seatsToCreate.add(new Seat(null, tripId, i, SeatState.AVAILABLE, 0L));
+            seatsToCreate.add(new Seat(null, tripId, i, SeatState.AVAILABLE, null));
         }
         
         seatRepository.saveAll(seatsToCreate);

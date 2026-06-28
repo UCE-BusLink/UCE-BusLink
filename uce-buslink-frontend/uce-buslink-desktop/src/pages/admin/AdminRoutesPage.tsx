@@ -206,8 +206,8 @@ export function AdminRoutesPage() {
       setCreatedRouteId(savedRoute.id);
       setCurrentStep(3);
     } catch (err) {
-      console.error(err);
-      setSaveError('Ocurrió un error al procesar las paradas y la ruta. Revisa la consola.');
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setSaveError(`Error al procesar las paradas y la ruta: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -240,7 +240,8 @@ export function AdminRoutesPage() {
       closeForm();
       refetch();
     } catch (err) {
-      setSaveError('No se pudieron almacenar los bloques de horarios.');
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setSaveError(`No se pudieron almacenar los bloques de horarios: ${msg}`);
     } finally {
       setSaving(false);
     }
