@@ -14,11 +14,11 @@ public class Seat {
     public Seat() {}
 
     public Seat(UUID id, UUID tripId, Integer seatNumber, SeatState state, Long version) {
-        this.id = id != null ? id : UUID.randomUUID();
+        this.id = id;
         this.tripId = tripId;
         this.seatNumber = seatNumber;
         this.state = state != null ? state : SeatState.AVAILABLE;
-        this.version = version != null ? version : 0L;
+        this.version = version;
     }
 
     // Getters y Setters

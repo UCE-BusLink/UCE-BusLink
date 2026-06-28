@@ -70,7 +70,6 @@ public class TripApplicationService implements ManageTripUseCase {
             // TODO: Agregar validación para verificar que el Bus/Conductor no tengan otro viaje cruzado en esta misma hora.
 
             Trip trip = new Trip();
-            trip.setId(UUID.randomUUID());
             trip.setRouteId(command.routeId());
             trip.setBusId(command.busId());
             trip.setDriverId(command.driverId());
