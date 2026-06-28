@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, QrCode, UserX } from 'lucide-react';
+import { ArrowLeft, QrCode } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useDriverTrip } from '../../hooks/useDriverTrip';
 import { TripSummaryCard, QrScannerModal } from '../../components/molecules';
@@ -68,13 +68,6 @@ export function DriverTripDetailPage() {
             >
               <QrCode size={18} />
               Abordar pasajero
-            </button>
-            <button
-              onClick={() => setScannerMode('cancel')}
-              className="flex items-center justify-center gap-2 px-4 py-4 bg-white border border-red-200 text-red-600 text-sm font-semibold rounded-2xl hover:bg-red-50 transition-colors"
-            >
-              <UserX size={18} />
-              Cancelar reserva
             </button>
           </div>
 

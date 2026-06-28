@@ -101,8 +101,9 @@ public class ReservationController {
 
     @PatchMapping("/{id}/scan")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DRIVER')")
-    public ResponseEntity<ReservationResponse> scanReservation(@PathVariable("id") UUID id) {
+    public ResponseEntity<ReservationResponse> scanReservation(@PathVariable("id") String id) {
         log.debug("[REST-RESERVATIONS] Solicitud PATCH para marcar escaneo (COMPLETED) de la reserva ID: {}", id);
-        return ResponseEntity.ok(reservationApplicationService.scanAndCompleteReservation(id));
+        UUID reservationId = UUID.fromString(id);
+        return ResponseEntity.ok(reservationApplicationService.scanAndCompleteReservation(reservationId));
     }
 }

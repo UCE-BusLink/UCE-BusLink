@@ -128,7 +128,7 @@ export function TripsPage() {
 
       {qrItem && (
         <QrModal
-          qrCode={qrItem.reservation.qrCode}
+          qrCode={qrItem.reservation.id}
           title={qrItem.route.name}
           subtitle={new Date(qrItem.trip.departureTime).toLocaleString('es-EC', {
             weekday: 'short', day: 'numeric', month: 'short',
