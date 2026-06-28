@@ -69,13 +69,6 @@ export function DriverTripDetailPage() {
               <QrCode size={18} />
               Abordar pasajero
             </button>
-            <button
-              onClick={() => setScannerMode('cancel')}
-              className="flex items-center justify-center gap-2 px-4 py-4 bg-white border border-red-200 text-red-600 text-sm font-semibold rounded-2xl hover:bg-red-50 transition-colors"
-            >
-              <UserX size={18} />
-              Cancelar reserva
-            </button>
           </div>
 
           <p className="text-xs text-gray-400 text-center">

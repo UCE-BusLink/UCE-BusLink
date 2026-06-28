@@ -25,7 +25,7 @@ export function ReservationConfirmModal({
           <p className="text-sm text-gray-500 mt-1">Seat {seatNumber}</p>
         </div>
 
-        <QrCodeDisplay value={reservation.qrCode} />
+        <QrCodeDisplay value={reservation.id} />
 
         <p className="text-xs text-gray-400 text-center">
           Show this code to the driver when boarding
