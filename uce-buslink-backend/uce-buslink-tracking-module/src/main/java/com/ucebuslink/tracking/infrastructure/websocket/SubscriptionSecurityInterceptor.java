@@ -45,22 +45,26 @@ public class SubscriptionSecurityInterceptor implements ChannelInterceptor {
 
                 // Si no es un administrador, validamos que tenga una reserva física en el módulo de reservas
                 if (!isAdminOrSupervisor) {
+                    UUID tripId;
+                    UUID userId;
                     try {
                         // Extraer el tripId de la URL "/topic/trip/1234.../location-update"
                         String[] parts = destination.split("/");
-                        UUID tripId = UUID.fromString(parts[3]);
-                        UUID userId = UUID.fromString(userAuth.getName());
-
-                        
-                        boolean hasReservation = trackingQueryPort.hasActiveReservation(userId, tripId);
-                        if (!hasReservation) {
-                            log.warn("[WEBSOCKET-SECURITY] Suscripción denegada. Estudiante {} no tiene reserva en viaje {}", userId, tripId);
-                            throw new IllegalArgumentException("No tienes reserva activa para este viaje.");
-                        }
-                        
+                        tripId = UUID.fromString(parts[3]);
+                        userId = (UUID) userAuth.getDetails();
                     } catch (Exception e) {
-                        log.error("[WEBSOCKET-SECURITY] Error parseando TripId de la suscripción: {}", destination);
+                        log.error("[WEBSOCKET-SECURITY] Error parseando la suscripción: {}", destination);
                         throw new IllegalArgumentException("Destino de suscripción inválido.");
+                    }
+
+                    if (userId == null) {
+                        throw new IllegalArgumentException("Usuario no sincronizado.");
+                    }
+
+                    boolean hasReservation = trackingQueryPort.hasActiveReservation(userId, tripId);
+                    if (!hasReservation) {
+                        log.warn("[WEBSOCKET-SECURITY] Suscripción denegada. Estudiante {} no tiene reserva en viaje {}", userId, tripId);
+                        throw new IllegalArgumentException("No tienes reserva activa para este viaje.");
                     }
                 }
             }

@@ -1,5 +1,5 @@
 import { apiFetch } from './api';
-import type { ApiTrip, PageResponse } from '../types';
+import type { ApiTrip, PageResponse, TripState } from '../types';
 
 export async function fetchDriverTrips(token: string): Promise<ApiTrip[]> {
   const result = await apiFetch<PageResponse<ApiTrip> | ApiTrip[]>(
@@ -11,6 +11,17 @@ export async function fetchDriverTrips(token: string): Promise<ApiTrip[]> {
 
 export async function fetchDriverTripById(token: string, tripId: string): Promise<ApiTrip> {
   return apiFetch<ApiTrip>(`/api/v1/supervisor/trips/${tripId}`, token);
+}
+
+export async function changeTripState(
+  token: string,
+  tripId: string,
+  newState: TripState
+): Promise<ApiTrip> {
+  return apiFetch<ApiTrip>(`/api/v1/supervisor/trips/${tripId}/state`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ newState }),
+  });
 }
 
 export async function scanReservation(token: string, reservationId: string): Promise<void> {

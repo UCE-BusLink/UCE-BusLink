@@ -126,9 +126,23 @@ export interface DriverTripView {
 
 export interface DriverTripDetailView {
   id: string;
+  busId: string;
+  routeId: string;
   routeName: string;
   state: string;
   departureTime: string;
   estimatedArrivalTime: string;
   availableSeats: number;
+}
+
+export type TripState = 'SCHEDULED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+
+export interface LiveBusLocation {
+  busId: string;
+  tripId: string;
+  latitude: number;
+  longitude: number;
+  velocity: number;
+  etaMinutes: number;
+  nextStopName: string;
 }
