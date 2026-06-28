@@ -8,8 +8,7 @@ import {
     AlertTriangle,
     Activity
 } from 'lucide-react';
-import { useAuth } from '@clerk/clerk-react';
-import { Client } from '@stomp/stompjs';
+import { useTrackingConnection } from '../../hooks/useTrackingConnection';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -63,10 +62,9 @@ const createBusIcon = () => {
 };
 
 export default function AdminMapPage() {
-    const { getToken } = useAuth();
+    const { client, isConnected } = useTrackingConnection();
 
-    // Estados de conexión y datos en tiempo real
-    const [isConnected, setIsConnected] = useState(false);
+    // Estados de datos en tiempo real
     const [buses, setBuses] = useState<LiveBus[]>([]);
     const [stats, setStats] = useState<FleetStats>({
         totalActiveBuses: 0,
@@ -79,65 +77,20 @@ export default function AdminMapPage() {
     const MAP_CENTER: [number, number] = [-0.1989, -78.5065];
 
     useEffect(() => {
-        let stompClient: Client | null = null;
-        let isActive = true;
+        if (!client || !isConnected) return;
 
-        async function connectWebSocket() {
-            try {
-                const token = await getToken({ template: 'uce-buslink' });
-                if (!token || !isActive) return;
-
-                stompClient = new Client({
-                    // URL base del WebSocket (Ajusta dominio/puerto según tu entorno)
-                    brokerURL: 'ws://localhost:8080/ws/tracking',
-                    connectHeaders: {
-                        Authorization: `Bearer ${token}`
-                    },
-                    reconnectDelay: 5000,
-                    heartbeatIncoming: 4000,
-                    heartbeatOutgoing: 4000,
-                    
-                    onConnect: (frame) => {
-                        console.log('✅ Conectado al WebSocket:', frame);
-                        setIsConnected(true);
-
-                        // Suscripción al tópico general
-                        stompClient?.subscribe('/topic/supervisor/all-buses', (message) => {
-                            if (message.body) {
-                                const payload = JSON.parse(message.body);
-                                if (payload.type === 'all_buses_update') {
-                                    console.log(payload.buses);
-                                    setBuses(payload.buses);
-                                    setStats(payload.statisticsSnapshot);
-                                }
-                            }
-                        });
-                    },
-                    onStompError: (frame) => {
-                        console.error('❌ Error de Broker:', frame.headers['message']);
-                        console.error('Detalles:', frame.body);
-                    },
-                    onWebSocketClose: () => {
-                        setIsConnected(false);
-                    }
-                });
-
-                stompClient.activate();
-            } catch (error) {
-                console.error('Error al inicializar WebSocket:', error);
+        const subscription = client.subscribe('/topic/supervisor/all-buses', (message) => {
+            if (message.body) {
+                const payload = JSON.parse(message.body);
+                if (payload.type === 'all_buses_update') {
+                    setBuses(payload.buses);
+                    setStats(payload.statisticsSnapshot);
+                }
             }
-        }
+        });
 
-        connectWebSocket();
-
-        // Limpieza al desmontar el componente (cerrar conexión)
-        return () => {
-            isActive = false;
-            if (stompClient) {
-                stompClient.deactivate();
-            }
-        };
-    }, [getToken]);
+        return () => subscription.unsubscribe();
+    }, [client, isConnected]);
 
     return (
         <div className="flex flex-col h-[calc(100vh-8rem)]">

@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Bus, CheckCircle, XCircle, Clock, MapPin, Eye, RefreshCw, 
-  Plus, X, Trash2, ChevronRight, Calendar 
+import {
+  Bus, CheckCircle, XCircle, Clock, MapPin, Eye, RefreshCw,
+  Plus, X, Trash2, ChevronRight, Calendar
 } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useRoutes } from '../../hooks/useRoutes';
-import { 
-  createRoute, createBatchStops, previewRoute, createSchedule, type BatchStop 
+import {
+  createRoute, createBatchStops, previewRoute, createSchedule, fetchStops,
+  type BatchStop, type ApiStop
 } from '../../services/adminService';
 
 // Importaciones de Leaflet para el mapeo interactivo
@@ -38,6 +39,13 @@ const EMPTY_FORM = { name: '', description: '', estimatedDurationMinutes: '' };
 interface ScheduleGroup {
   daysOfWeek: string[];
   fixedDepartureTimes: string[];
+}
+
+interface OrderedStop {
+  id?: string;
+  name: string;
+  latitude: number;
+  longitude: number;
 }
 
 // Función auxiliar para decodificar la cadena Polyline devuelta por la API de Google Maps
@@ -102,8 +110,10 @@ export function AdminRoutesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   // Estado Paso 2: Paradas y Trazado
-  const [newStops, setNewStops] = useState<BatchStop[]>([]);
+  const [newStops, setNewStops] = useState<OrderedStop[]>([]);
   const [tempStop, setTempStop] = useState({ name: '', latitude: '', longitude: '' });
+  const [availableStops, setAvailableStops] = useState<ApiStop[]>([]);
+  const [selectedStopId, setSelectedStopId] = useState('');
   const [createdRouteId, setCreatedRouteId] = useState<string | null>(null);
   const [routePolylineRaw, setRoutePolylineRaw] = useState<string>('');
 
@@ -115,6 +125,34 @@ export function AdminRoutesPage() {
 
   // Centro inicial del mapa centrado en Quito por defecto (coordenadas UCE aproximadas)
   const MAP_CENTER_DEFAULT: [number, number] = [-0.1989, -78.5065];
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadStops() {
+      try {
+        const token = await getToken({ template: 'uce-buslink' });
+        if (!token || cancelled) return;
+        const stops = await fetchStops(token);
+        if (!cancelled) setAvailableStops(stops);
+      } catch {
+        if (!cancelled) setAvailableStops([]);
+      }
+    }
+    loadStops();
+    return () => { cancelled = true; };
+  }, [getToken]);
+
+  function handleAddExistingStop() {
+    const stop = availableStops.find((s) => s.id === selectedStopId);
+    if (!stop || newStops.some((s) => s.id === stop.id)) return;
+    setNewStops([...newStops, {
+      id: stop.id,
+      name: stop.name,
+      latitude: stop.latitude,
+      longitude: stop.longitude,
+    }]);
+    setSelectedStopId('');
+  }
 
   function handleMapClick(lat: number, lng: number) {
     setTempStop(prev => ({
@@ -130,6 +168,7 @@ export function AdminRoutesPage() {
     setForm(EMPTY_FORM);
     setNewStops([]);
     setTempStop({ name: '', latitude: '', longitude: '' });
+    setSelectedStopId('');
     setScheduleGroups([]);
     setCurrentGroupDays([]);
     setCurrentGroupTimes([]);
@@ -180,9 +219,19 @@ export function AdminRoutesPage() {
       const token = await getToken({ template: 'uce-buslink' });
       if (!token) throw new Error('No autorizado');
 
-      const savedStops = await createBatchStops(token, newStops);
-      const waypoints = savedStops.map((stop: any) => ({ stopId: stop.id }));
-      
+      const stopsToCreate: BatchStop[] = newStops
+        .filter((s) => !s.id)
+        .map((s) => ({ name: s.name, latitude: s.latitude, longitude: s.longitude }));
+
+      const createdStops = stopsToCreate.length ? await createBatchStops(token, stopsToCreate) : [];
+
+      let createdIndex = 0;
+      const orderedStops = newStops.map((s) =>
+        s.id ? s : { ...s, id: createdStops[createdIndex++].id as string }
+      );
+
+      const waypoints = orderedStops.map((s) => ({ stopId: s.id as string }));
+
       const previewResult = await previewRoute(token, waypoints);
       const polyline = previewResult.polyline || previewResult.encodedPolyline || '';
       setRoutePolylineRaw(polyline);
@@ -192,10 +241,10 @@ export function AdminRoutesPage() {
         description: form.description,
         estimatedDurationMinutes: Number(form.estimatedDurationMinutes),
         pathPolyline: polyline,
-        stops: savedStops.map((stop: any, index: number) => ({
-          stopId: stop.id,
+        stops: orderedStops.map((s, index) => ({
+          stopId: s.id as string,
           stopOrder: index + 1,
-          estimatedMinutesFromStart: index * 5, 
+          estimatedMinutesFromStart: index * 5,
           stopDurationMinutes: 1
         }))
       };
@@ -457,7 +506,39 @@ export function AdminRoutesPage() {
                   <div className="lg:col-span-5 space-y-4 flex flex-col justify-between">
                     <div className="space-y-4">
                       <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-xs text-blue-800 leading-relaxed">
-                        Haga clic en cualquier punto del mapa de la derecha para autorellenar la latitud y longitud al instante.
+                        Añade una parada ya guardada o haz clic en el mapa de la derecha para crear una nueva.
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-2">
+                        <label className="text-xs text-gray-500 block font-medium">Añadir parada guardada</label>
+                        <div className="flex gap-2">
+                          <select
+                            value={selectedStopId}
+                            onChange={(e) => setSelectedStopId(e.target.value)}
+                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none bg-white"
+                          >
+                            <option value="">Selecciona una parada...</option>
+                            {availableStops
+                              .filter((s) => !newStops.some((ns) => ns.id === s.id))
+                              .map((s) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleAddExistingStop}
+                            disabled={!selectedStopId}
+                            className="px-3 py-2 bg-navy-900 text-white rounded-lg hover:bg-navy-800 disabled:opacity-40 text-sm font-medium flex items-center justify-center"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-[11px] text-gray-400 uppercase tracking-wide">
+                        <div className="flex-1 h-px bg-gray-100" />
+                        o crea una nueva
+                        <div className="flex-1 h-px bg-gray-100" />
                       </div>
 
                       <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-3">
@@ -505,7 +586,14 @@ export function AdminRoutesPage() {
                               {i + 1}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-navy-900 truncate">{stop.name}</p>
+                              <p className="text-sm font-semibold text-navy-900 truncate flex items-center gap-1.5">
+                                {stop.name}
+                                {stop.id && (
+                                  <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                    guardada
+                                  </span>
+                                )}
+                              </p>
                               <p className="text-[11px] text-gray-400 truncate">Lat: {stop.latitude} | Lng: {stop.longitude}</p>
                             </div>
                             <button onClick={() => removeNewStop(i)} className="text-red-400 hover:text-red-600 p-1">

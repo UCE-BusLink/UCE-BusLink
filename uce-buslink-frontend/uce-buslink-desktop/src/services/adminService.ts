@@ -100,6 +100,34 @@ export async function createBus(token: string, payload: CreateBusPayload): Promi
   });
 }
 
+export interface UpdateBusPayload {
+  plateNumber: string;
+  internalCode: string;
+  seatCapacity: number;
+  manufacturer: string;
+  model: string;
+}
+
+export async function updateBus(token: string, id: string, payload: UpdateBusPayload): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/supervisor/fleet/buses/${id}`, token, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteBus(token: string, id: string): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/supervisor/fleet/buses/${id}`, token, {
+    method: 'DELETE',
+  });
+}
+
+export async function changeBusStatus(token: string, id: string, status: string): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/supervisor/fleet/buses/${id}/estado`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function fetchStops(token: string): Promise<ApiStop[]> {
   const result = await apiFetch<PageResponse<ApiStop> | ApiStop[]>(
     '/api/v1/supervisor/fleet/stops?page=0&size=200',

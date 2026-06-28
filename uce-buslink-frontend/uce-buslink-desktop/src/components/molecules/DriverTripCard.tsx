@@ -3,14 +3,14 @@ import type { DriverTripView } from '../../types';
 
 const STATE_STYLES: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 text-blue-700',
-  IN_PROGRESS: 'bg-amber-100 text-amber-700',
+  ONGOING: 'bg-amber-100 text-amber-700',
   COMPLETED: 'bg-green-100 text-green-700',
   CANCELLED: 'bg-red-100 text-red-600',
 };
 
 const STATE_LABELS: Record<string, string> = {
   SCHEDULED: 'Programado',
-  IN_PROGRESS: 'En curso',
+  ONGOING: 'En curso',
   COMPLETED: 'Completado',
   CANCELLED: 'Cancelado',
 };

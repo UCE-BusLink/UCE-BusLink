@@ -73,7 +73,7 @@ public class TripController {
     }
 
     @PatchMapping("/{id}/state")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DRIVER')")
     public ResponseEntity<TripResponse> changeTripState(
             @PathVariable java.util.UUID id,
             @Valid @RequestBody ChangeTripStateCommand command) {
