@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, QrCode, UserX } from 'lucide-react';
+import { ArrowLeft, QrCode } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useDriverTrip } from '../../hooks/useDriverTrip';
 import { TripSummaryCard, QrScannerModal } from '../../components/molecules';
