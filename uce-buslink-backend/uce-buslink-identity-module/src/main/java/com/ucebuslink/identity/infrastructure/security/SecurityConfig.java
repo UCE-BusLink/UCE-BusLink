@@ -84,7 +84,8 @@ public class SecurityConfig {
                 "app://buslink", 
                 "file://", 
                 "http://localhost:5173",
-                "http://localhost:9000"
+                "http://localhost:9000",
+                "https://ucebuslinkqa.programacionwebuce.net"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
