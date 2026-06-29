@@ -23,7 +23,7 @@ public class BusSimulatorMock {
     private double currentLat = -0.1993;
     private double currentLon = -78.5053;
 
-    @Scheduled(fixedRate = 2000)
+    // @Scheduled(fixedRate = 2000)
     public void simulateGpsPing() {
 
         currentLat += 0.0001; 
