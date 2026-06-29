@@ -14,7 +14,7 @@ public class MaterializedViewRefreshService {
     private final DailyRouteStatsRepository repository;
 
     // Se ejecuta todos los días a las 02:00 AM
-    @Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 0 2 * * ?")
     public void refreshDailyRouteStats() {
         log.info("[ANALYTICS] Iniciando actualización nocturna concurrente de mv_daily_route_stats...");
         long start = System.currentTimeMillis();
