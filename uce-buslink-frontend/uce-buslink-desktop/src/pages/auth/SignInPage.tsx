@@ -39,7 +39,7 @@ export function SignInPage() {
             routing="path"
             path="/login"
             signUpUrl="/register"
-            afterSignInUrl="/dashboard"
+            fallbackRedirectUrl="/dashboard"
             appearance={{
               elements: {
                 card: 'shadow-none border-0 p-0',

@@ -23,7 +23,7 @@ ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 
 WORKDIR /app
 
-COPY uce-buslink-frontend/uce-buslink-desktop/package.json ./
+COPY uce-buslink-frontend/uce-buslink-desktop/package*.json ./
 
 RUN npm install --ignore-scripts
 
@@ -36,9 +36,13 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 FROM --platform=$TARGETPLATFORM nginx:1.27-alpine AS runtime
 
+# Actualiza paquetes del OS para parchear CVEs de Alpine (musl, libxml2, nghttp2-libs, zlib)
+RUN apk upgrade --no-cache
+
+ARG APP_VERSION=0.0.0
 LABEL maintainer="UCE-BusLink Team"
 LABEL app="uce-buslink-frontend-desktop"
-LABEL version="0.1.0"
+LABEL version="${APP_VERSION}"
 
 RUN rm /etc/nginx/conf.d/default.conf
 
@@ -60,4 +64,3 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
-

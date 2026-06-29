@@ -1,8 +1,10 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
-import com.ucebuslink.supervisor.application.dto.CreateStopCommand;
-import com.ucebuslink.supervisor.application.dto.StopResponse;
-import com.ucebuslink.supervisor.application.dto.UpdateStopCommand;
+import com.ucebuslink.shared.dto.PageResponse;
+import com.ucebuslink.supervisor.application.dto.stop.ChangeStopStatusCommand;
+import com.ucebuslink.supervisor.application.dto.stop.CreateStopCommand;
+import com.ucebuslink.supervisor.application.dto.stop.StopResponse;
+import com.ucebuslink.supervisor.application.dto.stop.UpdateStopCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageStopUseCase;
 
 import jakarta.validation.Valid;
@@ -19,7 +21,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/supervisor/fleet/stops")
-@PreAuthorize("hasRole('ADMIN')")
 public class StopController {
 
     private static final Logger log = LoggerFactory.getLogger(StopController.class);
@@ -30,6 +31,7 @@ public class StopController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DRIVER')")
     public ResponseEntity<StopResponse> createStop(@Valid @RequestBody CreateStopCommand command) {
         log.info("[FLEET] Creating new stop..."); // Si el command tiene un campo nombre, podrías poner command.name()
         StopResponse response = manageStopUseCase.createStop(command);
@@ -38,18 +40,24 @@ public class StopController {
     }
 
     @GetMapping
-    public ResponseEntity<List<StopResponse>> getAllStops() {
-        log.debug("[FLEET] Fetching all active stops");
-        return ResponseEntity.ok(manageStopUseCase.getAllActiveStops());
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<StopResponse>> getAllStops(
+            @RequestParam(defaultValue = "true") boolean activa,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.debug("[FLEET] Fetching paginated stop list (page: {}, size: {})", page, size);
+        return ResponseEntity.ok(manageStopUseCase.getAllStops(activa, page, size));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<StopResponse> updateStop(@PathVariable UUID id, @Valid @RequestBody UpdateStopCommand command) {
         log.info("[FLEET] Updating stop info for ID: {}", id);
         return ResponseEntity.ok(manageStopUseCase.updateStop(id, command));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteStop(@PathVariable UUID id) {
         log.info("[FLEET] Request to delete stop with ID: {}", id);
         manageStopUseCase.deleteStop(id);
@@ -58,10 +66,22 @@ public class StopController {
     }
 
     @PostMapping("/batch")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<StopResponse>> createStopsBatch(@Valid @RequestBody List<CreateStopCommand> commands) {
         log.info("[FLEET] Creating a batch of {} new stops...", commands.size());
         List<StopResponse> responses = manageStopUseCase.createStopsBatch(commands);
         log.info("[FLEET] Batch of {} stops created successfully", responses.size());
         return new ResponseEntity<>(responses, HttpStatus.CREATED);
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<StopResponse> changeStatus(
+            @PathVariable UUID id,
+            @RequestBody ChangeStopStatusCommand command) {
+
+        return ResponseEntity.ok(
+                manageStopUseCase.changeStatus(id, command)
+        );
     }
 }

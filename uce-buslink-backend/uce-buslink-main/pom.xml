@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.ucebuslink</groupId>
         <artifactId>uce-buslink-backend</artifactId>
-        <version>0.1.0</version>
+        <version>0.2.0</version>
     </parent>
 
     <artifactId>uce-buslink-main</artifactId>
@@ -78,11 +78,16 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- FLYWAY -->
+        <!-- FLYWAY — flyway-database-postgresql requerido desde Flyway 10.x (Spring Boot 3.3+) -->
 
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
         <!-- TEST -->
@@ -98,7 +103,19 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
+        <!-- Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
 
     </dependencies>
 

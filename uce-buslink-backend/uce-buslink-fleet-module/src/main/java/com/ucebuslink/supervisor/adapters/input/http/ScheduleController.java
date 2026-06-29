@@ -1,8 +1,8 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
-import com.ucebuslink.supervisor.application.dto.CreateScheduleCommand;
-import com.ucebuslink.supervisor.application.dto.UpdateScheduleCommand;
-import com.ucebuslink.supervisor.application.dto.ScheduleResponse;
+import com.ucebuslink.supervisor.application.dto.schedule.CreateScheduleCommand;
+import com.ucebuslink.supervisor.application.dto.schedule.ScheduleResponse;
+import com.ucebuslink.supervisor.application.dto.schedule.UpdateScheduleCommand;
 import com.ucebuslink.supervisor.application.usecase.ManageScheduleUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/supervisor/fleet/schedules")
-@PreAuthorize("hasRole('ADMIN')")
 @Slf4j
 @RequiredArgsConstructor
 public class ScheduleController {
@@ -25,6 +24,7 @@ public class ScheduleController {
     private final ManageScheduleUseCase manageScheduleUseCase;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ScheduleResponse> createSchedule(@Valid @RequestBody CreateScheduleCommand command) {
         log.info("[FLEET] Creating new schedule for route ID: {}", command.routeId());
         ScheduleResponse response = manageScheduleUseCase.create(command);
@@ -32,6 +32,7 @@ public class ScheduleController {
     }
 
     @GetMapping("/route/{routeId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ScheduleResponse>> getSchedulesByRoute(@PathVariable UUID routeId) {
         log.info("[FLEET] Fetching schedules for route ID: {}", routeId);
         List<ScheduleResponse> schedules = manageScheduleUseCase.findByRouteId(routeId);
@@ -39,6 +40,7 @@ public class ScheduleController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ScheduleResponse> updateSchedule(
             @PathVariable UUID id, 
             @Valid @RequestBody UpdateScheduleCommand command) {
@@ -48,6 +50,7 @@ public class ScheduleController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteSchedule(@PathVariable UUID id) {
         log.info("[FLEET] Deleting schedule with ID: {}", id);
         manageScheduleUseCase.delete(id);
@@ -55,6 +58,7 @@ public class ScheduleController {
     }
 
     @PostMapping("/batch")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ScheduleResponse>> createSchedulesBatch(@Valid @RequestBody List<CreateScheduleCommand> commands) {
         log.info("[FLEET] Delegating batch creation of {} schedules to use case...", commands.size());
         

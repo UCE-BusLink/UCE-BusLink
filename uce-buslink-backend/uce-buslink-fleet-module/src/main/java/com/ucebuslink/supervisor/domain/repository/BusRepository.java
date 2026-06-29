@@ -15,4 +15,6 @@ public interface BusRepository {
     void deleteById(UUID id);
 
     PageResponse<Bus> findAllActive(int page, int size);
+
+    PageResponse<Bus> findAll(int page, int size);
 }

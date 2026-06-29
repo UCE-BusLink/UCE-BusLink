@@ -1,9 +1,10 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
 import com.ucebuslink.shared.dto.PageResponse;
-import com.ucebuslink.supervisor.application.dto.CreateRouteCommand;
-import com.ucebuslink.supervisor.application.dto.RoutePreviewRequest;
-import com.ucebuslink.supervisor.application.dto.RouteResponse;
+import com.ucebuslink.supervisor.application.dto.route.ChangeRouteStatusCommand;
+import com.ucebuslink.supervisor.application.dto.route.CreateRouteCommand;
+import com.ucebuslink.supervisor.application.dto.route.RoutePreviewRequest;
+import com.ucebuslink.supervisor.application.dto.route.RouteResponse;
 import com.ucebuslink.supervisor.application.usecase.ManageRouteUseCase;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.repository.StopRepository;
@@ -105,5 +106,14 @@ public class RouteController {
         GoogleMapsRoutingService.RoutingResult result = googleMapsService.calculateRoute(pointsForGoogle);
 
         return ResponseEntity.ok(result);
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RouteResponse> changeRouteStatus(
+            @PathVariable UUID id, 
+            @Valid @RequestBody ChangeRouteStatusCommand command) {
+        log.info("[ROUTE] Cambiando estado de la ruta ID: {} a activa={}", id, command.isActive());
+        return ResponseEntity.ok(manageRouteUseCase.changeRouteStatus(id, command.isActive()));
     }
 }

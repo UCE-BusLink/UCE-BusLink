@@ -35,7 +35,6 @@ export interface RouteStop {
   type: StopType;
 }
 
-// HU-244 — parada con orden y coordenadas (GET /rutas/{id}/paradas)
 export interface RouteStopDetail {
   order: number;
   name: string;
@@ -80,4 +79,70 @@ export interface WeekDay {
   label: string;
   day: number;
   isToday: boolean;
+}
+
+export type SeatState = 'AVAILABLE' | 'RESERVED' | 'OCCUPIED' | 'BLOCKED';
+
+export interface ApiSeat {
+  id: string;
+  tripId: string;
+  seatNumber: number;
+  state: SeatState;
+}
+
+export interface ApiTrip {
+  id: string;
+  routeId: string;
+  busId: string;
+  driverId: string;
+  state: string;
+  departureTime: string;
+  estimatedArrivalTime: string;
+  availableSeats: number;
+}
+
+export interface ApiReservation {
+  id: string;
+  tripId: string;
+  seatId: string;
+  status: string;
+  qrCode: string;
+}
+
+export interface ActiveReservationItem {
+  reservation: ApiReservation;
+  trip: ApiTrip;
+  route: ApiRoute;
+}
+
+export interface DriverTripView {
+  id: string;
+  routeId: string;
+  routeName: string;
+  state: string;
+  departureTime: string;
+  availableSeats: number;
+}
+
+export interface DriverTripDetailView {
+  id: string;
+  busId: string;
+  routeId: string;
+  routeName: string;
+  state: string;
+  departureTime: string;
+  estimatedArrivalTime: string;
+  availableSeats: number;
+}
+
+export type TripState = 'SCHEDULED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+
+export interface LiveBusLocation {
+  busId: string;
+  tripId: string;
+  latitude: number;
+  longitude: number;
+  velocity: number;
+  etaMinutes: number;
+  nextStopName: string;
 }

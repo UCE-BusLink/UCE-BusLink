@@ -1,9 +1,13 @@
 package com.ucebuslink.supervisor.infrastructure.persistence.repository;
 
+import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.repository.StopRepository;
 import com.ucebuslink.supervisor.infrastructure.persistence.entity.StopJpaEntity;
 import com.ucebuslink.supervisor.infrastructure.persistence.mapper.SupervisorMapper;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
@@ -54,5 +58,28 @@ public class StopRepositoryAdapter implements StopRepository {
         return savedEntities.stream()
                 .map(supervisorMapper::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<Stop> findAllStops(boolean isActive, int page, int size){
+
+        Page<StopJpaEntity> entityPage = springDataStopRepository.findByDeletedAtIsNullAndIsActive(isActive, PageRequest.of(page, size));
+
+        List<Stop> stops = entityPage.getContent().stream()
+                .map(supervisorMapper::toDomain)
+                .collect(Collectors.toList());
+                
+        return new PageResponse<>(
+                stops,
+                entityPage.getNumber(),
+                entityPage.getSize(),
+                entityPage.getTotalElements(),
+                entityPage.getTotalPages()
+        );
+    }
+
+    @Override
+    public StopJpaEntity getReferenceById(UUID id) {
+        return springDataStopRepository.getReferenceById(id);
     }
 }

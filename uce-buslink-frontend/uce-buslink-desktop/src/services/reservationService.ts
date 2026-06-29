@@ -1,16 +1,7 @@
 import { apiFetch } from './api';
+import type { ApiReservation } from '../types';
 
-/**
- * HU-161 — Reserva activa y cancelación.
- *
- * Backend PENDIENTE (módulo reservations vacío). Endpoints esperados:
- *   GET    /api/v1/reservations/me   -> reserva activa del estudiante (o null)
- *   POST   /api/v1/reservations      -> crear reserva (asiento o lugar de pie)
- *   DELETE /api/v1/reservations/{id} -> cancelar reserva activa
- *
- * Las pantallas funcionan con mockData hasta que el backend exista.
- */
-export interface ActiveReservation {
+export interface ReservationHistoryItem {
   id: string;
   routeName: string;
   destination: string;
@@ -19,25 +10,29 @@ export interface ActiveReservation {
   driver: string;
   unit: string;
   date: string;
+  qrCode: string;
+  status: string;
 }
 
 export interface CreateReservationCommand {
   tripId: string;
-  seatNumber?: number;
-  standingSpotId?: number;
+  seatId: string;
+  boardingStopId: string;
 }
 
-export async function fetchActiveReservation(
-  token: string
-): Promise<ActiveReservation | null> {
-  return apiFetch<ActiveReservation | null>('/api/v1/reservations/me', token);
+export async function fetchReservationHistory(
+  token: string,
+  page = 0,
+  size = 10
+): Promise<{ content: ReservationHistoryItem[]; totalElements: number }> {
+  return apiFetch(`/api/v1/reservations/my-history?page=${page}&size=${size}`, token);
 }
 
 export async function createReservation(
   token: string,
   command: CreateReservationCommand
-): Promise<ActiveReservation> {
-  return apiFetch<ActiveReservation>('/api/v1/reservations', token, {
+): Promise<ApiReservation> {
+  return apiFetch<ApiReservation>('/api/v1/reservations', token, {
     method: 'POST',
     body: JSON.stringify(command),
   });
@@ -45,9 +40,11 @@ export async function createReservation(
 
 export async function cancelReservation(
   token: string,
-  reservationId: string
+  reservationId: string,
+  reason: string
 ): Promise<void> {
-  await apiFetch<void>(`/api/v1/reservations/${reservationId}`, token, {
-    method: 'DELETE',
+  await apiFetch<void>(`/api/v1/reservations/${reservationId}/cancel`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason }),
   });
 }

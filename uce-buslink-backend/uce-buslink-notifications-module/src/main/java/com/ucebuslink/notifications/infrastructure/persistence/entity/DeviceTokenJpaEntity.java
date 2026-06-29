@@ -1,0 +1,40 @@
+package com.ucebuslink.notifications.infrastructure.persistence.entity;
+
+import com.ucebuslink.notifications.domain.model.Platform;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = "device_tokens", indexes = {
+    @Index(name = "idx_device_tokens_user_id", columnList = "user_id"),
+    @Index(name = "idx_device_tokens_fcm_token", columnList = "fcm_token", unique = true)
+})
+@Getter
+@Setter
+@NoArgsConstructor
+public class DeviceTokenJpaEntity {
+
+    @Id
+    private UUID id;
+
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    @Column(name = "fcm_token", nullable = false, unique = true, length = 500)
+    private String fcmToken;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "platform", nullable = false, length = 20)
+    private Platform platform;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "last_active_at", nullable = false)
+    private LocalDateTime lastActiveAt;
+}

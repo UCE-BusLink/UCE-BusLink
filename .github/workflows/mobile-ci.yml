@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - 'uce-buslink-frontend/uce-buslink-mobile/**'
+      - '.github/workflows/mobile-ci.yml'
 
 permissions:
   contents: read
@@ -18,6 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: uce-buslink-frontend/uce-buslink-mobile/package.json
 
       - name: Install dependencies
         working-directory: uce-buslink-frontend/uce-buslink-mobile
