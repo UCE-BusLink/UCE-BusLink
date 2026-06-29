@@ -53,7 +53,7 @@ public class TripJpaEntity {
 
     @Version
     @Column(nullable = false)
-    private Long version = 0L;
+    private Long version;
 
     @Column(name = "created_by")
     private UUID createdBy;

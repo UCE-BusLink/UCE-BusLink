@@ -30,7 +30,7 @@ public class SeatJpaEntity {
 
     @Version
     @Column(nullable = false)
-    private Long version = 0L;
+    private Long version;
 
     public SeatJpaEntity() {}
 

@@ -40,6 +40,13 @@ function formatDateTime(value: string) {
 
 const ENUM_DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
+function toLocalIso(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function AdminTripsPage() {
   const { getToken } = useAuth();
   const [trips, setTrips] = useState<ApiTrip[]>([]);
@@ -50,10 +57,6 @@ export function AdminTripsPage() {
   const [error, setError] = useState<string | null>(null);
   const [driversFailed, setDriversFailed] = useState(false);
   const [tick, setTick] = useState(0);
-
-  if (driversFailed) {
-    return <div>Error cargando drivers</div>;
-  }
 
   // Estados del Wizard
   const [showForm, setShowForm] = useState(false);
@@ -83,7 +86,7 @@ export function AdminTripsPage() {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       days.push({
-        iso: d.toISOString().split('T')[0],
+        iso: toLocalIso(d),
         dayName: d.toLocaleDateString('es-EC', { weekday: 'long' }),
         shortDate: d.toLocaleDateString('es-EC', { day: '2-digit', month: 'short' }),
         enumDay: ENUM_DAYS[d.getDay()] // Coincide con el "MONDAY", "TUESDAY" del backend
@@ -137,6 +140,10 @@ export function AdminTripsPage() {
     setTick((t) => t + 1);
   }, []);
 
+  if (driversFailed) {
+    return <div className="p-8 text-center text-red-400 text-sm">No se pudieron cargar los conductores. Recarga la página.</div>;
+  }
+
   const routeNames = new Map(routes.map((r) => [r.id, r.name]));
   const busLabels = new Map(buses.map((b) => [b.id, `${b.internalCode} · ${b.plateNumber}`]));
   const driverNames = new Map(drivers.map((d) => [d.id, `${d.firstName} ${d.lastName}`]));
@@ -178,10 +185,9 @@ export function AdminTripsPage() {
             detail.daysOfWeek.forEach((day: string) => {
               if (!timesMap[day]) timesMap[day] = [];
               detail.fixedDepartureTimes.forEach((t: string) => {
-                // Convertir "06:00:00" a "06:00" para la UI
-                const timeShort = t.substring(0, 5);
-                if (!timesMap[day].includes(timeShort)) {
-                  timesMap[day].push(timeShort);
+                const fullTime = t.length <= 5 ? `${t.padStart(5, '0')}:00` : t.slice(0, 8);
+                if (!timesMap[day].includes(fullTime)) {
+                  timesMap[day].push(fullTime);
                 }
               });
             });
@@ -247,8 +253,8 @@ export function AdminTripsPage() {
     const validDepartures: string[] = [];
     Object.entries(scheduleBlocks).forEach(([dateIso, times]) => {
       times.forEach(t => {
-        const [hours, minutes] = t.split(':');
-        validDepartures.push(`${dateIso}T${hours}:${minutes}:00`); // Añadimos los segundos al final
+        const fullTime = t.length <= 5 ? `${t}:00` : t;
+        validDepartures.push(`${dateIso}T${fullTime}`);
       });
     });
 
@@ -263,7 +269,7 @@ export function AdminTripsPage() {
     setSaving(true);
     await createTrip(token, { routeId, busId, driverId, departures: validDepartures })
       .then(() => { closeForm(); refetch(); })
-      .catch(() => setSaveError('No se pudo crear el viaje. Verifica los datos e intenta de nuevo.'))
+      .catch((err) => setSaveError(err instanceof Error ? err.message : 'No se pudo crear el viaje. Verifica los datos e intenta de nuevo.'))
       .finally(() => setSaving(false));
   }
 
@@ -513,7 +519,7 @@ export function AdminTripsPage() {
                                 : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
                                 }`}
                             >
-                              {time}
+                              {time.slice(0, 5)}
                             </button>
                           );
                         })
@@ -530,7 +536,7 @@ export function AdminTripsPage() {
                         return (
                           <div key={dateIso} className="flex items-center justify-between px-3 py-2 bg-white border border-gray-100 rounded-lg text-xs">
                             <span className="font-bold text-navy-900 capitalize">{dayInfo?.dayName}</span>
-                            <span className="text-emerald-600 font-bold">{times.join(' | ')}</span>
+                            <span className="text-emerald-600 font-bold">{times.map(t => t.slice(0, 5)).join(' | ')}</span>
                           </div>
                         );
                       })}

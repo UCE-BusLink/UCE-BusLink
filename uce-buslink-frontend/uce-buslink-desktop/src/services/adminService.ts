@@ -83,17 +83,12 @@ export interface SchedulePayload {
 }
 
 export async function fetchRouteSchedules(token: string, routeId: string): Promise<any[]> {
-  // Asegúrate de que esta URL coincida con tu configuración base (proxy o url completa)
-  const response = await fetch(`/api/v1/supervisor/fleet/schedules/route/${routeId}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!response.ok) throw new Error('Error al obtener horarios de la ruta');
-  return response.json();
+  return apiFetch<any[]>(`/api/v1/supervisor/fleet/schedules/route/${routeId}`, token);
 }
 
 export async function fetchBuses(token: string, page = 0, size = 20): Promise<PageResponse<ApiBus>> {
   return apiFetch<PageResponse<ApiBus>>(
-    `/api/v1/supervisor/fleet/buses/buses?page=${page}&size=${size}`,
+    `/api/v1/supervisor/fleet/buses?page=${page}&size=${size}`,
     token
   );
 }
@@ -105,12 +100,67 @@ export async function createBus(token: string, payload: CreateBusPayload): Promi
   });
 }
 
+export interface UpdateBusPayload {
+  plateNumber: string;
+  internalCode: string;
+  seatCapacity: number;
+  manufacturer: string;
+  model: string;
+}
+
+export async function updateBus(token: string, id: string, payload: UpdateBusPayload): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/supervisor/fleet/buses/${id}`, token, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteBus(token: string, id: string): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/supervisor/fleet/buses/${id}`, token, {
+    method: 'DELETE',
+  });
+}
+
+export async function changeBusStatus(token: string, id: string, status: string): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/supervisor/fleet/buses/${id}/estado`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function fetchStops(token: string): Promise<ApiStop[]> {
   const result = await apiFetch<PageResponse<ApiStop> | ApiStop[]>(
     '/api/v1/supervisor/fleet/stops?page=0&size=200',
     token
   );
   return Array.isArray(result) ? result : (result.content ?? []);
+}
+
+export async function createStop(token: string, stop: BatchStop): Promise<ApiStop> {
+  return apiFetch<ApiStop>('/api/v1/supervisor/fleet/stops', token, {
+    method: 'POST',
+    body: JSON.stringify(stop),
+  });
+}
+
+export async function updateStop(token: string, id: string, stop: BatchStop): Promise<ApiStop> {
+  return apiFetch<ApiStop>(`/api/v1/supervisor/fleet/stops/${id}`, token, {
+    method: 'PUT',
+    body: JSON.stringify(stop),
+  });
+}
+
+export async function deleteStop(token: string, id: string): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/supervisor/fleet/stops/${id}`, token, {
+    method: 'DELETE',
+  });
+}
+
+export async function toggleStopStatus(token: string, id: string, isActive: boolean): Promise<void> {
+  await apiFetch<unknown>(`/api/v1/supervisor/fleet/stops/${id}/status`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ isActive }),
+  });
 }
 
 export async function fetchDrivers(token: string): Promise<ApiDriver[]> {

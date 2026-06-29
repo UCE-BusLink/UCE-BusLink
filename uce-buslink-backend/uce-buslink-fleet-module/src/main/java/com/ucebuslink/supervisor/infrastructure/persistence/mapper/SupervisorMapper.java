@@ -140,7 +140,6 @@ public class SupervisorMapper {
         if (domain == null) return null;
 
         ScheduleJpaEntity entity = new ScheduleJpaEntity();
-        entity.setId(domain.getId());
         entity.setRoute(routeJpaEntity);
         entity.setIsActive(domain.isActive());
         

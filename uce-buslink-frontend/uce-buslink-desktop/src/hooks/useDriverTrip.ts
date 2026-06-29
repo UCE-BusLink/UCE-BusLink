@@ -30,6 +30,8 @@ export function useDriverTrip(tripId: string) {
         if (!cancelled) {
           setTrip({
             id: apiTrip.id,
+            busId: apiTrip.busId,
+            routeId: apiTrip.routeId,
             routeName,
             state: apiTrip.state,
             departureTime: apiTrip.departureTime,
@@ -48,5 +50,5 @@ export function useDriverTrip(tripId: string) {
     return () => { cancelled = true; };
   }, [getToken, tripId]);
 
-  return { trip, loading, error };
+  return { trip, loading, error, setTrip };
 }

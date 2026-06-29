@@ -153,7 +153,7 @@ export function DashboardPage() {
 
       {qrItem && (
         <QrModal
-          qrCode={qrItem.reservation.qrCode}
+          qrCode={qrItem.reservation.id}
           title={qrItem.route.name}
           subtitle={formatTime(qrItem.trip.departureTime) + ' · ' + formatDate(qrItem.trip.departureTime)}
           onClose={() => setQrItem(null)}
