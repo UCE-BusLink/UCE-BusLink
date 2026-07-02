@@ -63,3 +63,7 @@ vite.svg
 
 # General JS/TS
 *.tsbuildinfo
+
+# Claude
+.claude/
+.claude
