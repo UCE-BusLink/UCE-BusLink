@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Radio } from 'lucide-react';
 import { useRoutes } from '../hooks/useRoutes';
 import { useRoute } from '../hooks/useRoute';
@@ -9,16 +9,22 @@ import { RouteTabBar, LeafletMap, RouteMetaCards, MapStopsSidebar } from '../com
 
 export function MapPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tripIdParam = searchParams.get('tripId');
   const { routes, loading: routesLoading } = useRoutes();
   const [manualSelectedId, setSelectedId] = useState<string>('');
-  const selectedId = manualSelectedId || routes[0]?.id || '';
+  const { items: reservations } = useActiveReservations(true);
+
+  const paramRouteId = reservations.find((item) => item.trip.id === tripIdParam)?.trip.routeId;
+  const ongoingRouteId = reservations.find((item) => item.trip.state === 'ONGOING')?.trip.routeId;
+  const selectedId = manualSelectedId || paramRouteId || ongoingRouteId || routes[0]?.id || '';
   const { route: selectedRoute, loading: routeLoading } = useRoute(selectedId);
-  const { items: reservations } = useActiveReservations();
 
   const routeReservations = reservations.filter((item) => item.trip.routeId === selectedId);
   const trackedTripId =
-    (routeReservations.find((item) => item.trip.state === 'ONGOING') ?? routeReservations[0])
-      ?.trip.id ?? null;
+    (routeReservations.find((item) => item.trip.id === tripIdParam) ??
+      routeReservations.find((item) => item.trip.state === 'ONGOING') ??
+      routeReservations[0])?.trip.id ?? null;
   const { location: liveBus, isConnected } = useStudentBusTracking(trackedTripId);
 
   const sortedStops = selectedRoute?.stops

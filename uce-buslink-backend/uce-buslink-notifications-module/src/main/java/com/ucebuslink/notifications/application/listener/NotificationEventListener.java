@@ -8,6 +8,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+import java.util.UUID;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -26,7 +29,8 @@ public class NotificationEventListener {
             event.userId(),
             "¡Reserva Confirmada! ✅",
             "Tu asiento ha sido asegurado. Abre la app para ver tu código QR.",
-            pref -> pref.isNotifyReservationConfirmed() // Chequea el booleano
+            Map.of("url", "/trips"),
+            pref -> pref.isNotifyReservationConfirmed()
         );
     }
 
@@ -37,7 +41,8 @@ public class NotificationEventListener {
             event.userId(),
             "Reserva Cancelada ❌",
             "Tu reserva ha sido cancelada correctamente.",
-            pref -> pref.isNotifyCancellation() // Chequea el booleano
+            Map.of("url", "/trips"),
+            pref -> pref.isNotifyCancellation()
         );
     }
 
@@ -48,13 +53,13 @@ public class NotificationEventListener {
     @Async
     @EventListener
     public void handleTripStarted(TripStartedEvent event) {
-        // Asumiendo que el evento trae una lista de userIds de todos los que reservaron
-        for (java.util.UUID studentId : event.studentIds()) {
+        for (UUID studentId : event.studentIds()) {
             dispatcher.dispatch(
                 studentId,
                 "¡Tu bus está en camino! 🚌",
                 "El viaje ha iniciado. Revisa el mapa en tiempo real.",
-                pref -> pref.isNotifyBusLeaving() // Chequea el booleano
+                Map.of("url", "/map?tripId=" + event.tripId()),
+                pref -> pref.isNotifyBusLeaving()
             );
         }
     }
@@ -66,20 +71,36 @@ public class NotificationEventListener {
             event.userId(),
             "¡El bus está cerca! 📍",
             "Tu bus llegará a la parada en aproximadamente 3 minutos.",
-            pref -> pref.isNotifyBusApproaching() // Chequea el booleano
+            Map.of("url", "/map?tripId=" + event.tripId()),
+            pref -> pref.isNotifyBusApproaching()
         );
+    }
+
+    @Async
+    @EventListener
+    public void handleTripCompleted(TripCompletedEvent event) {
+        for (UUID studentId : event.studentIds()) {
+            dispatcher.dispatch(
+                studentId,
+                "Viaje Finalizado 🏁",
+                "El viaje ha terminado. ¡Gracias por viajar con UCE BusLink!",
+                Map.of("url", "/trips"),
+                pref -> true
+            );
+        }
     }
 
     @Async
     @EventListener
     public void handleTripCancelledByAdmin(TripCancelledEvent event) {
         // ESTO ES UNA EMERGENCIA - Omitimos las preferencias y forzamos el envío
-        for (java.util.UUID studentId : event.studentIds()) {
+        for (UUID studentId : event.studentIds()) {
             dispatcher.dispatch(
                 studentId,
                 "🚨 VIAJE CANCELADO 🚨",
                 "Por motivos de fuerza mayor tu viaje ha sido cancelado. Razón: " + event.reason(),
-                pref -> true // Forzamos a TRUE porque es información crítica
+                Map.of("url", "/trips"),
+                pref -> true
             );
         }
     }
@@ -95,7 +116,8 @@ public class NotificationEventListener {
             event.userId(),
             "¡Bienvenido a bordo! 🎓",
             "Tu código QR fue escaneado con éxito. ¡Buen viaje hacia la UCE!",
-            pref -> true // Siempre enviamos recibo de abordaje
+            Map.of("url", "/map?tripId=" + event.tripId()),
+            pref -> true
         );
     }
 }
