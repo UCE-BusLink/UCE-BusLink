@@ -23,7 +23,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         />
       </div>
 
-      <UserButton afterSignOutUrl="/login" />
+      <UserButton afterSignOutUrl="/" />
     </header>
   )
 }

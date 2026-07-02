@@ -28,6 +28,8 @@ jobs:
 
       - name: Install dependencies
         working-directory: uce-buslink-frontend/uce-buslink-desktop
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         run: npm install
 
       - name: Lint
@@ -37,4 +39,3 @@ jobs:
       - name: Build
         working-directory: uce-buslink-frontend/uce-buslink-desktop
         run: npm run build
-

@@ -23,11 +23,11 @@ ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 
 WORKDIR /app
 
-COPY uce-buslink-frontend/uce-buslink-desktop/package*.json ./
+COPY uce-buslink-frontend/uce-buslink-web/package*.json ./
 
 RUN npm install --ignore-scripts
 
-COPY uce-buslink-frontend/uce-buslink-desktop/ ./
+COPY uce-buslink-frontend/uce-buslink-web/ ./
 
 RUN npm run build
 

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { getCurrentWeekDays } from '../data/mockData';
 import { useRoute } from '../hooks/useRoute';
 import { useTripsByRoute } from '../hooks/useTripsByRoute';
-import type { RouteStopDetail, StopType, ApiTrip } from '../types';
+import type { RouteStopDetail, StopType } from '../types';
 import {
   EmptyState,
   RouteDetailHeader,
@@ -17,18 +17,15 @@ import {
 export function RouteDetailPage() {
   const { routeId } = useParams<{ routeId: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isAdminContext = location.pathname.startsWith('/admin');
 
   const weekDays = getCurrentWeekDays();
   const todayIndex = weekDays.findIndex((d) => d.isToday);
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex >= 0 ? todayIndex : 0);
 
-  // HU-244 — favorito local (persistencia pendiente del backend de favoritos)
   const [isFavorite, setIsFavorite] = useState(false);
 
   const { route, loading, error, notFound } = useRoute(routeId);
-  const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(isAdminContext ? undefined : routeId);
+  const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(undefined);
 
   if (loading) {
     return (
@@ -48,7 +45,7 @@ export function RouteDetailPage() {
       <div className="text-center py-20 text-gray-400">
         <p className="mb-4">Ruta no encontrada.</p>
         <button
-          onClick={() => navigate('/routes')}
+          onClick={() => navigate('/admin/routes')}
           className="text-sm text-navy-900 font-semibold hover:underline"
         >
           Volver a rutas
@@ -78,18 +75,14 @@ export function RouteDetailPage() {
       lng: s.longitude,
     }));
 
-  function handleSelectTrip(trip: ApiTrip) {
-    navigate(`/routes/${routeId}/seats/${trip.id}`);
-  }
-
   return (
     <div>
       <RouteDetailHeader
-        backLabel={isAdminContext ? 'Gestión de rutas' : 'Rutas disponibles'}
-        onBack={() => navigate(isAdminContext ? '/admin/routes' : '/routes')}
+        backLabel="Gestión de rutas"
+        onBack={() => navigate('/admin/routes')}
         isFavorite={isFavorite}
         onToggleFavorite={() => setIsFavorite((v) => !v)}
-        onViewMap={() => navigate('/map')}
+        onViewMap={() => navigate('/admin/map')}
       />
 
       <WeekDayPicker
@@ -104,7 +97,6 @@ export function RouteDetailPage() {
             trips={trips}
             loading={tripsLoading}
             error={tripsError}
-            onSelect={isAdminContext ? undefined : handleSelectTrip}
           />
           <RouteStopsList stops={stops} />
         </div>

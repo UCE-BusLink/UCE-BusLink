@@ -1,8 +1,6 @@
-// src/components/layout/Sidebar.tsx
 import { NavLink } from 'react-router-dom';
-import { Bus, Home, Clock, Map, User, LogOut, LayoutDashboard, Truck, MapPin, Settings, Users, CalendarClock } from 'lucide-react';
+import { Bus, Map, LogOut, LayoutDashboard, Truck, MapPin, Settings, Users, CalendarClock } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
-import { useCurrentUser } from '../../context/AuthContext';
 import brandIcon from '../../assets/brand/Icon.png';
 
 interface NavItem {
@@ -11,17 +9,9 @@ interface NavItem {
   label: string;
 }
 
-const STUDENT_NAV: NavItem[] = [
-  { to: '/dashboard', icon: Home, label: 'Inicio' },
-  { to: '/routes', icon: Bus, label: 'Rutas' },
-  { to: '/trips', icon: Clock, label: 'Viajes' },
-  { to: '/map', icon: Map, label: 'Mapa' },
-  { to: '/profile', icon: User, label: 'Perfil' },
-];
-
 const ADMIN_NAV: NavItem[] = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/admin/map', icon: Map, label: 'Mapa GPS' }, // <-- NUEVA OPCIÓN AGREGADA AQUÍ
+  { to: '/admin/map', icon: Map, label: 'Mapa GPS' },
   { to: '/admin/routes', icon: Bus, label: 'Rutas' },
   { to: '/admin/buses', icon: Truck, label: 'Buses' },
   { to: '/admin/stops', icon: MapPin, label: 'Paradas' },
@@ -30,21 +20,12 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/profile', icon: Settings, label: 'Cuenta' },
 ];
 
-const DRIVER_NAV: NavItem[] = [
-  { to: '/driver', icon: Home, label: 'Mis Viajes' },
-  { to: '/profile', icon: User, label: 'Perfil' },
-];
-
 interface SidebarProps {
   onMobileClose?: () => void;
 }
 
 export function Sidebar({ onMobileClose }: SidebarProps) {
   const { signOut } = useAuth();
-  const { user } = useCurrentUser();
-  const isAdmin = user?.role === 'ADMIN';
-  const isDriver = user?.role === 'DRIVER';
-  const navItems = isAdmin ? ADMIN_NAV : isDriver ? DRIVER_NAV : STUDENT_NAV;
 
   return (
     <aside className="w-60 min-h-screen bg-navy-900 flex flex-col flex-shrink-0">
@@ -55,17 +36,17 @@ export function Sidebar({ onMobileClose }: SidebarProps) {
           </div>
           <div>
             <p className="text-white font-bold text-sm leading-tight">UCE Bus-Link</p>
-            <p className="text-gray-400 text-xs">{isAdmin ? 'Administración' : isDriver ? 'Conductor' : 'Night Transport'}</p>
+            <p className="text-gray-400 text-xs">Administración</p>
           </div>
         </div>
       </div>
 
       <nav className="flex-1 px-3 mt-2">
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {ADMIN_NAV.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
-            end={to === '/dashboard' || to === '/admin'}
+            end={to === '/admin'}
             onClick={onMobileClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-sm transition-colors ${
@@ -83,7 +64,7 @@ export function Sidebar({ onMobileClose }: SidebarProps) {
 
       <div className="px-3 pb-6">
         <button
-          onClick={() => signOut({ redirectUrl: '/login' })}
+          onClick={() => signOut()}
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition-colors w-full"
         >
           <LogOut size={18} />

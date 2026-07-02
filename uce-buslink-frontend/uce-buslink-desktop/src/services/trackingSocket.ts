@@ -1,4 +1,4 @@
-const API_URL = (import.meta.env.VITE_API_URL as string) || '';
+const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080';
 const EXPLICIT_WS_URL = import.meta.env.VITE_WS_URL as string | undefined;
 
 function resolveTrackingWsUrl(): string {

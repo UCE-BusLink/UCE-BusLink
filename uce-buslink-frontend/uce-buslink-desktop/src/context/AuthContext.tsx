@@ -15,6 +15,8 @@ interface AuthContextType {
     syncDone: boolean
 }
 
+const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080'
+
 const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
@@ -40,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const token = await getToken({ template: "uce-buslink" })
                 if (!token) return
                 const res = await fetch(
-                    `${import.meta.env.VITE_API_URL}/api/v1/auth/sync`,
+                    `${API_URL}/api/v1/auth/sync`,
                     { method: "POST", headers: { Authorization: `Bearer ${token}` } }
                 )
                 if (res.ok) {

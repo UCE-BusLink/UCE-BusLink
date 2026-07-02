@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "UCE Bus-Link",
+    "slug": "uce-buslink-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/brand/Icon.png",
+    "scheme": "ucebuslink",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/brand/Logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a1628"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ec.edu.uce.buslink"
+    },
+    "android": {
+      "package": "ec.edu.uce.buslink",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/Icon.png",
+        "backgroundColor": "#0a1628"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "UCE Bus-Link necesita la cámara para escanear códigos QR de reservas."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "UCE Bus-Link usa tu ubicación para el seguimiento de los buses en tiempo real."
+        }
+      ],
+      "expo-secure-store",
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
