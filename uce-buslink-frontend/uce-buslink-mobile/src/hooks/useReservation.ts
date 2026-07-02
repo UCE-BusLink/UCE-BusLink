@@ -26,7 +26,8 @@ export function useReservation() {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return { reservation, loading };
 }

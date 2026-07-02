@@ -32,7 +32,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (!clerkUser) return;
+    
+    // Si no hay usuario (logout), limpiamos los estados para el próximo login
+    if (!clerkUser) {
+      syncedRef.current = false;
+      setRole('STUDENT');
+      setSyncComplete(false);
+      return;
+    }
+
     if (syncedRef.current) return;
     syncedRef.current = true;
 
@@ -56,7 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     syncToBackend();
-  }, [isLoaded, clerkUser, getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, clerkUser?.id]);
 
   const user: CurrentUser | null = clerkUser
     ? {

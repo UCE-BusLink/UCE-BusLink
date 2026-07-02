@@ -32,7 +32,8 @@ export function useReservationHistory(pageSize = 5) {
 
     run();
     return () => { cancelled = true; };
-  }, [getToken, page, pageSize, tick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, tick]);
 
   const totalPages = Math.ceil(totalElements / pageSize);
   const refetch = useCallback(() => {

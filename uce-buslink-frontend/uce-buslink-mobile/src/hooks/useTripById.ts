@@ -45,7 +45,8 @@ export function useTripById(id: string | undefined): UseTripByIdResult {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken, id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return { trip, loading, error, notFound };
 }

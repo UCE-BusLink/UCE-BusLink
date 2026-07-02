@@ -43,7 +43,8 @@ export function useRoute(id: string | undefined): UseRouteResult {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken, id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return { route, loading, error, notFound };
 }

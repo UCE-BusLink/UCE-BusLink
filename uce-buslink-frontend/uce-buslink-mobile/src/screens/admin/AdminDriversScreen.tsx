@@ -55,7 +55,8 @@ export function AdminDriversScreen() {
     }
     load();
     return () => { cancelled = true; };
-  }, [getToken, trigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
 
   const rules = passwordRules(form.password);
   const emailValid = form.email === '' || EMAIL_REGEX.test(form.email);

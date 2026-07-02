@@ -39,7 +39,8 @@ export function useSeatsByTrip(tripId: string | undefined): UseSeatsByTripResult
 
     load();
     return () => { cancelled = true; };
-  }, [getToken, tripId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId]);
 
   return { apiSeats, loading, error };
 }
