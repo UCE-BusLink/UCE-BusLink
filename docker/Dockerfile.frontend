@@ -1,6 +1,5 @@
-
 # =============================================================================
-# UCE-BUSLINK FRONTEND DESKTOP — Dockerfile (Production Ready)
+# UCE-BUSLINK FRONTEND WEB — Dockerfile (Production Ready)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -41,7 +40,7 @@ RUN apk upgrade --no-cache
 
 ARG APP_VERSION=0.0.0
 LABEL maintainer="UCE-BusLink Team"
-LABEL app="uce-buslink-frontend-desktop"
+LABEL app="uce-buslink-frontend-web"
 LABEL version="${APP_VERSION}"
 
 RUN rm /etc/nginx/conf.d/default.conf
