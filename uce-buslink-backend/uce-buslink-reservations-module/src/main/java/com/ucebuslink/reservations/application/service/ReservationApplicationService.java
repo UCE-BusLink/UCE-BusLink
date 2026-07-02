@@ -9,6 +9,7 @@ import com.ucebuslink.shared.constant.*;
 import com.ucebuslink.reservations.domain.model.Seat;
 import com.ucebuslink.reservations.domain.repository.ReservationRepository;
 import com.ucebuslink.reservations.domain.repository.SeatRepository;
+import com.ucebuslink.shared.event.BoardingCompletedEvent;
 import com.ucebuslink.shared.event.ReservationCancelledEvent;
 import com.ucebuslink.shared.event.ReservationCreatedEvent;
 import lombok.RequiredArgsConstructor;
@@ -193,6 +194,9 @@ public class ReservationApplicationService {
         reservation.setBoardedAt(LocalDateTime.now());
         
         Reservation saved = reservationRepository.save(reservation);
+
+        eventPublisher.publishEvent(new BoardingCompletedEvent(saved.getTripId(), saved.getUserId()));
+
         log.info("[RESERVATIONS] Reserva {} marcada como COMPLETED.", reservationId);
         return mapToResponse(saved);
     }

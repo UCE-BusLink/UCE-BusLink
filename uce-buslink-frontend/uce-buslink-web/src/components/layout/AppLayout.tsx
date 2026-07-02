@@ -3,10 +3,13 @@ import { useAuth } from "@clerk/clerk-react";
 import { Navigate, Outlet } from "react-router";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { usePushNotifications } from "../../hooks/usePushNotifications";
 
 export function AppLayout() {
   const { isSignedIn, isLoaded } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  usePushNotifications();
 
   if (!isLoaded) return null;
 

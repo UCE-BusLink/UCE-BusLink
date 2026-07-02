@@ -14,6 +14,7 @@ import com.ucebuslink.shared.constant.*;
 import com.ucebuslink.shared.event.TripCancelledEvent;
 import com.ucebuslink.shared.event.TripCompletedEvent;
 import com.ucebuslink.shared.event.TripCreatedEvent;
+import com.ucebuslink.shared.event.TripStartedEvent;
 import com.ucebuslink.supervisor.domain.repository.BusRepository;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
 import com.ucebuslink.supervisor.domain.repository.ScheduleRepository;
@@ -254,12 +255,17 @@ public class TripApplicationService implements ManageTripUseCase {
         if (newState == TripState.ONGOING && currentState == TripState.SCHEDULED) {
             trip.setState(TripState.ONGOING);
             trip.setStartedAt(LocalDateTime.now());
+
+            List<UUID> students = reservationPort.getStudentIdsByTrip(trip.getId());
+            eventPublisher.publishEvent(new TripStartedEvent(trip.getId(), students));
+
         } else if (newState == TripState.COMPLETED && currentState == TripState.ONGOING) {
             trip.setState(TripState.COMPLETED);
             trip.setCompletedAt(LocalDateTime.now());
             trip.setActualArrivalTime(LocalDateTime.now());
 
-            eventPublisher.publishEvent(new TripCompletedEvent(trip.getId()));
+            List<UUID> students = reservationPort.getStudentIdsByTrip(trip.getId());
+            eventPublisher.publishEvent(new TripCompletedEvent(trip.getId(), students));
             
         } else {
             throw new IllegalStateException("Transición de estado inválida: de " + currentState + " a " + newState);

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -31,7 +32,12 @@ public class NotificationDispatcherService {
      */
     @Transactional(readOnly = true)
     public void dispatch(UUID userId, String title, String body, Predicate<NotificationPreference> preferenceCheck) {
-        
+        dispatch(userId, title, body, Map.of(), preferenceCheck);
+    }
+
+    @Transactional(readOnly = true)
+    public void dispatch(UUID userId, String title, String body, Map<String, String> data, Predicate<NotificationPreference> preferenceCheck) {
+
         // 1. Obtener preferencias (o defaults si no tiene)
         NotificationPreference prefs = preferenceRepository.findByUserId(userId)
                 .orElseGet(() -> NotificationPreference.defaultPreferences(userId));
@@ -50,7 +56,7 @@ public class NotificationDispatcherService {
 
         // 4. Enviar a todos sus dispositivos
         for (DeviceTokenJpaEntity device : tokens) {
-            fcmAdapter.sendPushNotification(device.getFcmToken(), title, body);
+            fcmAdapter.sendPushNotification(device.getFcmToken(), title, body, data);
         }
     }
 }

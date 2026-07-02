@@ -12,7 +12,7 @@ interface UseActiveReservationsResult {
   refetch: () => void;
 }
 
-export function useActiveReservations(): UseActiveReservationsResult {
+export function useActiveReservations(includeBoardedOngoing = false): UseActiveReservationsResult {
   const { getToken } = useAuth();
   const [items, setItems] = useState<ActiveReservationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,10 +31,11 @@ export function useActiveReservations(): UseActiveReservationsResult {
         const token = await getToken({ template: 'uce-buslink' });
         if (!token) throw new Error('No auth token');
 
-        const page = await apiFetch<PageResponse<ApiReservation>>(
-          '/api/v1/reservations/my-history?status=ACTIVE&page=0&size=20',
-          token
-        );
+        const historyPath = includeBoardedOngoing
+          ? '/api/v1/reservations/my-history?page=0&size=20'
+          : '/api/v1/reservations/my-history?status=ACTIVE&page=0&size=20';
+
+        const page = await apiFetch<PageResponse<ApiReservation>>(historyPath, token);
 
         if (!page.content || page.content.length === 0) {
           if (!cancelled) { setItems([]); setLoading(false); }
@@ -49,11 +50,19 @@ export function useActiveReservations(): UseActiveReservationsResult {
         const routeList = await Promise.all(routeIds.map((id) => fetchRouteById(token, id)));
         const routeMap = Object.fromEntries(routeList.map((r) => [r.id, r]));
 
-        const result: ActiveReservationItem[] = page.content.map((reservation, i) => ({
+        let result: ActiveReservationItem[] = page.content.map((reservation, i) => ({
           reservation,
           trip: trips[i],
           route: routeMap[trips[i].routeId],
         }));
+
+        if (includeBoardedOngoing) {
+          result = result.filter(
+            (item) =>
+              item.reservation.status === 'ACTIVE' ||
+              (item.reservation.status === 'COMPLETED' && item.trip.state === 'ONGOING')
+          );
+        }
 
         result.sort(
           (a, b) =>
@@ -70,7 +79,7 @@ export function useActiveReservations(): UseActiveReservationsResult {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken, tick]);
+  }, [getToken, tick, includeBoardedOngoing]);
 
   return { items, loading, error, refetch };
 }
