@@ -22,6 +22,7 @@
     },
     "android": {
       "package": "ec.edu.uce.buslink",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/Icon.png",
         "backgroundColor": "#0a1628"
@@ -55,7 +56,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {

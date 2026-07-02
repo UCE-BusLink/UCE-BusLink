@@ -19,8 +19,9 @@ public class MainToReservationsAdapter implements FleetToReservationPort {
     @Override
     public List<UUID> getStudentIdsByTrip(UUID tripId) {
         // Obtenemos directamente de la BD saltándonos el servicio que causa el bucle
-        return reservationRepository.findActiveReservationsByTripId(tripId, org.springframework.data.domain.Pageable.unpaged())
+        return reservationRepository.findByTripId(tripId)
                 .stream()
+                .filter(res -> !res.getStatus().name().startsWith("CANCELLED"))
                 .map(Reservation::getUserId)
                 .collect(Collectors.toList());
     }
