@@ -70,7 +70,8 @@ export function useActiveReservations(): UseActiveReservationsResult {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken, tick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
 
   return { items, loading, error, refetch };
 }

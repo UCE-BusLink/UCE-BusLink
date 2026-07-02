@@ -29,11 +29,15 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "CAMERA"
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "config": {
         "googleMaps": {
-          "apiKey": ""
+          "apiKey": "AIzaSyCjQdphizP4RzqhT7YR3Aqmz-45PhRjhRQ"
         }
       }
     },
@@ -55,7 +59,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "386a844e-b790-4540-8781-517a591e0268"
       }
     }
   }

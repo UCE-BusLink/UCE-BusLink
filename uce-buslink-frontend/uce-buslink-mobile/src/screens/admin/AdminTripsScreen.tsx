@@ -109,7 +109,8 @@ export function AdminTripsScreen() {
     }
     run();
     return () => { cancelled = true; };
-  }, [getToken, tick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
 
   const refetch = useCallback(() => { setLoading(true); setTick((t) => t + 1); }, []);
 

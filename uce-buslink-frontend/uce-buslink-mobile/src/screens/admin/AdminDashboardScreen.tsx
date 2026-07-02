@@ -104,7 +104,8 @@ export function AdminDashboardScreen() {
         .finally(() => setReportsLoading(false));
     }
     loadData();
-  }, [getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const chartData = useMemo(() => {
     return reports.map((report) => ({

@@ -38,7 +38,8 @@ export function DriverTripDetailScreen() {
       if (!token) throw new Error('No token');
       await scanReservation(token, reservationId);
     },
-    [getToken]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   const handleCancel = useCallback(
@@ -47,7 +48,8 @@ export function DriverTripDetailScreen() {
       if (!token) throw new Error('No token');
       await adminCancelReservation(token, reservationId, 'Cancelado por el conductor');
     },
-    [getToken]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
 
   const handleStart = useCallback(async () => {
@@ -64,7 +66,8 @@ export function DriverTripDetailScreen() {
     } finally {
       setUpdatingState(false);
     }
-  }, [tripId, getToken, setTrip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId, setTrip]);
 
   const handleComplete = useCallback(async () => {
     if (!tripId) return;
@@ -80,7 +83,8 @@ export function DriverTripDetailScreen() {
     } finally {
       setUpdatingState(false);
     }
-  }, [tripId, getToken, setTrip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId, setTrip]);
 
   return (
     <ScreenContainer>

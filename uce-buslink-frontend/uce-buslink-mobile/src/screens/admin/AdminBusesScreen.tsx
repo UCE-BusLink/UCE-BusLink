@@ -65,7 +65,8 @@ export function AdminBusesScreen() {
       }
     }
     fetchData();
-  }, [getToken, trigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
 
   function refresh() {
     setLoading(true);

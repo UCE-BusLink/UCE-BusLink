@@ -1,22 +1,23 @@
 import { useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
-import * as AuthSession from 'expo-auth-session';
-import { useSSO } from '@clerk/clerk-expo';
+import * as Linking from 'expo-linking';
+import { useOAuth } from '@clerk/clerk-expo';
 import { useWarmUpBrowser } from '../../lib/warmUpBrowser';
 
 type Strategy = 'oauth_google' | 'oauth_microsoft';
 
 export function OAuthButtons({ onError }: { onError?: (msg: string) => void }) {
   useWarmUpBrowser();
-  const { startSSOFlow } = useSSO();
+  const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: 'oauth_google' });
+  const { startOAuthFlow: startMicrosoftFlow } = useOAuth({ strategy: 'oauth_microsoft' });
   const [loading, setLoading] = useState<Strategy | null>(null);
 
   const handle = async (strategy: Strategy) => {
     setLoading(strategy);
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
-        strategy,
-        redirectUrl: AuthSession.makeRedirectUri({ scheme: 'ucebuslink' }),
+      const startOAuthFlow = strategy === 'oauth_google' ? startGoogleFlow : startMicrosoftFlow;
+      const { createdSessionId, setActive } = await startOAuthFlow({
+        redirectUrl: Linking.createURL('/dashboard', { scheme: 'ucebuslink' }),
       });
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });

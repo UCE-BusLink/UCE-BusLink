@@ -39,7 +39,8 @@ export function useTripsByRoute(routeId: string | undefined): UseTripsByRouteRes
 
     load();
     return () => { cancelled = true; };
-  }, [getToken, routeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeId]);
 
   return { trips, loading, error };
 }

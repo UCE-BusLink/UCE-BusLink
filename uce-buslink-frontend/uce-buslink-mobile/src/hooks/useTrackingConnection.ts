@@ -54,7 +54,8 @@ export function useTrackingConnection(enabled: boolean = true): TrackingConnecti
       setClient(null);
       stompClient?.deactivate();
     };
-  }, [enabled, getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
 
   return { client, isConnected };
 }
