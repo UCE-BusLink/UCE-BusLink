@@ -79,14 +79,12 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000", 
-                "http://localhost:3001", 
+                "http://localhost:4000", 
+                "http://localhost:4001", 
                 "app://buslink", 
                 "file://", 
-                "http://localhost:5173",
-                "http://localhost:9000",
-                "https://ucebuslinkqa.programacionwebuce.net",
-                "https://ucebuslinkprod.programacionwebuce.net"
+                "http://localhost:6173",
+                "http://localhost:8000"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
