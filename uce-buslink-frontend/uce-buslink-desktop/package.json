@@ -2,25 +2,24 @@
   "name": "uce-buslink-desktop",
   "private": true,
   "version": "0.1.0",
+  "description": "UCE Bus-Link — Aplicación de escritorio para administradores",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:127.0.0.1:5173 && electron .\"",
     "build": "tsc -b && vite build",
     "lint": "eslint . || true",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dist": "npm run build && electron-builder"
   },
   "dependencies": {
-    "@azure/msal-browser": "^5.12.0",
     "@clerk/clerk-react": "^5.61.8",
-    "@react-oauth/google": "^0.13.5",
     "@stomp/stompjs": "^7.3.0",
-    "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-leaflet": "^5.0.0",
-    "react-qr-code": "^2.2.0",
     "react-router-dom": "^7.15.1",
     "recharts": "^3.9.0"
   },
@@ -32,6 +31,9 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.0",
+    "electron": "^38.2.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -39,6 +41,26 @@
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "wait-on": "^9.0.1"
+  },
+  "build": {
+    "appId": "ec.uce.buslink.desktop",
+    "productName": "UCE BusLink Admin",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/favicon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

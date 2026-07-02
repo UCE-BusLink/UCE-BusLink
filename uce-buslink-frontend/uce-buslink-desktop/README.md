@@ -1,75 +1,45 @@
-# React + TypeScript + Vite
+# UCE Bus-Link Desktop
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación de escritorio (Electron) exclusiva para administradores de UCE Bus-Link. Incluye únicamente el panel de administración: dashboard, mapa GPS, rutas, buses, paradas, choferes, viajes y perfil.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20+
+- Backend corriendo (local en `http://localhost:8080` o el ambiente de QA/prod)
 
-## React Compiler
+## Configuración
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Copia `.env.example` a `.env` y ajusta los valores:
 
-## Expanding the ESLint configuration
+| Variable | Descripción |
+|---|---|
+| `VITE_API_URL` | URL absoluta del backend (sin proxy nginx, a diferencia del web) |
+| `VITE_WS_URL` | URL del WebSocket de tracking |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Publishable key de Clerk |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Sin `.env`, la app usa `http://localhost:8080` y la key de desarrollo de Clerk por defecto.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Desarrollo
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Levanta Vite en el puerto 5173 (origen ya permitido en el CORS del backend) y abre la ventana de Electron con HMR.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Build y empaquetado
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build   # typecheck + bundle del renderer en dist/
+npm run dist    # genera el instalador de Windows (NSIS) en release/
 ```
 
-<!-- ci trigger -->
+La app empaquetada se sirve con el protocolo `app://buslink`, ya permitido en el CORS del backend. Para que el login de Clerk funcione en la app empaquetada, hay que registrar `app://buslink` en los allowed origins de la instancia de Clerk (Dashboard → Native applications, o vía API con `allowed_origins`).
+
+## Diferencias con el web
+
+- El proceso principal de Electron sirve el build con fallback SPA a `index.html`, por lo que `BrowserRouter` funciona igual que en el web.
+- `VITE_API_URL` debe ser absoluta; no hay proxy `/api`.
+- Solo login: los administradores no se registran desde la app; sus cuentas se crean por otro canal.
+- Si una cuenta sin rol `ADMIN` inicia sesión, se muestra una pantalla de acceso restringido con opción de cerrar sesión.

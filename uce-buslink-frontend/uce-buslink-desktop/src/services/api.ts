@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL as string;
+const BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080';
 
 export async function apiFetch<T>(
   path: string,

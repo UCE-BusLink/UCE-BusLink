@@ -20,7 +20,7 @@ jobs:
       - name: Validate required files
         run: |
           test -f uce-buslink-backend/pom.xml
-          test -f uce-buslink-frontend/uce-buslink-desktop/package.json
+          test -f uce-buslink-frontend/uce-buslink-web/package.json
           test -f docker/Dockerfile.backend
           test -f docker/Dockerfile.frontend
           test -f docker/docker-compose.yml

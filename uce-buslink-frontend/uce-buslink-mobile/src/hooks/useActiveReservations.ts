@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-expo';
 import { apiFetch } from '../services/api';
 import { fetchTripById } from '../services/tripService';
 import { fetchRouteById } from '../services/routeService';
@@ -70,7 +70,8 @@ export function useActiveReservations(): UseActiveReservationsResult {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken, tick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
 
   return { items, loading, error, refetch };
 }
