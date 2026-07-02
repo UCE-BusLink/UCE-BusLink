@@ -56,7 +56,8 @@ UCE-BusLink/
 │   └── uce-buslink-main/                # Entry point y configuración global
 │
 ├── uce-buslink-frontend/
-│   └── uce-buslink-web/                 # Aplicación web (React 19 + Vite)
+│   ├── uce-buslink-web/                 # Aplicación web (React 19 + Vite)
+│   └── uce-buslink-desktop/             # App de escritorio para administradores (Electron)
 │
 ├── docs/
 │   ├── architecture/                    # Documento de arquitectura (SAD)
