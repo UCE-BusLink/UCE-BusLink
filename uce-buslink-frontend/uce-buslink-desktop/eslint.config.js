@@ -1,0 +1,32 @@
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist', 'release', 'electron']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      globals: globals.browser,
+    },
+    rules: {
+      // Desactivar warning de dependencias en useEffect
+      'react-hooks/exhaustive-deps': 'off',
+
+      // Desactivar error de Fast Refresh
+      'react-refresh/only-export-components': 'off',
+
+      // Desactivar variables no usadas
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+])
