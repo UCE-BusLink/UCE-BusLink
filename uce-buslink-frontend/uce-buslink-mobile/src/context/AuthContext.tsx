@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { API_URL, CLERK_JWT_TEMPLATE } from '../config/env';
+import { Platform } from 'react-native';
+import { usePushNotifications } from '../hooks/usePushNotifications';
+import { notificationService } from '../services/notificationService';
 
 interface CurrentUser {
   id: string;
@@ -29,10 +32,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<string>('STUDENT');
   const [syncComplete, setSyncComplete] = useState(false);
   const syncDone = isLoaded && (!clerkUser || syncComplete);
+  const { fcmToken } = usePushNotifications();
+
+  useEffect(() => {
+    if (syncComplete && fcmToken) {
+      const registerPushToken = async () => {
+        try {
+          const token = await getToken({ template: CLERK_JWT_TEMPLATE });
+          if (!token) return;
+          const platformEnum = Platform.OS === 'ios' ? 'IOS' : Platform.OS === 'android' ? 'ANDROID' : 'WEB';
+          await notificationService.registerDevice(token, {
+            fcmToken,
+            platform: platformEnum
+          });
+          console.log('Device push token registered successfully');
+        } catch (error) {
+          console.error('Failed to register device token:', error);
+        }
+      };
+      registerPushToken();
+    }
+  }, [syncComplete, fcmToken]);
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (!clerkUser) return;
+    
+    // Si no hay usuario (logout), limpiamos los estados para el próximo login
+    if (!clerkUser) {
+      syncedRef.current = false;
+      setRole('STUDENT');
+      setSyncComplete(false);
+      return;
+    }
+
     if (syncedRef.current) return;
     syncedRef.current = true;
 
@@ -56,7 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     syncToBackend();
-  }, [isLoaded, clerkUser, getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, clerkUser?.id]);
 
   const user: CurrentUser | null = clerkUser
     ? {

@@ -14,10 +14,15 @@ import type { RootStackParamList } from '../navigation/types';
 export function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { routes, loading: routesLoading } = useRoutes();
-  const [manualSelectedId, setSelectedId] = useState<string>('');
-  const selectedId = manualSelectedId || routes[0]?.id || '';
-  const { route: selectedRoute, loading: routeLoading } = useRoute(selectedId);
   const { items: reservations } = useActiveReservations();
+
+  const defaultReservationRouteId =
+    reservations.find((item) => item.trip.state === 'ONGOING')?.trip.routeId ??
+    reservations[0]?.trip.routeId;
+
+  const [manualSelectedId, setSelectedId] = useState<string>('');
+  const selectedId = manualSelectedId || defaultReservationRouteId || routes[0]?.id || '';
+  const { route: selectedRoute, loading: routeLoading } = useRoute(selectedId);
 
   const routeReservations = reservations.filter((item) => item.trip.routeId === selectedId);
   const trackedTripId =

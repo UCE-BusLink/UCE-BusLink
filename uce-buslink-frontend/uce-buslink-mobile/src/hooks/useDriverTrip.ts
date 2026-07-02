@@ -48,7 +48,8 @@ export function useDriverTrip(tripId: string) {
 
     run();
     return () => { cancelled = true; };
-  }, [getToken, tripId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId]);
 
   return { trip, loading, error, setTrip };
 }

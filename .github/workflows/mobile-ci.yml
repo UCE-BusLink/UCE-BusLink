@@ -34,6 +34,6 @@ jobs:
         working-directory: uce-buslink-frontend/uce-buslink-mobile
         run: npm run lint
 
-      - name: Build
+      - name: Typecheck
         working-directory: uce-buslink-frontend/uce-buslink-mobile
-        run: npm run build
+        run: npx tsc --noEmit

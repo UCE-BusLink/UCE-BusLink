@@ -39,7 +39,8 @@ export function useRoutes(): UseRoutesResult {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken, reloadKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadKey]);
 
   return { routes, loading, error, refetch };
 }

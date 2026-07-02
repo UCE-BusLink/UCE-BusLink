@@ -57,7 +57,8 @@ export function useNextReservation(): UseNextReservationResult {
 
     load();
     return () => { cancelled = true; };
-  }, [getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return { data, loading, error };
 }

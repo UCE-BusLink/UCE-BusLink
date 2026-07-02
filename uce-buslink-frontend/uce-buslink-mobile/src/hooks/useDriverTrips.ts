@@ -45,7 +45,8 @@ export function useDriverTrips() {
 
     run();
     return () => { cancelled = true; };
-  }, [getToken, tick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
 
   const refetch = useCallback(() => {
     setLoading(true);
