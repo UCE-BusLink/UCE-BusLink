@@ -150,11 +150,11 @@ jobs:
             exit 1
           fi
           if [ "${{ github.ref_name }}" == "main" ]; then
-            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:prod"
-            TAGS="${TAGS},${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:${VERSION}"
-            TAGS="${TAGS},${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:latest"
+            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-web:prod"
+            TAGS="${TAGS},${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-web:${VERSION}"
+            TAGS="${TAGS},${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-web:latest"
           else
-            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-desktop:qa"
+            TAGS="${{ secrets.DOCKERHUB_USERNAME }}/uce-buslink-frontend-web:qa"
           fi
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
@@ -360,7 +360,7 @@ jobs:
             echo "- Commits: ${COMMIT_COUNT}"
             echo "- ${FILE_STATS}"
             echo "- Docker backend: ${DOCKERHUB_USER}/uce-buslink-backend:${VERSION}"
-            echo "- Docker frontend: ${DOCKERHUB_USER}/uce-buslink-frontend-desktop:${VERSION}"
+            echo "- Docker frontend: ${DOCKERHUB_USER}/uce-buslink-frontend-web:${VERSION}"
             echo "- Build: GitHub Actions run #${RUN_NUMBER}"
             echo ""
             echo "[Full Changelog](${COMPARE_URL})"

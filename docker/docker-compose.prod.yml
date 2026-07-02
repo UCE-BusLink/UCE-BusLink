@@ -13,4 +13,4 @@ services:
       HIBERNATE_FORMAT_SQL: "false"
 
   uce-buslink-frontend:
-    image: rodneyandrade/uce-buslink-frontend-desktop:${FRONTEND_TAG:-latest}
+    image: rodneyandrade/uce-buslink-frontend-web:${FRONTEND_TAG:-latest}
