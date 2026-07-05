@@ -10,6 +10,8 @@ import com.ucebuslink.shared.event.BoardingCompletedEvent;
 import com.ucebuslink.shared.event.NoShowEvent;
 import com.ucebuslink.shared.event.ReservationCancelledEvent;
 import com.ucebuslink.shared.event.ReservationCreatedEvent;
+import com.ucebuslink.shared.event.TripCancelledEvent;
+import com.ucebuslink.shared.event.TripReminderEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -98,6 +100,63 @@ public class NotificationEventHandler {
         String message = "No te has presentado a tu reserva. Tu Trust Score ha sido penalizado severamente con -10 puntos.";
         
         saveAndSendPush(event.userId(), title, message, "TRUST_SCORE_CRITICAL");
+    }
+
+    @Async
+    @EventListener
+    public void handleTripCancelledEvent(TripCancelledEvent event) {
+        log.warn("[NOTIFICATIONS] Manejando TripCancelledEvent para viaje {}", event.tripId());
+
+        String title = "Viaje Cancelado";
+        String message = "El viaje ha sido cancelado debido a un retraso significativo: " + event.reason();
+
+        // 1. Notificar al conductor
+        if (event.driverId() != null) {
+            saveAndSendPush(event.driverId(), title, message, "TRIP_CANCELLED");
+        }
+
+        // 2. Notificar a los estudiantes
+        if (event.studentIds() != null) {
+            for (UUID studentId : event.studentIds()) {
+                NotificationPreference prefs = getPreferences(studentId);
+                if (prefs.isNotifyCancellation()) {
+                    saveAndSendPush(studentId, title, message, "TRIP_CANCELLED");
+                }
+            }
+        }
+        
+        // 3. TODO: Notificar a los administradores si es necesario. (Requiere un repositorio de usuarios con rol ADMIN).
+        // Por simplicidad del requerimiento, asumo que los admins ven esto en dashboard.
+    }
+
+    @Async
+    @EventListener
+    public void handleTripReminderEvent(TripReminderEvent event) {
+        log.info("[NOTIFICATIONS] Manejando TripReminderEvent para viaje {}", event.tripId());
+
+        String title = "Recordatorio de Viaje";
+        String message = event.minutesRemaining() == 0 
+                ? "¡Es hora de empezar tu viaje programado!" 
+                : "Faltan " + event.minutesRemaining() + " minutos para iniciar tu viaje programado.";
+
+        if (event.driverId() != null) {
+            saveAndSendPush(event.driverId(), title, message, "TRIP_REMINDER");
+        }
+    }
+
+    @Async
+    @EventListener
+    public void handleTripDelayedEvent(com.ucebuslink.shared.event.TripDelayedEvent event) {
+        log.warn("[NOTIFICATIONS] Manejando TripDelayedEvent para viaje {}", event.tripId());
+
+        String title = "Alerta de Demora";
+        String message = event.reason();
+
+        if (event.driverId() != null) {
+            saveAndSendPush(event.driverId(), title, message, "TRIP_DELAYED");
+        }
+        
+        // Se podría notificar a los estudiantes si el viaje está en curso, pero por ahora solo al conductor.
     }
 
     private NotificationPreference getPreferences(UUID userId) {

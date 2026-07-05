@@ -25,6 +25,6 @@ public interface SpringDataReservationRepository extends JpaRepository<Reservati
 
     List<ReservationJpaEntity> findByTripId(UUID tripId);
 
-    // Busca reservas activas/completadas para un viaje (probablemente quieras omitir las canceladas)
-    Page<ReservationJpaEntity> findByTripIdAndStatusNot(UUID tripId, ReservationStatus statusToExclude, Pageable pageable);
+    // Busca reservas activas/completadas para un viaje
+    Page<ReservationJpaEntity> findByTripIdAndStatusIn(UUID tripId, List<ReservationStatus> statuses, Pageable pageable);
 }
