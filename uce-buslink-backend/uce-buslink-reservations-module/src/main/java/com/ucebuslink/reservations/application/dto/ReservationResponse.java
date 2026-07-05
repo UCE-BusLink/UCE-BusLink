@@ -8,5 +8,6 @@ public record ReservationResponse(
     UUID tripId,
     UUID seatId,
     ReservationStatus status,
-    String qrCode
+    String qrCode,
+    UUID boardingStopId
 ) {}
