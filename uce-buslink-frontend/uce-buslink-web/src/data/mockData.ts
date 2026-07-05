@@ -179,10 +179,15 @@ export function getCurrentWeekDays(): WeekDay[] {
   return LABELS.map((label, i) => {
     const date = new Date(monday);
     date.setDate(monday.getDate() + i);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(date.getDate()).padStart(2, '0');
+
     return {
       label,
       day: date.getDate(),
       isToday: date.toDateString() === today.toDateString(),
+      dateString: `${year}-${month}-${dayOfMonth}`,
     };
   });
 }

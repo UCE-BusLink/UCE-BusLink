@@ -20,3 +20,11 @@ export async function fetchTripsByRoute(
 export async function fetchTripById(token: string, tripId: string): Promise<ApiTrip> {
   return apiFetch<ApiTrip>(`/api/v1/supervisor/trips/${tripId}`, token);
 }
+
+export async function fetchBusById(token: string, busId: string): Promise<{ plateNumber: string, internalCode: string, seatCapacity: number }> {
+  return apiFetch<{ plateNumber: string, internalCode: string, seatCapacity: number }>(`/api/v1/supervisor/fleet/buses/${busId}`, token);
+}
+
+export async function fetchBasicUserInfo(token: string, userId: string): Promise<{ id: string, firstName: string, lastName: string }> {
+  return apiFetch<{ id: string, firstName: string, lastName: string }>(`/api/v1/users/${userId}/basic`, token);
+}
