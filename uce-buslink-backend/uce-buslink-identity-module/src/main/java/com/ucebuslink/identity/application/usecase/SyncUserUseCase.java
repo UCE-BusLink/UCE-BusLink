@@ -36,12 +36,16 @@ public class SyncUserUseCase {
                         firstName,
                         lastName));
 
+        boolean needsOnboarding = user.getPhone() == null || user.getPhone().isEmpty() || 
+                                  user.getDocumentNumber() == null || user.getDocumentNumber().isEmpty();
+
         return new CurrentUserResponse(
                 user.getId().toString(),
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getRole().name());
+                user.getRole().name(),
+                needsOnboarding);
     }
 
     private User createUser(

@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 public interface TripRepository {
     Trip save(Trip trip);
     Optional<Trip> findById(UUID id);
+    Optional<Trip> findByIdWithLock(UUID id);
     Page<Trip> findAll(Pageable pageable);
 
     Page<Trip> findByState(TripState state, Pageable pageable);

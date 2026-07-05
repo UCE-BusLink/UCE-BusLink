@@ -5,10 +5,11 @@ import com.ucebuslink.notifications.application.service.NotificationApplicationS
 import com.ucebuslink.notifications.domain.model.DeviceToken;
 import com.ucebuslink.notifications.domain.model.NotificationPreference;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -16,10 +17,13 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
-@RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationApplicationService notificationService;
+
+    public NotificationController(NotificationApplicationService notificationService) {
+        this.notificationService = notificationService;
+    }
 
     @PostMapping("/register-device")
     public ResponseEntity<?> registerDevice(
@@ -42,7 +46,7 @@ public class NotificationController {
 
     @PutMapping("/preferences")
     public ResponseEntity<?> updatePreferences(@Valid @RequestBody UpdatePreferencesRequest request, Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = (UUID) authentication.getDetails();
         
         NotificationPreference updatedPrefs = notificationService.updatePreferences(userId, request);
 
@@ -56,5 +60,24 @@ public class NotificationController {
                 "notificacionesPuntosConfianza", updatedPrefs.isNotifyTrustPoints(),
                 "fechaActualizacion", updatedPrefs.getUpdatedAt()
         ));
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<Page<NotificationResponse>> getUserNotifications(
+            @RequestParam(name="page", defaultValue = "0") int page,
+            @RequestParam(name="size", defaultValue = "5") int size,
+            Authentication authentication) {
+        
+        UUID userId = (UUID) authentication.getDetails();
+        return ResponseEntity.ok(notificationService.getUserNotifications(userId, page, size));
+    }
+
+    @DeleteMapping("/unregister-device/{fcmToken}")
+    public ResponseEntity<Void> unregisterDevice(
+            @PathVariable("fcmToken") String fcmToken,
+            Authentication authentication) {
+        
+        notificationService.unregisterDevice(fcmToken);
+        return ResponseEntity.noContent().build();
     }
 }
