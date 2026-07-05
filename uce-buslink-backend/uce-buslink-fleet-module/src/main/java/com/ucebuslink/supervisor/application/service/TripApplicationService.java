@@ -104,6 +104,14 @@ public class TripApplicationService implements ManageTripUseCase {
         return mapToResponse(trip);
     }
 
+    @Transactional
+    public TripResponse getTripWithLock(UUID id) {
+        log.debug("[FLEET-TRIP] Obteniendo viaje con PESSIMISTIC_WRITE lock: {}", id);
+        Trip trip = tripRepository.findByIdWithLock(id)
+                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado con ID: " + id));
+        return mapToResponse(trip);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Page<TripResponse> getAllTrips(int page, int size) {

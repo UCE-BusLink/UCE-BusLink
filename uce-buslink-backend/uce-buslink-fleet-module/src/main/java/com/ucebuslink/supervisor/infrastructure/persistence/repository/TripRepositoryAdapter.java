@@ -45,6 +45,12 @@ public class TripRepositoryAdapter implements TripRepository {
     }
 
     @Override
+    public Optional<Trip> findByIdWithLock(UUID id) {
+        log.debug("[FLEET-TRIP] Buscando viaje por ID con bloqueo: {}", id);
+        return jpaRepository.findByIdWithPessimisticLock(id).map(mapper::toDomain);
+    }
+
+    @Override
     public Page<Trip> findAll(Pageable pageable) {
         log.debug("[FLEET-TRIP] Consultando viajes paginados: página {}, tamaño {}", pageable.getPageNumber(), pageable.getPageSize());
         return jpaRepository.findAll(pageable).map(mapper::toDomain);

@@ -24,6 +24,18 @@ public class User {
 
     private String clerkUserId;
 
+    private String profilePictureUrl;
+
+    private String phone;
+
+    private String address;
+
+    private String career;
+
+    private String documentNumber;
+
+    private java.time.LocalDate birthDate;
+
     private String passwordHash;
 
     private LocalDateTime lastLoginAt;
@@ -48,6 +60,12 @@ public class User {
             UserStatus status,
             String googleId,
             String clerkUserId,
+            String profilePictureUrl,
+            String phone,
+            String address,
+            String career,
+            String documentNumber,
+            java.time.LocalDate birthDate,
             String passwordHash,
             LocalDateTime lastLoginAt,
             LocalDateTime createdAt,
@@ -63,6 +81,12 @@ public class User {
         this.status = status;
         this.googleId = googleId;
         this.clerkUserId = clerkUserId;
+        this.profilePictureUrl = profilePictureUrl;
+        this.phone = phone;
+        this.address = address;
+        this.career = career;
+        this.documentNumber = documentNumber;
+        this.birthDate = birthDate;
         this.passwordHash = passwordHash;
         this.lastLoginAt = lastLoginAt;
         this.createdAt = createdAt;
@@ -151,6 +175,54 @@ public class User {
 
     public void setClerkUserId(String clerkUserId) {
         this.clerkUserId = clerkUserId;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCareer() {
+        return career;
+    }
+
+    public void setCareer(String career) {
+        this.career = career;
+    }
+
+    public String getDocumentNumber() {
+        return documentNumber;
+    }
+
+    public void setDocumentNumber(String documentNumber) {
+        this.documentNumber = documentNumber;
+    }
+
+    public java.time.LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(java.time.LocalDate birthDate) {
+        this.birthDate = birthDate;
     }
 
     public String getPasswordHash() {

@@ -19,6 +19,12 @@ public class UserMapper {
                 entity.getStatus(),
                 entity.getGoogleId(),
                 entity.getClerkUserId(),
+                entity.getProfilePictureUrl(),
+                entity.getPhone(),
+                entity.getAddress(),
+                entity.getCareer(),
+                entity.getDocumentNumber(),
+                entity.getBirthDate(),
                 entity.getPasswordHash(),
                 entity.getLastLoginAt(),
                 entity.getCreatedAt(),
@@ -39,6 +45,12 @@ public class UserMapper {
                 .status(user.getStatus())
                 .googleId(user.getGoogleId())
                 .clerkUserId(user.getClerkUserId())
+                .profilePictureUrl(user.getProfilePictureUrl())
+                .phone(user.getPhone())
+                .address(user.getAddress())
+                .career(user.getCareer())
+                .documentNumber(user.getDocumentNumber())
+                .birthDate(user.getBirthDate())
                 .passwordHash(user.getPasswordHash())
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
