@@ -79,6 +79,8 @@ export interface WeekDay {
   label: string;
   day: number;
   isToday: boolean;
+  dateString?: string;
+  hasTrips?: boolean;
 }
 
 export type SeatState = 'AVAILABLE' | 'RESERVED' | 'OCCUPIED' | 'BLOCKED';
@@ -105,6 +107,7 @@ export interface ApiReservation {
   id: string;
   tripId: string;
   seatId: string;
+  boardingStopId: string;
   status: string;
   qrCode: string;
 }

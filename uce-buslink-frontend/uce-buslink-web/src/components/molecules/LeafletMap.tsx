@@ -19,6 +19,8 @@ interface LeafletMapProps {
   liveBus?: LiveBusMarker | null;
   liveBusTitle?: string;
   showLocateButton?: boolean;
+  selectedStopId?: string | null;
+  onStopSelect?: (stopId: string) => void;
 }
 
 const userIcon = L.divIcon({
@@ -40,7 +42,15 @@ const busIcon = L.divIcon({
   popupAnchor: [0, -15],
 });
 
-export function LeafletMap({ selectedRoute, loading, liveBus, liveBusTitle, showLocateButton }: LeafletMapProps) {
+export function LeafletMap({
+  selectedRoute,
+  loading,
+  liveBus,
+  liveBusTitle,
+  showLocateButton,
+  selectedStopId,
+  onStopSelect,
+}: LeafletMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layersRef = useRef<L.Layer[]>([]);
@@ -99,9 +109,16 @@ export function LeafletMap({ selectedRoute, loading, liveBus, liveBusTitle, show
 
     valid.forEach((stop, i) => {
       const type = deriveStopType(i, valid.length);
-      const marker = L.marker([stop.latitude, stop.longitude], { icon: makeStopIcon(type) })
+      const isSelected = selectedStopId === stop.stopId;
+      const marker = L.marker([stop.latitude, stop.longitude], { icon: makeStopIcon(type, isSelected) })
         .bindPopup(`<strong>${stop.stopName}</strong>`)
         .addTo(map);
+      
+      if (onStopSelect) {
+        marker.on('click', () => {
+          onStopSelect(stop.stopId);
+        });
+      }
       layersRef.current.push(marker);
     });
 
@@ -114,7 +131,7 @@ export function LeafletMap({ selectedRoute, loading, liveBus, liveBusTitle, show
       const bounds = L.latLngBounds(valid.map((s) => [s.latitude, s.longitude] as [number, number]));
       map.fitBounds(bounds, { padding: [30, 30] });
     }
-  }, [selectedRoute]);
+  }, [selectedRoute, selectedStopId, onStopSelect]);
 
   useEffect(() => {
     const map = mapInstance.current;
@@ -150,7 +167,7 @@ export function LeafletMap({ selectedRoute, loading, liveBus, liveBusTitle, show
   }, [liveBus, liveBusTitle]);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 relative">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 relative z-0">
       {loading && (
         <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-white/70 rounded-2xl">
           <Loader2 size={24} className="animate-spin text-navy-700" />

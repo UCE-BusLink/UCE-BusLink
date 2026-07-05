@@ -17,26 +17,27 @@ export function SeatMap({
   onSelectSeat,
   onSelectStanding,
 }: SeatMapProps) {
-  const leftSeats = seats.filter((s) => [1, 2, 5, 6, 9, 10].includes(s.number));
-  const rightSeats = seats.filter((s) => [3, 4, 7, 8, 11, 12].includes(s.number));
+  const sortedSeats = [...seats].sort((a, b) => a.number - b.number);
+  const leftSeats = sortedSeats.filter(s => (s.number - 1) % 4 < 2);
+  const rightSeats = sortedSeats.filter(s => (s.number - 1) % 4 >= 2);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <h2 className="text-sm font-semibold text-navy-900 mb-6">Mapa de Asientos</h2>
 
       <div className="flex justify-center">
-        <div className="relative">
-          <div className="absolute -top-1 right-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="relative overflow-auto max-h-[500px] w-full hide-scrollbar flex justify-center">
+          <div className="absolute top-1 right-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
             <Bus size={14} className="text-gray-500" />
           </div>
-          <div className="flex gap-8 bg-gray-50 rounded-xl p-6 mt-2">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="flex gap-8 bg-gray-50 rounded-xl p-6 mt-2 shrink-0">
+            <div className="grid grid-cols-2 gap-2 content-start">
               {leftSeats.map((seat) => (
                 <SeatButton key={seat.number} seat={seat} onSelect={() => onSelectSeat(seat.number)} />
               ))}
             </div>
-            <div className="w-px bg-gray-200 self-stretch" />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="w-px bg-gray-200 self-stretch shrink-0" />
+            <div className="grid grid-cols-2 gap-2 content-start">
               {rightSeats.map((seat) => (
                 <SeatButton key={seat.number} seat={seat} onSelect={() => onSelectSeat(seat.number)} />
               ))}

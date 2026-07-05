@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { getCurrentWeekDays } from '../data/mockData';
@@ -20,15 +20,35 @@ export function RouteDetailPage() {
   const location = useLocation();
   const isAdminContext = location.pathname.startsWith('/admin');
 
-  const weekDays = getCurrentWeekDays();
-  const todayIndex = weekDays.findIndex((d) => d.isToday);
-  const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex >= 0 ? todayIndex : 0);
+  const { route, loading, error, notFound } = useRoute(routeId);
+  const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(isAdminContext ? undefined : routeId);
+
+  const weekDays = useMemo(() => {
+    return getCurrentWeekDays().map((day) => {
+      const hasTrips = trips.some((t) => t.departureTime.startsWith(day.dateString!));
+      return { ...day, hasTrips };
+    });
+  }, [trips]);
+
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+  const [hasInitializedDay, setHasInitializedDay] = useState(false);
+
+  useEffect(() => {
+    if (!tripsLoading && !hasInitializedDay) {
+      const defaultSelectedIndex = weekDays.findIndex((d) => d.hasTrips);
+      const todayIndex = weekDays.findIndex((d) => d.isToday);
+      
+      const initialIndex = defaultSelectedIndex >= 0 
+        ? defaultSelectedIndex 
+        : (todayIndex >= 0 ? todayIndex : 0);
+        
+      setSelectedDayIndex(initialIndex);
+      setHasInitializedDay(true);
+    }
+  }, [tripsLoading, weekDays, hasInitializedDay]);
 
   // HU-244 — favorito local (persistencia pendiente del backend de favoritos)
   const [isFavorite, setIsFavorite] = useState(false);
-
-  const { route, loading, error, notFound } = useRoute(routeId);
-  const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(isAdminContext ? undefined : routeId);
 
   if (loading) {
     return (
@@ -82,6 +102,9 @@ export function RouteDetailPage() {
     navigate(`/routes/${routeId}/seats/${trip.id}`);
   }
 
+  const selectedDay = weekDays[selectedDayIndex] || weekDays[0];
+  const filteredTrips = trips.filter((t) => t.departureTime.startsWith(selectedDay.dateString!));
+
   return (
     <div>
       <RouteDetailHeader
@@ -89,7 +112,7 @@ export function RouteDetailPage() {
         onBack={() => navigate(isAdminContext ? '/admin/routes' : '/routes')}
         isFavorite={isFavorite}
         onToggleFavorite={() => setIsFavorite((v) => !v)}
-        onViewMap={() => navigate('/map')}
+        onViewMap={() => navigate('/map?routeId=' + routeId)}
       />
 
       <WeekDayPicker
@@ -101,7 +124,7 @@ export function RouteDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <DepartureTimesList
-            trips={trips}
+            trips={filteredTrips}
             loading={tripsLoading}
             error={tripsError}
             onSelect={isAdminContext ? undefined : handleSelectTrip}
