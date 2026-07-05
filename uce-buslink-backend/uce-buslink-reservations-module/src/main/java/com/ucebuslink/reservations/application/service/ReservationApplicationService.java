@@ -78,7 +78,8 @@ public class ReservationApplicationService {
         
         return new ReservationResponse(
                 savedRes.getId(), savedRes.getTripId(), 
-                savedRes.getSeatId(), savedRes.getStatus(), savedRes.getQrCode()
+                savedRes.getSeatId(), savedRes.getStatus(), savedRes.getQrCode(),
+                savedRes.getBoardingStopId()
         );
     }
 
@@ -147,7 +148,8 @@ public class ReservationApplicationService {
     private ReservationResponse mapToResponse(Reservation res) {
         return new ReservationResponse(
                 res.getId(), res.getTripId(), 
-                res.getSeatId(), res.getStatus(), res.getQrCode()
+                res.getSeatId(), res.getStatus(), res.getQrCode(),
+                res.getBoardingStopId()
         );
     }
 
