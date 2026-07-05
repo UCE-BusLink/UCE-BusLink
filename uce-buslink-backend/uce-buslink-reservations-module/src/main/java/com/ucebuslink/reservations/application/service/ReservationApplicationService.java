@@ -23,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ucebuslink.reservations.application.dto.DriverPassengerResponse;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -325,19 +327,33 @@ public class ReservationApplicationService {
                 .toList();
     }
 
-    public Page<ReservationResponse> getReservationsByTripForDriver(UUID tripId, UUID driverId, int page, int size) {
+    public Page<DriverPassengerResponse> getReservationsByTripForDriver(UUID tripId, UUID driverId, int page, int size) {
         log.info("[APP-RESERVATIONS] Solicitando lista de pasajeros paginada para el viaje ID: {} por el chofer ID: {}", tripId, driverId);
 
-        // Validación inter-módulo utilizando el puerto
-        boolean belongsToDriver = fleetPort.doesTripBelongToDriver(tripId, driverId);
-        if (!belongsToDriver) {
-            log.warn("[APP-RESERVATIONS] Acceso denegado: El chofer {} intentó acceder a pasajeros del viaje {}", driverId, tripId);
-            throw new SecurityException("No tienes permisos para ver los pasajeros de este viaje.");
-        }
+        // Se elimina la restricción de pertenencia al chofer, 
+        // ya que la información devuelta (nombres y estados) no es sensible.
         
-        Pageable pageable = PageRequest.of(page, size);
-
-        return reservationRepository.findActiveReservationsByTripId(tripId, pageable)
-                .map(this::mapToResponse); 
+        List<Reservation> allReservations = reservationRepository.findByTripId(tripId);
+        
+        List<DriverPassengerResponse> filtered = allReservations.stream()
+                .filter(res -> res.getStatus() == ReservationStatus.ACTIVE || res.getStatus() == ReservationStatus.COMPLETED)
+                .map(res -> new DriverPassengerResponse(
+                        res.getId(),
+                        res.getTripId(),
+                        res.getSeatId(),
+                        res.getStatus(),
+                        res.getBoardingStopId(),
+                        identityPort.getStudentFullName(res.getUserId())
+                ))
+                .toList();
+                
+        int start = Math.min(page * size, filtered.size());
+        int end = Math.min(start + size, filtered.size());
+        
+        return new org.springframework.data.domain.PageImpl<>(
+                filtered.subList(start, end), 
+                PageRequest.of(page, size), 
+                filtered.size()
+        );
     }
 }

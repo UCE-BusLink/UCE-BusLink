@@ -100,8 +100,7 @@ public class ReservationRepositoryAdapter implements ReservationRepository {
     @Override
     public Page<Reservation> findActiveReservationsByTripId(UUID tripId, Pageable pageable) {
         return jpaRepository
-                .findByTripIdAndStatusNot(tripId, ReservationStatus.CANCELLED_BY_ADMIN, pageable)
-                .map(this::toDomain) // Descomenta y ajusta al nombre de tu mapper
-                ; 
+                .findByTripIdAndStatusIn(tripId, List.of(ReservationStatus.ACTIVE, ReservationStatus.COMPLETED), pageable)
+                .map(this::toDomain);
     }
 }
