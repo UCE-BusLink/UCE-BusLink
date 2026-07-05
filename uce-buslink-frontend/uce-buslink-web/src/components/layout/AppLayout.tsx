@@ -4,19 +4,36 @@ import { Navigate, Outlet } from "react-router";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
+import { useQuery } from "@tanstack/react-query";
+import { getUserProfile } from "../../services/api";
+import { OnboardingModal } from "../organisms/OnboardingModal";
+import { useCurrentUser } from "../../context/AuthContext";
+import { Toaster } from "react-hot-toast";
 
 export function AppLayout() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { user, syncDone, updateOnboardingStatus } = useCurrentUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   usePushNotifications();
+
+  const { data: profile, refetch } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const token = await getToken({ template: "uce-buslink" });
+      if (!token) throw new Error("No token");
+      return getUserProfile(token);
+    },
+    enabled: isLoaded && isSignedIn && syncDone,
+  });
 
   if (!isLoaded) return null;
 
   if (!isSignedIn) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      <Toaster position="top-center" reverseOrder={false} />
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -36,6 +53,14 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Onboarding Modal Overlay */}
+      {user?.needsOnboarding && profile && (
+        <OnboardingModal profile={profile.usuario} onComplete={() => {
+          refetch();
+          updateOnboardingStatus(false);
+        }} />
+      )}
     </div>
   );
 }

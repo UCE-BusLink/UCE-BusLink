@@ -26,3 +26,4 @@ export { ReservationHistoryCard } from './ReservationHistoryCard';
 export { DriverTripCard } from './DriverTripCard';
 export { QrScannerModal } from './QrScannerModal';
 export { TripSummaryCard } from './TripSummaryCard';
+export { NotificationBell } from './NotificationBell';
