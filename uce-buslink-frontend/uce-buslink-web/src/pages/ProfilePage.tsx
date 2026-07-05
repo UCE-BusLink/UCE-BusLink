@@ -1,7 +1,6 @@
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import { useCurrentUser } from '../context/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { getUserProfile } from '../services/api';
+import { useProfile } from '../hooks/useProfile';
 import { Mail, IdCard, ShieldCheck, Bus, Clock, Award, Phone, MapPin, GraduationCap, Calendar, Hash, Bell, Eye, Navigation, AlertTriangle, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 import { ProfileHeroCard, ProfileStatCard, ProfileInfoCard } from '../components/molecules';
 
@@ -12,19 +11,10 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 export function ProfilePage() {
-  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
-  const { user, syncDone } = useCurrentUser();
-  const { getToken } = useAuth();
-
-  const { data: profile } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: async () => {
-      const token = await getToken({ template: "uce-buslink" });
-      if (!token) throw new Error("No token");
-      return getUserProfile(token);
-    },
-    enabled: isLoaded && isSignedIn && syncDone,
-  });
+  const { user: clerkUser } = useUser();
+  const { user } = useCurrentUser();
+  
+  const { data: profile } = useProfile();
 
   const firstName = profile?.usuario?.nombres || clerkUser?.firstName || '';
   const lastName = profile?.usuario?.apellidos || clerkUser?.lastName || '';

@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, Bus, QrCode } from 'lucide-react';
-import { useUser, useAuth } from '@clerk/clerk-react';
-import { useQuery } from '@tanstack/react-query';
-import { getUserProfile } from '../services/api';
+import { useUser } from '@clerk/clerk-react';
 import { useRoutes } from '../hooks/useRoutes';
 import { useActiveReservations } from '../hooks/useActiveReservations';
 import { RouteCard } from '../components/molecules/RouteCard';
 import { StatCard } from '../components/molecules/StatCard';
 import { QrModal } from '../components/molecules/QrModal';
 import { RouteCardSkeleton, TrustScoreRing, Button, Spinner } from '../components/atoms';
-import { useCurrentUser } from '../context/AuthContext';
 import type { ActiveReservationItem } from '../types';
 
 function formatTime(iso: string) {
@@ -28,22 +25,14 @@ function getTimeGreeting(): string {
   return 'Buenas noches';
 }
 
+import { useProfile } from '../hooks/useProfile';
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const greeting = getTimeGreeting();
-  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
-  const { getToken } = useAuth();
-  const { syncDone } = useCurrentUser();
+  const { user: clerkUser } = useUser();
   
-  const { data: profile } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: async () => {
-      const token = await getToken({ template: "uce-buslink" });
-      if (!token) throw new Error("No token");
-      return getUserProfile(token);
-    },
-    enabled: isLoaded && isSignedIn && syncDone,
-  });
+  const { data: profile } = useProfile();
 
   const { routes, loading: routesLoading } = useRoutes();
   const { items, loading: reservationLoading } = useActiveReservations();

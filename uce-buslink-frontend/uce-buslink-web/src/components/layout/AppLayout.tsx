@@ -1,31 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useProfile } from "../../hooks/useProfile";
+import { fetchRoutes } from "../../services/routeService";
 import { useAuth } from "@clerk/clerk-react";
 import { Navigate, Outlet } from "react-router";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
-import { useQuery } from "@tanstack/react-query";
-import { getUserProfile } from "../../services/api";
+
 import { OnboardingModal } from "../organisms/OnboardingModal";
 import { useCurrentUser } from "../../context/AuthContext";
 import { Toaster } from "react-hot-toast";
 
 export function AppLayout() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
-  const { user, syncDone, updateOnboardingStatus } = useCurrentUser();
+  const { user, updateOnboardingStatus } = useCurrentUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   usePushNotifications();
 
-  const { data: profile, refetch } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: async () => {
-      const token = await getToken({ template: "uce-buslink" });
-      if (!token) throw new Error("No token");
-      return getUserProfile(token);
-    },
-    enabled: isLoaded && isSignedIn && syncDone,
-  });
+  const { data: profile, refetch } = useProfile();
+
+  // Prefetching key data
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      getToken({ template: 'uce-buslink' }).then((token) => {
+        if (token) {
+          queryClient.prefetchQuery({
+            queryKey: ['routes'],
+            queryFn: () => fetchRoutes(token).then(res => res.content),
+            staleTime: 1000 * 60 * 30, // 30 mins
+          });
+        }
+      });
+    }
+  }, [isLoaded, isSignedIn, getToken, queryClient]);
 
   if (!isLoaded) return null;
 
