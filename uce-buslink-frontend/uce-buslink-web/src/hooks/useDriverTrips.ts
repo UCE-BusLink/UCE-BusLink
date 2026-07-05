@@ -25,11 +25,12 @@ export function useDriverTrips() {
         ]);
         if (cancelled) return;
         const routeNames = new Map(routesPage.content.map((r) => [r.id, r.name]));
-        const views: DriverTripView[] = apiTrips
+          const views: DriverTripView[] = apiTrips
           .map((t) => ({
             id: t.id,
             routeId: t.routeId,
             routeName: routeNames.get(t.routeId) ?? 'Ruta sin nombre',
+            busId: t.busId,
             state: t.state,
             departureTime: t.departureTime,
             availableSeats: t.availableSeats,

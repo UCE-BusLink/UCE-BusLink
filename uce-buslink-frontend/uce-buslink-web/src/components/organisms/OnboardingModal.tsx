@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import type { UserProfileDto, UpdateUserProfileRequest } from '../../types/profile';
-import { updateUserProfile } from '../../services/api';
-import { useAuth } from '@clerk/clerk-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useUpdateProfile } from '../../hooks/mutations/useProfileMutations';
 
 interface OnboardingModalProps {
   profile: UserProfileDto;
@@ -10,8 +8,7 @@ interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ profile, onComplete }: OnboardingModalProps) {
-  const { getToken } = useAuth();
-  const queryClient = useQueryClient();
+  const mutation = useUpdateProfile();
 
   const [formData, setFormData] = useState<UpdateUserProfileRequest>({
     telefonoContacto: profile.telefonoContacto || '',
@@ -21,21 +18,13 @@ export function OnboardingModal({ profile, onComplete }: OnboardingModalProps) {
     fechaNacimiento: profile.fechaNacimiento || '',
   });
 
-  const mutation = useMutation({
-    mutationFn: async (data: UpdateUserProfileRequest) => {
-      const token = await getToken({ template: "uce-buslink" });
-      if (!token) throw new Error('No token');
-      return updateUserProfile(token, data);
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['userProfile'], data);
-      onComplete();
-    },
-  });
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    mutation.mutate(formData, {
+      onSuccess: () => {
+        onComplete();
+      }
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

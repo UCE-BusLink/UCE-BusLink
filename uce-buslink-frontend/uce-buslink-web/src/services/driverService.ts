@@ -40,3 +40,11 @@ export async function adminCancelReservation(
     body: JSON.stringify({ reason }),
   });
 }
+
+export async function fetchTripPassengers(token: string, tripId: string): Promise<import('../types').DriverPassengerResponse[]> {
+  const result = await apiFetch<PageResponse<import('../types').DriverPassengerResponse> | import('../types').DriverPassengerResponse[]>(
+    `/api/v1/driver/trips/${tripId}/reservations?page=0&size=200`,
+    token
+  );
+  return Array.isArray(result) ? result : (result.content ?? []);
+}

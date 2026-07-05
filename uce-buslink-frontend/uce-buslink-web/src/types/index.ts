@@ -122,6 +122,7 @@ export interface DriverTripView {
   id: string;
   routeId: string;
   routeName: string;
+  busId: string;
   state: string;
   departureTime: string;
   availableSeats: number;
@@ -136,6 +137,15 @@ export interface DriverTripDetailView {
   departureTime: string;
   estimatedArrivalTime: string;
   availableSeats: number;
+}
+
+export interface DriverPassengerResponse {
+  reservationId: string;
+  tripId: string;
+  seatId: string;
+  status: string;
+  boardingStopId: string;
+  studentName: string;
 }
 
 export type TripState = 'SCHEDULED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
