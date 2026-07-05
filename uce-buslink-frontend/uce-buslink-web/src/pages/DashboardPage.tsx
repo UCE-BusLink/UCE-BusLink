@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, Bus, QrCode } from 'lucide-react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
+import { useQuery } from '@tanstack/react-query';
+import { getUserProfile } from '../services/api';
 import { useRoutes } from '../hooks/useRoutes';
-import { useTrustScore } from '../hooks/useTrustScore';
 import { useActiveReservations } from '../hooks/useActiveReservations';
 import { RouteCard } from '../components/molecules/RouteCard';
 import { StatCard } from '../components/molecules/StatCard';
 import { QrModal } from '../components/molecules/QrModal';
 import { RouteCardSkeleton, TrustScoreRing, Button, Spinner } from '../components/atoms';
+import { useCurrentUser } from '../context/AuthContext';
 import type { ActiveReservationItem } from '../types';
 
 function formatTime(iso: string) {
@@ -29,10 +31,25 @@ function getTimeGreeting(): string {
 export function DashboardPage() {
   const navigate = useNavigate();
   const greeting = getTimeGreeting();
-  const { user: clerkUser } = useUser();
+  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
+  const { syncDone } = useCurrentUser();
+  
+  const { data: profile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const token = await getToken({ template: "uce-buslink" });
+      if (!token) throw new Error("No token");
+      return getUserProfile(token);
+    },
+    enabled: isLoaded && isSignedIn && syncDone,
+  });
+
   const { routes, loading: routesLoading } = useRoutes();
-  const trustScore = useTrustScore();
   const { items, loading: reservationLoading } = useActiveReservations();
+
+  const trustScore = profile?.puntuacionConfianza?.puntuacion ?? 0;
+  const trustLevel = profile?.puntuacionConfianza?.nivel ?? 'Desconocido';
 
   const [qrItem, setQrItem] = useState<ActiveReservationItem | null>(null);
 
@@ -131,7 +148,7 @@ export function DashboardPage() {
               <Star size={15} className="text-amber-500" />
               <p className="text-sm font-semibold text-navy-900">Score de confianza</p>
             </div>
-            <p className="text-xs text-gray-400 mb-5">Pendiente de datos del servidor</p>
+            <p className="text-xs text-gray-400 mb-5">Nivel: {trustLevel}</p>
             <TrustScoreRing score={trustScore} />
             <p className="text-xs text-center text-gray-500 mt-3">
               Mantén este nivel para prioridad de reserva
@@ -143,9 +160,9 @@ export function DashboardPage() {
               Estadísticas
             </p>
             <div className="space-y-3">
-              <StatCard label="Viajes totales" value={null} />
-              <StatCard label="Puntualidad" value={null} valueClassName="text-green-600" />
-              <StatCard label="Destino frecuente" value={null} />
+              <StatCard label="Viajes totales" value={profile?.estadisticas?.viajesTotales?.toString() ?? "0"} />
+              <StatCard label="Reservas completadas" value={profile?.puntuacionConfianza?.reservasCompletadas?.toString() ?? "0"} valueClassName="text-green-600" />
+              <StatCard label="No Shows" value={profile?.puntuacionConfianza?.noShows?.toString() ?? "0"} valueClassName="text-red-500" />
             </div>
           </div>
         </div>
