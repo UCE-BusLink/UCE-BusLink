@@ -1,18 +1,15 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarOff, RefreshCw, Filter } from 'lucide-react';
-import { useAuth } from '@clerk/clerk-react';
 import { useDriverTrips } from '../../hooks/useDriverTrips';
 import { DriverTripCard } from '../../components/molecules';
 import { Spinner } from '../../components/atoms';
-import { changeTripState } from '../../services/driverService';
 import type { DriverTripView } from '../../types';
 
 type FilterState = 'ALL' | 'PENDING' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
 
 export function DriverDashboardPage() {
   const navigate = useNavigate();
-  const { getToken } = useAuth();
   const { trips, loading, error, refetch } = useDriverTrips();
   const [filter, setFilter] = useState<FilterState>('ALL');
 
@@ -31,7 +28,7 @@ export function DriverDashboardPage() {
 
   const groupedTrips = useMemo(() => {
     const groups: Record<string, DriverTripView[]> = {};
-    
+
     filteredTrips.forEach(trip => {
       const date = new Date(trip.departureTime);
       const today = new Date();
@@ -98,7 +95,7 @@ export function DriverDashboardPage() {
       ) : error ? (
         <div className="bg-white rounded-2xl border border-red-100 p-8 text-center shadow-sm">
           <p className="text-red-500 font-medium">{error}</p>
-          <button 
+          <button
             onClick={refetch}
             className="mt-4 px-6 py-2 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors"
           >

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Armchair, ChevronRight, BusFront, ShieldCheck, Timer, CheckCircle, AlertCircle } from 'lucide-react';
+import { Clock, Armchair, BusFront, ShieldCheck, Timer, CheckCircle, AlertCircle } from 'lucide-react';
 import type { DriverTripView } from '../../types';
 
 const STATE_STYLES: Record<string, { bg: string, text: string }> = {

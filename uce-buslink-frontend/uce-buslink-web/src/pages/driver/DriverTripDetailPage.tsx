@@ -21,9 +21,9 @@ export function DriverTripDetailPage() {
   const [scannerMode, setScannerMode] = useState<ScannerMode>(null);
   const [updatingState, setUpdatingState] = useState(false);
   const [stateError, setStateError] = useState<string | null>(null);
-  
+
   const [passengers, setPassengers] = useState<DriverPassengerResponse[]>([]);
-  const [loadingPassengers, setLoadingPassengers] = useState(false);
+  const [, setLoadingPassengers] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // We want to fetch the route even if it's not ongoing to show the stops
@@ -145,11 +145,10 @@ export function DriverTripDetailPage() {
 
             {isOngoing && (
               <div
-                className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-bold shadow-sm transition-all ${
-                  isConnected
+                className={`flex items-center gap-3 px-5 py-4 rounded-2xl text-sm font-bold shadow-sm transition-all ${isConnected
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                     : 'bg-amber-50 text-amber-800 border border-amber-200'
-                }`}
+                  }`}
               >
                 <div className={`p-2 rounded-full ${isConnected ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
                   <Radio size={20} className={isConnected ? 'animate-pulse' : ''} />
@@ -233,7 +232,7 @@ export function DriverTripDetailPage() {
                 <MapPin className="text-primary" size={20} />
                 Paradas de la Ruta
               </h3>
-              
+
               {route?.stops && route.stops.length > 0 ? (
                 <div className="relative border-l-2 border-gray-100 ml-3 pl-6 space-y-8">
                   {route.stops
@@ -241,12 +240,12 @@ export function DriverTripDetailPage() {
                     .sort((a, b) => a.stopOrder - b.stopOrder)
                     .map((stop, index) => {
                       const stopPassengers = passengers.filter(p => p.boardingStopId === stop.stopId);
-                      
+
                       return (
                         <div key={stop.stopId} className="relative">
                           {/* Timeline dot */}
                           <div className={`absolute -left-[31px] w-4 h-4 rounded-full border-4 border-white shadow-sm ${index === 0 || index === route.stops!.length - 1 ? 'bg-primary w-5 h-5 -left-[33px]' : 'bg-gray-300'}`}></div>
-                          
+
                           <div>
                             <h4 className={`font-bold ${index === 0 || index === route.stops!.length - 1 ? 'text-navy-900' : 'text-gray-700'}`}>
                               {stop.stopName}
@@ -259,7 +258,7 @@ export function DriverTripDetailPage() {
                             <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-1 mb-3">
                               Parada #{stop.stopOrder}
                             </p>
-                            
+
                             {/* Passengers List */}
                             {stopPassengers.length > 0 && (
                               <div className="space-y-2 mt-2 bg-gray-50 rounded-xl p-3 border border-gray-100">
