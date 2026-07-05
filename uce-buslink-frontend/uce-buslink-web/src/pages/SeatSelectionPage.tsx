@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Bus as BusIcon, User, CalendarDays, Clock } from 'lucide-react';
+import { ChevronLeft, Bus as BusIcon, User, Clock } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useRoute } from '../hooks/useRoute';
 import { useTripById } from '../hooks/useTripById';
@@ -44,7 +44,7 @@ export function SeatSelectionPage() {
 
   const [bus, setBus] = useState<{ plateNumber: string; internalCode: string } | null>(null);
   const [driver, setDriver] = useState<{ firstName: string; lastName: string } | null>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [, setLoadingDetails] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
