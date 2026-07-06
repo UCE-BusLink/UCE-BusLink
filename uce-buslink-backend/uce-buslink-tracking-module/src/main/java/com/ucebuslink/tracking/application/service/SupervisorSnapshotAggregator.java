@@ -32,6 +32,7 @@ public class SupervisorSnapshotAggregator {
     public void buildAndBroadcastSnapshot() {
         List<BusSnapshot> activeBuses = new ArrayList<>();
         int totalStudents = 0;
+        int totalBoarded = 0;
         int availableSeats = 0;
 
         // 1. Escanear Redis buscando TODAS las llaves de ubicaciones activas
@@ -52,6 +53,7 @@ public class SupervisorSnapshotAggregator {
                         String plate = trackingQueryPort.getBusPlateNumber(location.busId());
                         String route = trackingQueryPort.getRouteNameByTrip(tripId);
                         int occupied = trackingQueryPort.getTripOccupiedSeats(tripId);
+                        int boarded = trackingQueryPort.getBoardedStudentCount(tripId);
                         int capacity = trackingQueryPort.getBusTotalCapacity(location.busId());
 
                         activeBuses.add(new BusSnapshot(
@@ -63,11 +65,13 @@ public class SupervisorSnapshotAggregator {
                                 tripId.toString(),
                                 route,
                                 occupied,
+                                boarded,
                                 capacity,
                                 "ACTIVE",
                                 location.timestamp()));
 
                         totalStudents += occupied;
+                        totalBoarded += boarded;
                         availableSeats += (capacity - occupied);
                     }
 
@@ -83,7 +87,7 @@ public class SupervisorSnapshotAggregator {
         }
 
         // 2. Construir Estadísticas Globales
-        NetworkStatistics stats = new NetworkStatistics(activeBuses.size(), totalStudents, 0, availableSeats);
+        NetworkStatistics stats = new NetworkStatistics(activeBuses.size(), totalStudents, totalBoarded, 0, availableSeats);
         SupervisorSnapshotPayload payload = new SupervisorSnapshotPayload(activeBuses, stats);
 
         // 3. Emitir al canal masivo de supervisores

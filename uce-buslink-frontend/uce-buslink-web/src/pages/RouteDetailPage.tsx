@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { getCurrentWeekDays } from '../data/mockData';
@@ -12,6 +12,7 @@ import {
   DepartureTimesList,
   RouteStopsList,
   RouteInfoCard,
+  LeafletMap,
 } from '../components/molecules';
 
 export function RouteDetailPage() {
@@ -20,15 +21,37 @@ export function RouteDetailPage() {
   const location = useLocation();
   const isAdminContext = location.pathname.startsWith('/admin');
 
-  const weekDays = getCurrentWeekDays();
-  const todayIndex = weekDays.findIndex((d) => d.isToday);
-  const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex >= 0 ? todayIndex : 0);
+  const { route, loading, error, notFound } = useRoute(routeId);
+  const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(routeId);
+
+  const [weekOffset, setWeekOffset] = useState<number>(0);
+
+  const weekDays = useMemo(() => {
+    return getCurrentWeekDays(weekOffset).map((day) => {
+      const hasTrips = trips.some((t) => t.departureTime.startsWith(day.dateString!));
+      return { ...day, hasTrips };
+    });
+  }, [trips, weekOffset]);
+
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+  const [hasInitializedDay, setHasInitializedDay] = useState(false);
+
+  useEffect(() => {
+    if (!tripsLoading && !hasInitializedDay) {
+      const defaultSelectedIndex = weekDays.findIndex((d) => d.hasTrips);
+      const todayIndex = weekDays.findIndex((d) => d.isToday);
+      
+      const initialIndex = defaultSelectedIndex >= 0 
+        ? defaultSelectedIndex 
+        : (todayIndex >= 0 ? todayIndex : 0);
+        
+      setSelectedDayIndex(initialIndex);
+      setHasInitializedDay(true);
+    }
+  }, [tripsLoading, weekDays, hasInitializedDay]);
 
   // HU-244 — favorito local (persistencia pendiente del backend de favoritos)
   const [isFavorite, setIsFavorite] = useState(false);
-
-  const { route, loading, error, notFound } = useRoute(routeId);
-  const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(isAdminContext ? undefined : routeId);
 
   if (loading) {
     return (
@@ -82,6 +105,9 @@ export function RouteDetailPage() {
     navigate(`/routes/${routeId}/seats/${trip.id}`);
   }
 
+  const selectedDay = weekDays[selectedDayIndex] || weekDays[0];
+  const filteredTrips = trips.filter((t) => t.departureTime.startsWith(selectedDay.dateString!));
+
   return (
     <div>
       <RouteDetailHeader
@@ -89,33 +115,58 @@ export function RouteDetailPage() {
         onBack={() => navigate(isAdminContext ? '/admin/routes' : '/routes')}
         isFavorite={isFavorite}
         onToggleFavorite={() => setIsFavorite((v) => !v)}
-        onViewMap={() => navigate('/map')}
+        onViewMap={() => navigate('/map?routeId=' + routeId)}
       />
 
       <WeekDayPicker
         days={weekDays}
         selectedIndex={selectedDayIndex}
         onSelect={setSelectedDayIndex}
+        weekOffset={weekOffset}
+        onWeekChange={(offset) => {
+          setWeekOffset(offset);
+          setSelectedDayIndex(0);
+        }}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <DepartureTimesList
-            trips={trips}
+            trips={filteredTrips}
             loading={tripsLoading}
             error={tripsError}
             onSelect={isAdminContext ? undefined : handleSelectTrip}
           />
           <RouteStopsList stops={stops} />
         </div>
-        <RouteInfoCard
-          name={route.name}
-          isActive={route.isActive}
-          estimatedDurationMinutes={route.estimatedDurationMinutes}
-          description={route.description}
-          stopsCount={stops.length}
-          departuresCount={trips.length}
-        />
+        <div className="space-y-6">
+          <RouteInfoCard
+            name={route.name}
+            isActive={route.isActive}
+            estimatedDurationMinutes={route.estimatedDurationMinutes}
+            description={route.description}
+            stopsCount={stops.length}
+            departuresCount={trips.length}
+          />
+          
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="font-bold text-navy-900">Mapa de la Ruta</h3>
+            </div>
+            <div className="p-3">
+              {/* Le pasamos un wrapper para aislar LeafletMap con pointer-events-none y evitar navegación si es necesario */}
+              <div className="relative pointer-events-none">
+                <LeafletMap
+                  selectedRoute={route}
+                  loading={false}
+                  showLocateButton={false}
+                />
+                {/* Capa transparente para atrapar clicks y evitar interacción con el mapa */}
+                <div className="absolute inset-0 z-[1000] cursor-default bg-transparent pointer-events-auto" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

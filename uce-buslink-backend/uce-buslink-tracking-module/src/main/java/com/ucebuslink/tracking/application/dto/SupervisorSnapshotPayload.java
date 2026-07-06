@@ -22,6 +22,7 @@ public record SupervisorSnapshotPayload(
         String tripId,
         String routeName,
         int occupiedSeats,
+        int boardedStudents,
         int totalSeats,
         String status,
         long lastUpdate
@@ -30,6 +31,7 @@ public record SupervisorSnapshotPayload(
     public record NetworkStatistics(
         int totalActiveBuses,
         int totalStudentsOnBoard,
+        int totalBoardedStudents,
         int delayedBuses,
         int availableNetworkSeats
     ) {}

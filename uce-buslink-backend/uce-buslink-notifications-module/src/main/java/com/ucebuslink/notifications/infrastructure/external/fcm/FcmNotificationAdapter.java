@@ -3,16 +3,18 @@ package com.ucebuslink.notifications.infrastructure.external.fcm;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class FcmNotificationAdapter {
+
+    private static final Logger log = LoggerFactory.getLogger(FcmNotificationAdapter.class);
+
+    public FcmNotificationAdapter() {}
 
     public void sendPushNotification(String fcmToken, String title, String body) {
         sendPushNotification(fcmToken, title, body, Map.of());

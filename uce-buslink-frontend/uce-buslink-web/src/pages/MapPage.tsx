@@ -11,13 +11,14 @@ export function MapPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tripIdParam = searchParams.get('tripId');
+  const routeIdParam = searchParams.get('routeId');
   const { routes, loading: routesLoading } = useRoutes();
   const [manualSelectedId, setSelectedId] = useState<string>('');
   const { items: reservations } = useActiveReservations(true);
 
   const paramRouteId = reservations.find((item) => item.trip.id === tripIdParam)?.trip.routeId;
   const ongoingRouteId = reservations.find((item) => item.trip.state === 'ONGOING')?.trip.routeId;
-  const selectedId = manualSelectedId || paramRouteId || ongoingRouteId || routes[0]?.id || '';
+  const selectedId = manualSelectedId || routeIdParam || paramRouteId || ongoingRouteId || routes[0]?.id || '';
   const { route: selectedRoute, loading: routeLoading } = useRoute(selectedId);
 
   const routeReservations = reservations.filter((item) => item.trip.routeId === selectedId);

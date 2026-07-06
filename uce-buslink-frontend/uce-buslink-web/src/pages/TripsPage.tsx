@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarOff } from 'lucide-react';
+import { CalendarOff, Clock, ShieldCheck, Ticket } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useActiveReservations } from '../hooks/useActiveReservations';
 import { useReservationHistory } from '../hooks/useReservationHistory';
@@ -84,7 +84,7 @@ export function TripsPage() {
         ) : (
           <>
             {historyItems.map((item) => (
-              <ReservationHistoryCard key={item.id} item={item} />
+              <ReservationHistoryCard key={item.reservation.id} item={item} />
             ))}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-3 mt-2">
@@ -109,21 +109,47 @@ export function TripsPage() {
         )}
       </div>
 
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 mt-10">
         <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wide">
-          Viajes disponibles
+          Información de Abordaje
         </h2>
       </div>
 
-      <div className="text-center py-20 text-gray-400">
-        <CalendarOff size={40} className="mx-auto mb-3 opacity-40" />
-        <p className="text-sm font-medium text-gray-500 mb-1">Explora rutas para reservar</p>
-        <button
-          onClick={() => navigate('/routes')}
-          className="text-sm font-semibold text-navy-900 hover:underline mt-2"
-        >
-          Ver rutas disponibles
-        </button>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3">
+              <Clock size={24} />
+            </div>
+            <h3 className="font-semibold text-navy-900 mb-1">Llega a tiempo</h3>
+            <p className="text-xs text-gray-500">Asegúrate de estar en tu parada al menos 5 minutos antes de la hora de salida.</p>
+          </div>
+          
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-3">
+              <Ticket size={24} />
+            </div>
+            <h3 className="font-semibold text-navy-900 mb-1">Ten tu QR listo</h3>
+            <p className="text-xs text-gray-500">Abre tu código QR antes de subir a la unidad para agilizar el abordaje de todos.</p>
+          </div>
+          
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3">
+              <ShieldCheck size={24} />
+            </div>
+            <h3 className="font-semibold text-navy-900 mb-1">Respeta tu asiento</h3>
+            <p className="text-xs text-gray-500">Cada boleto tiene un asiento asignado. Por favor ocupa únicamente el tuyo.</p>
+          </div>
+        </div>
+        
+        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+          <button
+            onClick={() => navigate('/routes')}
+            className="px-6 py-2.5 bg-navy-900 text-white text-sm font-medium rounded-xl hover:bg-navy-800 transition-colors shadow-md"
+          >
+            Explorar y reservar nuevas rutas
+          </button>
+        </div>
       </div>
 
       {qrItem && (

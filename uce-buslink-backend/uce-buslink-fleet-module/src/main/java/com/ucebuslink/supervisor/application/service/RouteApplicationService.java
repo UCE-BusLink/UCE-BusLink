@@ -13,7 +13,9 @@ import com.ucebuslink.supervisor.domain.repository.StopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +39,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(value = "activeRoutes", allEntries = true)
+    @CacheEvict(value = "routes", allEntries = true)
     public RouteResponse createRoute(CreateRouteCommand command) {
         log.info("Attempting to create a new route: {}", command.name());
         Route route = new Route();
@@ -74,7 +76,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "activeRoutes", key = "'all'")
+    @Cacheable(value = "routes", key = "'allActive'")
     public List<RouteResponse> getAllActiveRoutes() {
         log.info("Fetching all active routes (Cache miss if log appears)");
         return routeRepository.findAllActive().stream()
@@ -84,6 +86,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "routes", key = "'paginated_' + #isActive + '_' + #page + '_' + #size")
     public PageResponse<RouteResponse> getRoutes(boolean isActive, int page, int size) {
         log.info("Fetching paginated routes. Active: {}, Page: {}, Size: {}", isActive, page, size);
         PageResponse<Route> domainPage = routeRepository.findAll(isActive, page, size);
@@ -97,6 +100,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "routes", key = "#id")
     public RouteResponse getRouteById(UUID id) {
         log.info("Fetching route by ID: {}", id);
         Route route = routeRepository.findById(id)
@@ -109,7 +113,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(value = "activeRoutes", allEntries = true)
+    @CacheEvict(value = "routes", allEntries = true)
     public void deleteRoute(UUID id) {
         log.info("Attempting to delete route with ID: {}", id);
         routeRepository.deleteById(id);
@@ -118,7 +122,10 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(value = "activeRoutes", allEntries = true)
+    @Caching(
+        evict = { @CacheEvict(value = "routes", key = "'allActive'"), @CacheEvict(value = "routes", key = "'paginated_*'") },
+        put = { @CachePut(value = "routes", key = "#id") }
+    )
     public RouteResponse updateRoute(UUID id, CreateRouteCommand command) {
         log.info("Attempting to update route with ID: {}", id);
         Route route = routeRepository.findById(id)
@@ -189,7 +196,10 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     @Override
     @Transactional
-    @CacheEvict(value = "activeRoutes", allEntries = true)
+    @Caching(
+        evict = { @CacheEvict(value = "routes", key = "'allActive'"), @CacheEvict(value = "routes", key = "'paginated_*'") },
+        put = { @CachePut(value = "routes", key = "#id") }
+    )
     public RouteResponse changeRouteStatus(UUID id, boolean isActive) {
         log.info("Attempting to change status of route {} to isActive={}", id, isActive);
         

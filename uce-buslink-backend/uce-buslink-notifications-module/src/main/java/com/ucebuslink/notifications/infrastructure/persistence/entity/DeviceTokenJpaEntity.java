@@ -14,9 +14,6 @@ import java.util.UUID;
     @Index(name = "idx_device_tokens_user_id", columnList = "user_id"),
     @Index(name = "idx_device_tokens_fcm_token", columnList = "fcm_token", unique = true)
 })
-@Getter
-@Setter
-@NoArgsConstructor
 public class DeviceTokenJpaEntity {
 
     @Id
@@ -37,4 +34,19 @@ public class DeviceTokenJpaEntity {
 
     @Column(name = "last_active_at", nullable = false)
     private LocalDateTime lastActiveAt;
+
+    public DeviceTokenJpaEntity() {}
+
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+    public String getFcmToken() { return fcmToken; }
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+    public Platform getPlatform() { return platform; }
+    public void setPlatform(Platform platform) { this.platform = platform; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getLastActiveAt() { return lastActiveAt; }
+    public void setLastActiveAt(LocalDateTime lastActiveAt) { this.lastActiveAt = lastActiveAt; }
 }

@@ -18,4 +18,13 @@ public class NotificationDtos {
             boolean notificacionesCancelacion,
             boolean notificacionesPuntosConfianza
     ) {}
+
+    public record NotificationResponse(
+            java.util.UUID id,
+            String title,
+            String message,
+            String type,
+            boolean isRead,
+            java.time.LocalDateTime createdAt
+    ) {}
 }

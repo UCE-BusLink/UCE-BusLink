@@ -24,13 +24,22 @@ export function deriveStopType(index: number, total: number): StopType {
   return 'stop';
 }
 
-export function makeStopIcon(type: StopType) {
+export function makeStopIcon(type: StopType, isSelected?: boolean) {
   const colors: Record<StopType, string> = {
     origin: '#22c55e',
     stop: '#1e3a5f',
     destination: '#f59e0b',
   };
   const c = colors[type];
+  if (isSelected) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="width:20px;height:20px;border-radius:50%;background:${c};border:3px solid white;box-shadow:0 0 0 4px rgba(37,99,235,0.5),0 3px 6px rgba(0,0,0,0.4)"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+      popupAnchor: [0, -10],
+    });
+  }
   return L.divIcon({
     className: '',
     html: `<div style="width:14px;height:14px;border-radius:50%;background:${c};border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4),0 0 0 2px ${c}"></div>`,

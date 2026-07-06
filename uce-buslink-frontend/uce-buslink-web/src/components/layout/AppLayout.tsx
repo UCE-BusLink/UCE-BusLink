@@ -1,22 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useProfile } from "../../hooks/useProfile";
+import { fetchRoutes } from "../../services/routeService";
 import { useAuth } from "@clerk/clerk-react";
 import { Navigate, Outlet } from "react-router";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
 
+import { OnboardingModal } from "../organisms/OnboardingModal";
+import { useCurrentUser } from "../../context/AuthContext";
+import { Toaster } from "react-hot-toast";
+
 export function AppLayout() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { user, updateOnboardingStatus } = useCurrentUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   usePushNotifications();
+
+  const { data: profile, refetch } = useProfile();
+
+  // Prefetching key data
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      getToken({ template: 'uce-buslink' }).then((token) => {
+        if (token) {
+          queryClient.prefetchQuery({
+            queryKey: ['routes'],
+            queryFn: () => fetchRoutes(token).then(res => res.content),
+            staleTime: 1000 * 60 * 30, // 30 mins
+          });
+        }
+      });
+    }
+  }, [isLoaded, isSignedIn, getToken, queryClient]);
 
   if (!isLoaded) return null;
 
   if (!isSignedIn) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      <Toaster position="top-center" reverseOrder={false} />
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -36,6 +63,14 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Onboarding Modal Overlay */}
+      {user?.needsOnboarding && profile && (
+        <OnboardingModal profile={profile.usuario} onComplete={() => {
+          refetch();
+          updateOnboardingStatus(false);
+        }} />
+      )}
     </div>
   );
 }

@@ -11,6 +11,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -38,6 +40,19 @@ public class NotificationsRepositoryAdapter implements DeviceTokenRepository, No
         return tokenRepository.findByFcmToken(fcmToken).map(entity -> 
             new DeviceToken(entity.getId(), entity.getUserId(), entity.getFcmToken(), 
                     entity.getPlatform(), entity.getCreatedAt(), entity.getLastActiveAt()));
+    }
+
+    @Override
+    public void delete(DeviceToken token) {
+        tokenRepository.deleteById(token.getId());
+    }
+
+    @Override
+    public List<DeviceToken> findAllByUserId(UUID userId) {
+        return tokenRepository.findByUserId(userId).stream()
+                .map(entity -> new DeviceToken(entity.getId(), entity.getUserId(), entity.getFcmToken(), 
+                    entity.getPlatform(), entity.getCreatedAt(), entity.getLastActiveAt()))
+                .collect(Collectors.toList());
     }
 
     @Override

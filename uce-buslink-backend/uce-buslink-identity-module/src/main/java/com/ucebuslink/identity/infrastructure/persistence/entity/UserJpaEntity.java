@@ -47,6 +47,24 @@ public class UserJpaEntity {
     @Column(name = "clerk_user_id", unique = true)
     private String clerkUserId;
 
+    @Column(name = "profile_picture_url", columnDefinition = "TEXT")
+    private String profilePictureUrl;
+
+    @Column(length = 20)
+    private String phone;
+
+    @Column(columnDefinition = "TEXT")
+    private String address;
+
+    @Column(length = 150)
+    private String career;
+
+    @Column(name = "document_number", length = 50, unique = true)
+    private String documentNumber;
+
+    @Column(name = "birth_date")
+    private java.time.LocalDate birthDate;
+
     @Column(name = "password_hash")
     private String passwordHash;
 

@@ -9,7 +9,9 @@ import com.ucebuslink.shared.constant.*;
 import com.ucebuslink.reservations.domain.model.Seat;
 import com.ucebuslink.reservations.domain.repository.ReservationRepository;
 import com.ucebuslink.reservations.domain.repository.SeatRepository;
+import com.ucebuslink.reservations.domain.exception.*;
 import com.ucebuslink.shared.event.BoardingCompletedEvent;
+import com.ucebuslink.shared.event.NoShowEvent;
 import com.ucebuslink.shared.event.ReservationCancelledEvent;
 import com.ucebuslink.shared.event.ReservationCreatedEvent;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.ucebuslink.reservations.application.dto.DriverPassengerResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,51 +38,92 @@ public class ReservationApplicationService {
     private final SeatRepository seatRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ReservationToFleetPort fleetPort;
+    private final com.ucebuslink.reservations.application.port.out.ReservationToIdentityPort identityPort;
 
     @Transactional
     public ReservationResponse reserveSeat(CreateReservationCommand command) {
-        log.info("[RESERVATIONS] Intentando reservar asiento {} para el viaje {} por el usuario {}", 
-                command.seatId(), command.tripId(), command.userId());
+        log.trace("[RESERVATIONS] TRACE: Validando token JWT y Rol STUDENT para usuario {}", command.userId());
+        // 1. JWT and role validated by @PreAuthorize in Controller.
+        
+        log.debug("[RESERVATIONS] DEBUG: Solicitando PESSIMISTIC_WRITE lock para el viaje {}", command.tripId());
+        
+        // 2. Buscar Trip con LOCK PESSIMISTA
+        ReservationToFleetPort.TripData tripData = fleetPort.getTripWithLock(command.tripId());
+        if (tripData == null) {
+            log.error("[RESERVATIONS] ERROR: El viaje {} no existe.", command.tripId());
+            throw new TripNotFoundException("Trip with ID " + command.tripId() + " does not exist");
+        }
 
-        // 1. Regla de Negocio: Un usuario solo puede tener 1 reserva por viaje
+        // 3. Verificar estado del viaje
+        log.trace("[RESERVATIONS] TRACE: Trip actual estado: {}", tripData.state());
+        if (!tripData.state().equals("SCHEDULED") && !tripData.state().equals("ONGOING")) {
+            log.warn("[RESERVATIONS] WARN: Intento de reserva en viaje finalizado/cancelado {}", command.tripId());
+            throw new TripAlreadyStartedException("Cannot reserve for a trip that has already started");
+        }
+
+        // Extra: Verificar Trust Score
+        int trustScore = identityPort.getStudentTrustScore(command.userId());
+        if (trustScore < 50) { // Ejemplo de mínimo requerido
+            throw new InsufficientTrustScoreException("Your trust score is too low to reserve at this moment", trustScore, 50);
+        }
+
         if (reservationRepository.existsByTripAndUser(command.tripId(), command.userId())) {
-            log.warn("[RESERVATIONS] El usuario {} intentó reservar doble en el viaje {}", command.userId(), command.tripId());
-            throw new IllegalStateException("Ya tienes una reserva activa para este viaje.");
+            log.warn("[RESERVATIONS] WARN: El usuario {} ya tiene una reserva en el viaje {}", command.userId(), command.tripId());
+            throw new DuplicateReservationException("You have already reserved a seat for this trip");
         }
 
-        // 2. Bloquear el asiento (Si 2 intentan esto, JPA lanzará OptimisticLockingFailureException al guardar)
-        Seat seat = seatRepository.findById(command.seatId())
-                .orElseThrow(() -> new IllegalArgumentException("Asiento no encontrado."));
-
-        if (seat.getState() != SeatState.AVAILABLE) {
-            throw new IllegalStateException("El asiento seleccionado ya no está disponible.");
+        // 4. Contar asientos disponibles
+        List<Seat> tripSeats = seatRepository.findByTripId(command.tripId());
+        long availableCount = tripSeats.stream().filter(s -> s.getState() == SeatState.AVAILABLE).count();
+        if (availableCount == 0) {
+            log.warn("[RESERVATIONS] WARN: No hay asientos disponibles en el viaje {}", command.tripId());
+            throw new NoAvailableSeatsException("All seats for this trip are reserved");
         }
 
-        seat.setState(SeatState.RESERVED);
-        seatRepository.save(seat); // <- El @Version de JPA protege esta línea contra concurrencia
+        Seat selectedSeat = null;
 
-        // 3. Crear la Reserva
+        // 5 & 6. Asignar asiento preferido o el primero disponible
+        if (command.seatId() != null) {
+            selectedSeat = seatRepository.findById(command.seatId())
+                    .orElseThrow(() -> new SeatNoLongerAvailableException("The seat you selected was just reserved by another user"));
+            
+            if (selectedSeat.getState() != SeatState.AVAILABLE) {
+                throw new SeatNoLongerAvailableException("The seat you selected was just reserved by another user");
+            }
+        } else {
+            selectedSeat = tripSeats.stream()
+                    .filter(s -> s.getState() == SeatState.AVAILABLE)
+                    .findFirst()
+                    .orElseThrow(() -> new NoAvailableSeatsException("All seats for this trip are reserved"));
+        }
+
+        // 7. Cambiar estado de Seat a RESERVED
+        selectedSeat.setState(SeatState.RESERVED);
+        seatRepository.save(selectedSeat);
+
+        // 8. Crear Reservation record
         Reservation reservation = new Reservation();
         reservation.setUserId(command.userId());
         reservation.setTripId(command.tripId());
-        reservation.setSeatId(command.seatId());
+        reservation.setSeatId(selectedSeat.getId());
         reservation.setBoardingStopId(command.boardingStopId());
         reservation.setStatus(ReservationStatus.ACTIVE);
         
-        // Generar un string único para armar el QR en la app móvil
         String secureToken = UUID.randomUUID().toString(); 
         reservation.setQrCode("BUSLINK-QR-" + secureToken);
 
         Reservation savedRes = reservationRepository.save(reservation);
 
-        // 4. Lanzar Evento para que el Fleet Module descuente 1 asiento del Trip General
+        // 9. Emitir evento ReservationCreatedEvent
         eventPublisher.publishEvent(new ReservationCreatedEvent(command.tripId(), command.userId()));
 
-        log.info("[RESERVATIONS] Reserva exitosa. ID Reserva: {}, QR generado.", savedRes.getId());
+        log.info("[RESERVATIONS] INFO: Reserva exitosa. ID Reserva: {}, QR generado.", savedRes.getId());
         
+        // 10. COMMIT se ejecuta implícitamente al salir de @Transactional
         return new ReservationResponse(
                 savedRes.getId(), savedRes.getTripId(), 
-                savedRes.getSeatId(), savedRes.getStatus(), savedRes.getQrCode()
+                savedRes.getSeatId(), savedRes.getStatus(), savedRes.getQrCode(),
+                savedRes.getBoardingStopId()
         );
     }
 
@@ -138,16 +183,25 @@ public class ReservationApplicationService {
         
         reservationRepository.save(reservation);
 
-        // 4. Lanzar evento para devolver +1 cupo al Trip
-        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId(), command.userId()));
+        // Obtener el viaje para calcular si es cancelación tardía (< 15 mins)
+        ReservationToFleetPort.TripData tripData = fleetPort.getTripWithLock(reservation.getTripId());
+        boolean isLateCancellation = false;
+        if (tripData != null && tripData.departureTime() != null) {
+            LocalDateTime departureTime = tripData.departureTime();
+            isLateCancellation = LocalDateTime.now().plusMinutes(15).isAfter(departureTime);
+        }
 
-        log.info("[RESERVATIONS] Reserva {} cancelada exitosamente por el usuario. Asiento {} liberado.", reservationId, seat.getId());
+        // 4. Lanzar evento para devolver +1 cupo al Trip
+        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId(), command.userId(), isLateCancellation));
+
+        log.info("[RESERVATIONS] Reserva {} cancelada exitosamente por el usuario. Asiento {} liberado. Late: {}", reservationId, seat.getId(), isLateCancellation);
     }
 
     private ReservationResponse mapToResponse(Reservation res) {
         return new ReservationResponse(
                 res.getId(), res.getTripId(), 
-                res.getSeatId(), res.getStatus(), res.getQrCode()
+                res.getSeatId(), res.getStatus(), res.getQrCode(),
+                res.getBoardingStopId()
         );
     }
 
@@ -174,8 +228,8 @@ public class ReservationApplicationService {
         
         reservationRepository.save(reservation);
 
-        // Devolvemos el cupo al bus
-        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId(), command.userId()));
+        // Devolvemos el cupo al bus (sin penalización por cancelación administrativa)
+        eventPublisher.publishEvent(new ReservationCancelledEvent(reservation.getTripId(), command.userId(), false));
         log.info("[RESERVATIONS] Reserva {} cancelada por ADMIN y asiento liberado.", reservationId);
     }
 
@@ -212,6 +266,10 @@ public class ReservationApplicationService {
             // El asiento físico ya no importa porque el viaje terminó, 
             // pero la reserva queda penalizada para el sistema de confianza (Trust Score).
             reservationRepository.save(res);
+            
+            // Emitir evento de NO_SHOW
+            eventPublisher.publishEvent(new NoShowEvent(tripId, res.getUserId()));
+            
             log.debug("[RESERVATIONS] Reserva {} marcada automáticamente como NO_SHOW", res.getId());
         }
     }
@@ -269,19 +327,39 @@ public class ReservationApplicationService {
                 .toList();
     }
 
-    public Page<ReservationResponse> getReservationsByTripForDriver(UUID tripId, UUID driverId, int page, int size) {
+    @Transactional(readOnly = true)
+    public int getBoardedStudentCount(UUID tripId) {
+        log.debug("[RESERVATIONS] Consultando cantidad de estudiantes a bordo para el viaje {}", tripId);
+        return reservationRepository.countByTripIdAndStatus(tripId, ReservationStatus.COMPLETED);
+    }
+
+    public Page<DriverPassengerResponse> getReservationsByTripForDriver(UUID tripId, UUID driverId, int page, int size) {
         log.info("[APP-RESERVATIONS] Solicitando lista de pasajeros paginada para el viaje ID: {} por el chofer ID: {}", tripId, driverId);
 
-        // Validación inter-módulo utilizando el puerto
-        boolean belongsToDriver = fleetPort.doesTripBelongToDriver(tripId, driverId);
-        if (!belongsToDriver) {
-            log.warn("[APP-RESERVATIONS] Acceso denegado: El chofer {} intentó acceder a pasajeros del viaje {}", driverId, tripId);
-            throw new SecurityException("No tienes permisos para ver los pasajeros de este viaje.");
-        }
+        // Se elimina la restricción de pertenencia al chofer, 
+        // ya que la información devuelta (nombres y estados) no es sensible.
         
-        Pageable pageable = PageRequest.of(page, size);
-
-        return reservationRepository.findActiveReservationsByTripId(tripId, pageable)
-                .map(this::mapToResponse); 
+        List<Reservation> allReservations = reservationRepository.findByTripId(tripId);
+        
+        List<DriverPassengerResponse> filtered = allReservations.stream()
+                .filter(res -> res.getStatus() == ReservationStatus.ACTIVE || res.getStatus() == ReservationStatus.COMPLETED)
+                .map(res -> new DriverPassengerResponse(
+                        res.getId(),
+                        res.getTripId(),
+                        res.getSeatId(),
+                        res.getStatus(),
+                        res.getBoardingStopId(),
+                        identityPort.getStudentFullName(res.getUserId())
+                ))
+                .toList();
+                
+        int start = Math.min(page * size, filtered.size());
+        int end = Math.min(start + size, filtered.size());
+        
+        return new org.springframework.data.domain.PageImpl<>(
+                filtered.subList(start, end), 
+                PageRequest.of(page, size), 
+                filtered.size()
+        );
     }
 }

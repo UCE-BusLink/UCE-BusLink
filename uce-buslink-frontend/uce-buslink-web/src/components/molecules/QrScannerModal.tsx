@@ -21,6 +21,7 @@ export function QrScannerModal({
   const [message, setMessage] = useState("");
   const [permissionError, setPermissionError] = useState(false);
   const [isSecureContextState, setIsSecureContextState] = useState(true);
+  const [isClosing, setIsClosing] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const handledRef = useRef(false);
@@ -28,21 +29,20 @@ export function QrScannerModal({
   useEffect(() => {
     startScanner();
     return () => {
-      stopScanner();
+      // Don't await in cleanup, just fire and forget
+      stopScanner().catch(console.error);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopScanner = async () => {
     try {
-      // 1. "Kill switch" de hardware: Apagamos el flujo de video directamente
       const videoElement = document.querySelector("#qr-reader-container video") as HTMLVideoElement | null;
       if (videoElement && videoElement.srcObject) {
         const stream = videoElement.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
       }
 
-      // 2. Apagado formal de la librería
       if (scannerRef.current) {
         if (scannerRef.current.isScanning) {
           await scannerRef.current.stop();
@@ -56,8 +56,10 @@ export function QrScannerModal({
   };
 
   const handleSafeClose = async () => {
-    await stopScanner(); // Esperamos a que la cámara se apague por completo
-    onClose();           // Luego desmontamos el modal
+    if (isClosing) return;
+    setIsClosing(true);
+    await stopScanner();
+    onClose();
   };
 
   const startScanner = async () => {
@@ -104,9 +106,7 @@ export function QrScannerModal({
       await scanner.start(
         selectedCamera.id,
         {
-          fps: 15, // 15 fps es ideal para evitar sobrecalentamiento sin perder fluidez
-          // ELIMINADO: qrbox. Esto obliga a la librería a no inyectar su propio diseño,
-          // permitiendo que nuestro HUD de Tailwind funcione sin distorsionar el video.
+          fps: 15,
         },
         async (decodedText) => {
           if (handledRef.current) return;
@@ -125,7 +125,6 @@ export function QrScannerModal({
           }
         },
         () => {
-          // Callback silencioso por rendimiento
         }
       );
     } catch (err: any) {
@@ -139,127 +138,121 @@ export function QrScannerModal({
     startScanner();
   };
 
+  if (isClosing) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-navy-900/60 backdrop-blur-md animate-fade-out">
+        <div className="flex flex-col items-center justify-center">
+          <RefreshCw className="w-12 h-12 text-white animate-spin mb-4" />
+          <p className="text-white font-bold tracking-widest uppercase">Cerrando Cámara...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* CSS Inyectado para forzar al video de html5-qrcode a comportarse correctamente */}
       <style>{`
         #qr-reader-container video {
           object-fit: cover !important;
           width: 100% !important;
           height: 100% !important;
-          border-radius: 0.75rem !important;
+          border-radius: 1rem !important;
         }
       `}</style>
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
-        <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden transform transition-all">
-
-          {/* Cabecera */}
-          <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-navy-900/60 backdrop-blur-md animate-fade-in">
+        <div className="relative w-full max-w-lg bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/40 overflow-hidden transform transition-all ring-1 ring-black/5">
+          
+          <div className="flex justify-between items-center px-8 py-6 border-b border-white/40 bg-white/40">
+            <h2 className="text-xl font-bold text-navy-900 flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.8)]" />
               {title}
             </h2>
             <button
-              onClick={handleSafeClose} // <-- CAMBIAR AQUÍ
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              onClick={handleSafeClose}
+              className="p-2.5 rounded-2xl text-gray-400 hover:text-navy-900 hover:bg-white shadow-sm transition-all bg-white/50 border border-white/60"
             >
               <X size={20} />
             </button>
           </div>
 
-          {/* Cuerpo del Modal */}
-          <div className="p-6 flex flex-col items-center justify-center min-h-[380px]">
-
-            {/* Zona de Escaneo Activo */}
+          <div className="p-8 flex flex-col items-center justify-center min-h-[420px]">
             {scanState === "scanning" && !permissionError && (
-              <div className="relative w-full aspect-[4/3] bg-slate-950 rounded-xl overflow-hidden shadow-inner group">
-
-                {/* Contenedor nativo de la cámara de html5-qrcode */}
+              <div className="relative w-full aspect-[4/3] bg-black rounded-3xl overflow-hidden shadow-[inset_0_4px_24px_rgba(0,0,0,0.4)] group ring-4 ring-white/50">
                 <div id="qr-reader-container" className="w-full h-full" />
-
-                {/* Capa de diseño encima de la cámara (HUD) */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-black/20">
-
-                  {/* Cuadro guía de enfoque */}
-                  <div className="relative w-3/5 aspect-square max-w-[240px]">
-                    {/* Esquinas iluminadas */}
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-lg" />
-                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-lg" />
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-lg" />
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-lg" />
-
-                    {/* Animación del Láser */}
-                    <div className="absolute top-0 left-0 w-full h-0.5 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,1)] animate-[scan_2s_ease-in-out_infinite]" />
+                
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-black/10">
+                  <div className="relative w-2/3 aspect-square max-w-[260px]">
+                    <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-primary rounded-tl-2xl shadow-[0_0_15px_rgba(var(--color-primary),0.5)]" />
+                    <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-primary rounded-tr-2xl shadow-[0_0_15px_rgba(var(--color-primary),0.5)]" />
+                    <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-primary rounded-bl-2xl shadow-[0_0_15px_rgba(var(--color-primary),0.5)]" />
+                    <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-2xl shadow-[0_0_15px_rgba(var(--color-primary),0.5)]" />
+                    
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_20px_rgba(var(--color-primary),1)] animate-[scan_2.5s_ease-in-out_infinite]" />
                   </div>
                 </div>
 
-                {/* Etiqueta flotante */}
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-                  <span className="bg-slate-900/80 backdrop-blur-md text-[12px] font-medium text-slate-200 px-4 py-1.5 rounded-full tracking-wider uppercase shadow-lg border border-white/10">
+                <div className="absolute bottom-6 left-0 right-0 flex justify-center animate-fade-in-up">
+                  <span className="bg-black/40 backdrop-blur-md text-xs font-bold text-white px-5 py-2.5 rounded-2xl tracking-widest uppercase shadow-xl border border-white/20">
                     Alinee el código QR
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Estado de Error de Permisos */}
             {permissionError && (
-              <div className="text-center max-w-xs">
-                <div className="w-16 h-16 mx-auto bg-red-50 dark:bg-red-950/30 flex items-center justify-center rounded-2xl text-red-500 mb-4 border border-red-100 dark:border-red-900/50">
-                  <AlertCircle size={32} />
+              <div className="text-center max-w-sm animate-fade-in">
+                <div className="w-20 h-20 mx-auto bg-red-100 flex items-center justify-center rounded-[2rem] text-red-500 mb-6 border-4 border-white shadow-sm">
+                  <AlertCircle size={40} />
                 </div>
-                <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">Error de Cámara</h3>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                <h3 className="text-xl font-bold text-navy-900">Error de Cámara</h3>
+                <p className="mt-3 text-base text-gray-500 font-medium">
                   {isSecureContextState
-                    ? "No pudimos acceder a la cámara. Por favor, concede los permisos en tu navegador."
-                    : "Por políticas de seguridad, este escáner requiere HTTPS."}
+                    ? "No pudimos acceder a la cámara. Por favor, concede los permisos necesarios en tu navegador."
+                    : "Por políticas de seguridad, el escáner requiere una conexión segura (HTTPS)."}
                 </p>
                 <button
                   onClick={handleRetry}
-                  className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-medium text-sm rounded-xl shadow-md transition-all active:scale-95"
+                  className="mt-8 inline-flex items-center justify-center gap-2 w-full px-6 py-4 bg-navy-900 hover:bg-primary text-white font-bold text-base rounded-2xl shadow-lg transition-all active:scale-95"
                 >
-                  <RefreshCw size={16} />
-                  Reintentar
+                  <RefreshCw size={20} />
+                  Reintentar Acceso
                 </button>
               </div>
             )}
 
-            {/* Estado: Éxito */}
             {scanState === "success" && (
-              <div className="text-center max-w-xs">
-                <div className="w-16 h-16 mx-auto bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center rounded-2xl text-emerald-500 mb-4 border border-emerald-100 dark:border-emerald-900/50">
-                  <CheckCircle size={32} />
+              <div className="text-center max-w-sm animate-fade-in">
+                <div className="w-24 h-24 mx-auto bg-emerald-100 flex items-center justify-center rounded-[2.5rem] text-emerald-500 mb-6 border-4 border-white shadow-md">
+                  <CheckCircle size={48} />
                 </div>
-                <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">¡Escaneo Exitoso!</h3>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 font-medium">{message}</p>
+                <h3 className="text-2xl font-black text-navy-900">¡Escaneo Exitoso!</h3>
+                <p className="mt-3 text-base text-gray-600 font-medium">{message}</p>
                 <button
                   onClick={handleRetry}
-                  className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-xl shadow-md transition-all active:scale-95"
+                  className="mt-8 w-full px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base rounded-2xl shadow-[0_8px_20px_rgba(5,150,105,0.3)] transition-all active:scale-95"
                 >
-                  Escanear Siguiente
+                  Escanear Siguiente Pasajero
                 </button>
               </div>
             )}
 
-            {/* Estado: Error */}
             {scanState === "error" && (
-              <div className="text-center max-w-xs">
-                <div className="w-16 h-16 mx-auto bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center rounded-2xl text-amber-500 mb-4 border border-amber-100 dark:border-amber-900/50">
-                  <AlertCircle size={32} />
+              <div className="text-center max-w-sm animate-fade-in">
+                <div className="w-24 h-24 mx-auto bg-amber-100 flex items-center justify-center rounded-[2.5rem] text-amber-500 mb-6 border-4 border-white shadow-md">
+                  <AlertCircle size={48} />
                 </div>
-                <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">Lectura Errónea</h3>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{message}</p>
+                <h3 className="text-2xl font-black text-navy-900">Lectura Errónea</h3>
+                <p className="mt-3 text-base text-gray-600 font-medium">{message}</p>
                 <button
                   onClick={handleRetry}
-                  className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-medium text-sm rounded-xl shadow-md transition-all active:scale-95"
+                  className="mt-8 inline-flex items-center justify-center gap-2 w-full px-6 py-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-base rounded-2xl shadow-[0_8px_20px_rgba(245,158,11,0.3)] transition-all active:scale-95"
                 >
-                  <RefreshCw size={16} />
+                  <RefreshCw size={20} />
                   Volver a Intentar
                 </button>
               </div>
             )}
-
           </div>
         </div>
       </div>
