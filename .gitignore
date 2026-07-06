@@ -30,6 +30,9 @@ Thumbs.db
 !.env.example
 !.env.docker.example
 
+# Dozzle
+docker/dozzle-users.yml
+
 # Build
 build/
 
