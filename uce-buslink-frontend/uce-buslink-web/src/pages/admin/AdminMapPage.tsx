@@ -9,9 +9,11 @@ import {
     Activity
 } from 'lucide-react';
 import { useTrackingConnection } from '../../hooks/useTrackingConnection';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useRoutes } from '../../hooks/useRoutes';
+import { decodePolyline } from '../../utils/mapUtils';
 
 // --- INTERFACES PARA TIPADO FUERTE ---
 interface LiveBus {
@@ -23,6 +25,7 @@ interface LiveBus {
     tripId: string;
     routeName: string;
     occupiedSeats: number;
+    boardedStudents?: number;
     totalSeats: number;
     status: string;
     lastUpdate: number;
@@ -30,7 +33,8 @@ interface LiveBus {
 
 interface FleetStats {
     totalActiveBuses: number;
-    totalStudentsOnBoard: number;
+    totalStudentsOnBoard: number; // En el backend esto en realidad son asientos reservados
+    totalBoardedStudents?: number; // Nueva variable de estudiantes que ya subieron
     delayedBuses: number;
     availableNetworkSeats: number;
 }
@@ -69,9 +73,24 @@ export default function AdminMapPage() {
     const [stats, setStats] = useState<FleetStats>({
         totalActiveBuses: 0,
         totalStudentsOnBoard: 0,
+        totalBoardedStudents: 0,
         delayedBuses: 0,
         availableNetworkSeats: 0,
     });
+
+    const { routes } = useRoutes();
+
+    // Paleta de colores vibrantes para las rutas
+    const ROUTE_COLORS = [
+        '#2563EB', // Blue
+        '#DC2626', // Red
+        '#059669', // Emerald
+        '#D97706', // Amber
+        '#7C3AED', // Violet
+        '#DB2777', // Pink
+        '#0284C7', // Light Blue
+        '#EA580C', // Orange
+    ];
 
     // Centro inicial del mapa (Quito / UCE)
     const MAP_CENTER: [number, number] = [-0.1989, -78.5065];
@@ -128,6 +147,23 @@ export default function AdminMapPage() {
                         attribution='&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
                     />
 
+                    {/* Renderizado de Rutas del Sistema */}
+                    {routes.filter(r => r.pathPolyline).map((route, index) => {
+                        const pts = decodePolyline(route.pathPolyline as string);
+                        const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
+                        return (
+                            <Polyline
+                                key={route.id}
+                                positions={pts}
+                                pathOptions={{ color, weight: 4, opacity: 0.7 }}
+                            >
+                                <Tooltip sticky>
+                                    <span className="font-bold">{route.name}</span>
+                                </Tooltip>
+                            </Polyline>
+                        );
+                    })}
+
                     {/* Renderizado dinámico de los Buses desde WebSockets */}
                     {buses.map((bus) => (
                         <Marker
@@ -147,9 +183,17 @@ export default function AdminMapPage() {
                                     <div className="space-y-1.5 text-xs text-gray-600">
                                         <p><span className="font-semibold">Ruta:</span> {bus.routeName}</p>
                                         <p><span className="font-semibold">Velocidad:</span> {bus.velocity} km/h</p>
-                                        <div className="flex items-center gap-1 mt-2 text-navy-600 bg-navy-50 p-1.5 rounded-lg">
-                                            <Users size={12} />
-                                            <span className="font-bold">{bus.occupiedSeats}</span> / {bus.totalSeats} pasajeros
+                                        <div className="flex flex-col gap-1 mt-2 text-navy-600 bg-navy-50 p-1.5 rounded-lg">
+                                            <div className="flex items-center gap-1">
+                                                <Users size={12} />
+                                                <span className="font-bold">{bus.occupiedSeats}</span> / {bus.totalSeats} reservados
+                                            </div>
+                                            {bus.boardedStudents !== undefined && (
+                                                <div className="flex items-center gap-1 text-emerald-700">
+                                                    <Users size={12} />
+                                                    <span className="font-bold">{bus.boardedStudents}</span> a bordo
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -173,9 +217,16 @@ export default function AdminMapPage() {
                         </div>
 
                         <div className="flex justify-between items-center">
-                            <span className="text-gray-500 font-medium flex items-center gap-1.5"><Users size={14} /> Estudiantes a Bordo</span>
-                            <span className="font-bold text-emerald-600 text-sm">{stats.totalStudentsOnBoard}</span>
+                            <span className="text-gray-500 font-medium flex items-center gap-1.5"><Users size={14} /> Asientos Reservados</span>
+                            <span className="font-bold text-navy-900 text-sm">{stats.totalStudentsOnBoard}</span>
                         </div>
+
+                        {stats.totalBoardedStudents !== undefined && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-500 font-medium flex items-center gap-1.5"><Users size={14} /> Estudiantes a Bordo</span>
+                                <span className="font-bold text-emerald-600 text-sm">{stats.totalBoardedStudents}</span>
+                            </div>
+                        )}
 
                         <div className="flex justify-between items-center">
                             <span className="text-gray-500 font-medium flex items-center gap-1.5"><AlertTriangle size={14} /> Buses Retrasados</span>

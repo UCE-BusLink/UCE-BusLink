@@ -71,4 +71,9 @@ public class TrackingQueryAdapter implements TrackingQueryPort {
         // Delegamos la llamada real al módulo de reservas
         return reservationApplicationService.getUnboardedStudentIdsByTrip(tripId);
     }
+
+    @Override
+    public int getBoardedStudentCount(UUID tripId) {
+        return reservationApplicationService.getBoardedStudentCount(tripId);
+    }
 }

@@ -103,9 +103,10 @@ export const mockUser = {
   punctualityRate: 100,
 };
 
-export function getCurrentWeekDays(): WeekDay[] {
+export function getCurrentWeekDays(weekOffset = 0): WeekDay[] {
   const LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   const today = new Date();
+  today.setDate(today.getDate() + weekOffset * 7);
   const dayOfWeek = today.getDay();
   const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
@@ -115,10 +116,23 @@ export function getCurrentWeekDays(): WeekDay[] {
   return LABELS.map((label, i) => {
     const date = new Date(monday);
     date.setDate(monday.getDate() + i);
+    
+    // Reset time for isToday comparison
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    const actualToday = new Date();
+    actualToday.setHours(0, 0, 0, 0);
+
+    const isToday = compareDate.getTime() === actualToday.getTime();
+    
+    // dateString for API matching YYYY-MM-DD
+    const dateString = date.toISOString().split('T')[0];
+
     return {
       label,
       day: date.getDate(),
-      isToday: date.toDateString() === today.toDateString(),
+      isToday,
+      dateString,
     };
   });
 }

@@ -12,9 +12,6 @@ import java.util.UUID;
 @Table(name = "notification_preferences", indexes = {
     @Index(name = "idx_notif_prefs_user_id", columnList = "user_id", unique = true)
 })
-@Getter
-@Setter
-@NoArgsConstructor
 public class NotificationPreferenceJpaEntity {
 
     @Id
@@ -40,4 +37,23 @@ public class NotificationPreferenceJpaEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public NotificationPreferenceJpaEntity() {}
+
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+    public boolean isNotifyBusLeaving() { return notifyBusLeaving; }
+    public void setNotifyBusLeaving(boolean notifyBusLeaving) { this.notifyBusLeaving = notifyBusLeaving; }
+    public boolean isNotifyBusApproaching() { return notifyBusApproaching; }
+    public void setNotifyBusApproaching(boolean notifyBusApproaching) { this.notifyBusApproaching = notifyBusApproaching; }
+    public boolean isNotifyReservationConfirmed() { return notifyReservationConfirmed; }
+    public void setNotifyReservationConfirmed(boolean notifyReservationConfirmed) { this.notifyReservationConfirmed = notifyReservationConfirmed; }
+    public boolean isNotifyCancellation() { return notifyCancellation; }
+    public void setNotifyCancellation(boolean notifyCancellation) { this.notifyCancellation = notifyCancellation; }
+    public boolean isNotifyTrustPoints() { return notifyTrustPoints; }
+    public void setNotifyTrustPoints(boolean notifyTrustPoints) { this.notifyTrustPoints = notifyTrustPoints; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

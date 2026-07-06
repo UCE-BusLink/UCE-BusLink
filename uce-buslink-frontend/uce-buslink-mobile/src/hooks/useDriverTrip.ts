@@ -1,55 +1,46 @@
-import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchDriverTripById } from '../services/driverService';
 import { fetchRouteById } from '../services/routeService';
 import type { DriverTripDetailView } from '../types';
 
 export function useDriverTrip(tripId: string) {
   const { getToken } = useAuth();
-  const [trip, setTrip] = useState<DriverTripDetailView | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function run() {
-      setError(null);
+  const { data: trip, isLoading: loading, error: queryError } = useQuery<DriverTripDetailView, Error>({
+    queryKey: ['driverTrip', tripId],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No auth token');
+      
+      const apiTrip = await fetchDriverTripById(token, tripId);
+      let routeName = 'Ruta sin nombre';
       try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token || cancelled) return;
-        const apiTrip = await fetchDriverTripById(token, tripId);
-        if (cancelled) return;
-        let routeName = 'Ruta sin nombre';
-        try {
-          const route = await fetchRouteById(token, apiTrip.routeId);
-          if (!cancelled) routeName = route.name;
-        } catch {
-          /* route name is optional */
-        }
-        if (!cancelled) {
-          setTrip({
-            id: apiTrip.id,
-            busId: apiTrip.busId,
-            routeId: apiTrip.routeId,
-            routeName,
-            state: apiTrip.state,
-            departureTime: apiTrip.departureTime,
-            estimatedArrivalTime: apiTrip.estimatedArrivalTime,
-            availableSeats: apiTrip.availableSeats,
-          });
-        }
+        const route = await fetchRouteById(token, apiTrip.routeId);
+        routeName = route.name;
       } catch {
-        if (!cancelled) setError('No se pudo cargar el viaje.');
-      } finally {
-        if (!cancelled) setLoading(false);
+        /* route name is optional */
       }
-    }
+      return {
+        id: apiTrip.id,
+        busId: apiTrip.busId,
+        routeId: apiTrip.routeId,
+        routeName,
+        state: apiTrip.state,
+        departureTime: apiTrip.departureTime,
+        estimatedArrivalTime: apiTrip.estimatedArrivalTime,
+        availableSeats: apiTrip.availableSeats,
+      };
+    },
+    enabled: !!tripId,
+  });
 
-    run();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripId]);
+  const error = queryError ? 'No se pudo cargar el viaje.' : null;
 
-  return { trip, loading, error, setTrip };
+  const setTrip = (newTrip: DriverTripDetailView | ((prev: DriverTripDetailView | undefined) => DriverTripDetailView | undefined)) => {
+    queryClient.setQueryData(['driverTrip', tripId], newTrip);
+  };
+
+  return { trip: trip ?? null, loading, error, setTrip };
 }

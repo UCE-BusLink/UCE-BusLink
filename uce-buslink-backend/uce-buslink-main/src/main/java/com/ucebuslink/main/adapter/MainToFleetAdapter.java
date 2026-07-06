@@ -20,4 +20,11 @@ public class MainToFleetAdapter implements ReservationToFleetPort {
                 .map(trip -> trip.getDriverId().equals(driverId))
                 .orElse(false); 
     }
+
+    @Override
+    public TripData getTripWithLock(UUID tripId) {
+        return tripRepository.findByIdWithLock(tripId)
+                .map(trip -> new TripData(trip.getId(), trip.getState().name(), trip.getAvailableSeats(), trip.getDepartureTime()))
+                .orElse(null);
+    }
 }

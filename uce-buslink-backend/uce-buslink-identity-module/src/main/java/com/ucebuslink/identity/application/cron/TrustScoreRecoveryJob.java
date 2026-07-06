@@ -1,0 +1,42 @@
+package com.ucebuslink.identity.application.cron;
+
+import com.ucebuslink.identity.domain.model.TrustScore;
+import com.ucebuslink.identity.domain.repository.TrustScoreRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class TrustScoreRecoveryJob {
+
+    private final TrustScoreRepository trustScoreRepository;
+
+    // Ejecutar todos los días a la medianoche
+    @Scheduled(cron = "0 0 0 * * ?")
+    @Transactional
+    public void recoverTrustScores() {
+        log.info("[TRUST_SCORE_CRON] Iniciando proceso de recuperación diaria de Trust Score.");
+        
+        List<TrustScore> scoresToRecover = trustScoreRepository.findByScoreLessThan(100);
+        
+        if (scoresToRecover.isEmpty()) {
+            log.info("[TRUST_SCORE_CRON] No hay usuarios con score menor a 100 para recuperar.");
+            return;
+        }
+
+        int count = 0;
+        for (TrustScore score : scoresToRecover) {
+            score.increaseScore(1);
+            trustScoreRepository.save(score);
+            count++;
+        }
+
+        log.info("[TRUST_SCORE_CRON] Proceso finalizado. Se sumó +1 a {} usuarios.", count);
+    }
+}

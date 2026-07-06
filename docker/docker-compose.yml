@@ -119,6 +119,25 @@ services:
       start_period: 10s
     restart: always
 
+  uce-buslink-dozzle:
+    image: amir20/dozzle:latest
+    container_name: uce-buslink-dozzle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dozzle-users.yml:/data/users.yml:ro
+    environment:
+      DOZZLE_AUTH_PROVIDER: simple
+    ports:
+      - "8080:8080"
+    networks:
+      - uce-buslink-net
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.10'
+    restart: always
+
 volumes:
   uce-buslink-db-data:
     driver: local

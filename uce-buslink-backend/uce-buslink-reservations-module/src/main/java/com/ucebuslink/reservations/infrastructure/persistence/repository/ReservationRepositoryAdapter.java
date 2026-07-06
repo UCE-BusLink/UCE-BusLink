@@ -92,6 +92,11 @@ public class ReservationRepositoryAdapter implements ReservationRepository {
     }
 
     @Override
+    public int countByTripIdAndStatus(UUID tripId, ReservationStatus status) {
+        return jpaRepository.countByTripIdAndStatus(tripId, status);
+    }
+
+    @Override
     public List<Reservation> findByTripId (UUID tripId) {
         return jpaRepository.findByTripId(tripId).stream().
                 map(this::toDomain).collect(java.util.stream.Collectors.toList());
@@ -100,8 +105,7 @@ public class ReservationRepositoryAdapter implements ReservationRepository {
     @Override
     public Page<Reservation> findActiveReservationsByTripId(UUID tripId, Pageable pageable) {
         return jpaRepository
-                .findByTripIdAndStatusNot(tripId, ReservationStatus.CANCELLED_BY_ADMIN, pageable)
-                .map(this::toDomain) // Descomenta y ajusta al nombre de tu mapper
-                ; 
+                .findByTripIdAndStatusIn(tripId, List.of(ReservationStatus.ACTIVE, ReservationStatus.COMPLETED), pageable)
+                .map(this::toDomain);
     }
 }

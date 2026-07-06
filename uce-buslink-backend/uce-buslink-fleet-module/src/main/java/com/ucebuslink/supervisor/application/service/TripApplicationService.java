@@ -27,6 +27,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -100,6 +101,14 @@ public class TripApplicationService implements ManageTripUseCase {
     @Transactional(readOnly = true)
     public TripResponse getTripById(UUID id) {
         Trip trip = tripRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado con ID: " + id));
+        return mapToResponse(trip);
+    }
+
+    @Transactional
+    public TripResponse getTripWithLock(UUID id) {
+        log.debug("[FLEET-TRIP] Obteniendo viaje con PESSIMISTIC_WRITE lock: {}", id);
+        Trip trip = tripRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado con ID: " + id));
         return mapToResponse(trip);
     }
@@ -223,6 +232,7 @@ public class TripApplicationService implements ManageTripUseCase {
         eventPublisher.publishEvent(
             new TripCancelledEvent(
                 trip.getId(),
+                trip.getDriverId(),
                 students,
                 "Viaje cancelado"
             )
@@ -253,6 +263,9 @@ public class TripApplicationService implements ManageTripUseCase {
 
         // Validación de transiciones permitidas
         if (newState == TripState.ONGOING && currentState == TripState.SCHEDULED) {
+            if (LocalDateTime.now().isBefore(trip.getDepartureTime().minusMinutes(10))) {
+                throw new IllegalStateException("No se puede iniciar el viaje antes de 10 minutos de la salida programada.");
+            }
             trip.setState(TripState.ONGOING);
             trip.setStartedAt(LocalDateTime.now());
 
@@ -388,5 +401,80 @@ public class TripApplicationService implements ManageTripUseCase {
         
         return tripRepository.findTripsByDriverAndDate(driverId, date, pageable)
                 .map(this::mapToResponse);// Transforma Dominio a DTO manteniendo la estructura Page
+    }
+
+    /**
+     * Tarea automática: Se ejecuta cada 1 minuto.
+     * Busca viajes en estado SCHEDULED que tengan más de 30 minutos de retraso
+     * (departureTime < (ahora - 30 mins)) y los cancela automáticamente.
+     * También alerta si el viaje lleva retraso en múltiplos de 5 minutos (5, 10, 15...).
+     */
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void checkDelayedTrips() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime cancelThreshold = now.minusMinutes(30);
+        
+        List<Trip> scheduledTrips = tripRepository.findByState(TripState.SCHEDULED, PageRequest.of(0, 500)).getContent();
+        
+        for (Trip trip : scheduledTrips) {
+            if (trip.getDepartureTime().isBefore(cancelThreshold)) {
+                log.warn("[FLEET-TRIP-JOB] Cancelando viaje retrasado (ID: {}) programado para {}", trip.getId(), trip.getDepartureTime());
+                cancelTrip(trip.getId());
+            } else {
+                long diffMins = java.time.Duration.between(trip.getDepartureTime(), now).toMinutes();
+                if (diffMins > 0 && diffMins % 5 == 0 && diffMins <= 30) {
+                    log.info("[FLEET-TRIP-JOB] Alerta de demora para viaje (ID: {}) no iniciado", trip.getId());
+                    eventPublisher.publishEvent(new com.ucebuslink.shared.event.TripDelayedEvent(
+                            trip.getId(), trip.getDriverId(), "Lleva " + diffMins + " minutos de retraso para iniciar el viaje.", (int) diffMins));
+                }
+            }
+        }
+    }
+
+    /**
+     * Tarea automática: Se ejecuta cada 1 minuto.
+     * Busca viajes en estado SCHEDULED que estén a exactamente 15, 10, 5 o 0 minutos
+     * de iniciar y envía un recordatorio al conductor.
+     */
+    @Scheduled(fixedRate = 60000)
+    @Transactional(readOnly = true)
+    public void remindUpcomingTrips() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Trip> scheduledTrips = tripRepository.findByState(TripState.SCHEDULED, PageRequest.of(0, 500)).getContent();
+        
+        for (Trip trip : scheduledTrips) {
+            long diffMins = java.time.Duration.between(now, trip.getDepartureTime()).toMinutes();
+            
+            if (diffMins == 15 || diffMins == 10 || diffMins == 5 || diffMins == 0) {
+                log.info("[FLEET-TRIP-JOB] Recordatorio de viaje (ID: {}) en {} minutos", trip.getId(), diffMins);
+                eventPublisher.publishEvent(new com.ucebuslink.shared.event.TripReminderEvent(trip.getId(), trip.getDriverId(), (int) diffMins));
+            }
+        }
+    }
+
+    /**
+     * Tarea automática: Se ejecuta cada 1 minuto.
+     * Busca viajes en estado ONGOING. Alerta si falta 5 mins para llegar, o si se pasó en múltiplos de 10 mins.
+     */
+    @Scheduled(fixedRate = 60000)
+    @Transactional(readOnly = true)
+    public void checkLateArrivals() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Trip> ongoingTrips = tripRepository.findByState(TripState.ONGOING, PageRequest.of(0, 500)).getContent();
+        
+        for (Trip trip : ongoingTrips) {
+            if (trip.getEstimatedArrivalTime() != null) {
+                long diffToArrival = java.time.Duration.between(now, trip.getEstimatedArrivalTime()).toMinutes();
+                long diffPastArrival = java.time.Duration.between(trip.getEstimatedArrivalTime(), now).toMinutes();
+
+                if (diffToArrival == 5) {
+                    eventPublisher.publishEvent(new com.ucebuslink.shared.event.TripReminderEvent(trip.getId(), trip.getDriverId(), 5));
+                } else if (diffPastArrival > 0 && diffPastArrival % 10 == 0) {
+                    eventPublisher.publishEvent(new com.ucebuslink.shared.event.TripDelayedEvent(
+                            trip.getId(), trip.getDriverId(), "El viaje está tomando más tiempo del estimado. Retraso: " + diffPastArrival + " min.", (int) diffPastArrival));
+                }
+            }
+        }
     }
 }

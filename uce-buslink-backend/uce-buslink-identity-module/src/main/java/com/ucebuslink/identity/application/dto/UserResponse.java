@@ -11,5 +11,7 @@ public record UserResponse(
     String lastName,
     String email,
     Role role,
-    UserStatus status
+    UserStatus status,
+    String documentNumber,
+    String phone
 ) {}

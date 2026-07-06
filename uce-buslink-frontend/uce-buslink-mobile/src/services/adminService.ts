@@ -24,6 +24,8 @@ export interface ApiDriver {
   firstName: string;
   lastName: string;
   email: string;
+  documentNumber?: string;
+  phone?: string;
 }
 
 export interface RouteStopPayload {
@@ -46,6 +48,8 @@ export interface CreateDriverPayload {
   apellidos: string;
   email: string;
   password: string;
+  cedula?: string;
+  telefono?: string;
 }
 
 export interface CreateTripPayload {

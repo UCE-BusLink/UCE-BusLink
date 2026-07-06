@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, Pressable, TextInput, Modal, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import {
-  Bus, CheckCircle, XCircle, Clock, MapPin, Eye, RefreshCw, Plus, X, Trash2, ChevronRight, Calendar,
+  Bus, CheckCircle, XCircle, Clock, MapPin, Eye, RefreshCw, Plus, X, Trash2, ChevronRight, Calendar, Search, ChevronLeft
 } from 'lucide-react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import { useRoutes } from '../../hooks/useRoutes';
 import {
   createRoute, createBatchStops, previewRoute, createSchedule, fetchStops,
-  type BatchStop, type ApiStop,
+  type BatchStop, type ApiStop
 } from '../../services/adminService';
+import type { ApiRoute } from '../../types';
 import { decodePolyline } from '../../utils/mapUtils';
 import { Select } from '../../components/atoms';
 import { ScreenContainer } from '../../components/layout/ScreenContainer';
@@ -39,10 +40,15 @@ export function AdminRoutesScreen() {
   const { routes, loading, error, refetch } = useRoutes();
 
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const [showForm, setShowForm] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [previewRouteMap, setPreviewRouteMap] = useState<ApiRoute | null>(null);
+  const previewMapRef = useRef<MapView | null>(null);
 
   const [form, setForm] = useState(EMPTY_FORM);
 
@@ -169,10 +175,22 @@ export function AdminRoutesScreen() {
     }
   }
 
-  const filtered = routes.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    (r.description ?? '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    return routes.filter((r) =>
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      (r.description ?? '').toLowerCase().includes(search.toLowerCase())
+    );
+  }, [routes, search]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentRoutes = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const tempMarker = tempStop.latitude && tempStop.longitude
     ? { latitude: parseFloat(tempStop.latitude), longitude: parseFloat(tempStop.longitude) }
@@ -192,59 +210,96 @@ export function AdminRoutesScreen() {
         </Pressable>
       </View>
 
-      <View className="flex-row items-center gap-2 mb-4">
-        <TextInput value={search} onChangeText={setSearch} placeholder="Buscar ruta..." placeholderTextColor="#9ca3af" className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl text-navy-900" />
-        <Pressable onPress={refetch} className="flex-row items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200">
-          <RefreshCw size={15} color="#4b5563" />
-          <Text className="text-sm text-gray-600">Recargar</Text>
-        </Pressable>
-      </View>
-
-      <View className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <View className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+        <View className="p-4 border-b border-gray-100 bg-gray-50/50 gap-3">
+          <View className="flex-row items-center gap-2">
+            <View className="relative flex-1">
+              <View className="absolute left-3 top-2.5 z-10"><Search size={16} color="#9ca3af" /></View>
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Buscar ruta..."
+                placeholderTextColor="#9ca3af"
+                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white text-navy-900"
+              />
+            </View>
+            <Pressable onPress={refetch} className="flex-row items-center justify-center p-2.5 rounded-xl border border-gray-200 bg-white">
+              <RefreshCw size={16} color="#4b5563" />
+            </Pressable>
+          </View>
+        </View>
         {loading ? (
           <View className="p-6 gap-3">{Array.from({ length: 4 }).map((_, i) => <View key={i} className="h-14 bg-gray-50 rounded-xl" />)}</View>
         ) : error ? (
           <Text className="p-8 text-center text-red-400 text-sm">{error}</Text>
-        ) : filtered.length === 0 ? (
+        ) : currentRoutes.length === 0 ? (
           <Text className="p-8 text-center text-gray-400 text-sm">No se encontraron rutas.</Text>
         ) : (
-          filtered.map((route) => (
-            <View key={route.id} className="px-5 py-4 border-b border-gray-50">
-              <View className="flex-row items-center gap-2.5 mb-2">
-                <View className="w-8 h-8 bg-navy-50 rounded-lg items-center justify-center">
-                  <Bus size={14} color="#1a3a5c" />
+          <View>
+            {currentRoutes.map((route) => (
+              <Pressable
+                key={route.id}
+                className="px-5 py-4 border-b border-gray-50 active:bg-gray-50"
+                onPress={() => setPreviewRouteMap(route)}
+              >
+                <View className="flex-row items-center gap-2.5 mb-2">
+                  <View className="w-8 h-8 bg-navy-50 rounded-lg items-center justify-center">
+                    <Bus size={14} color="#1a3a5c" />
+                  </View>
+                  <Text className="text-sm font-semibold text-navy-900 flex-1">{route.name}</Text>
+                  {route.isActive ? (
+                    <View className="flex-row items-center gap-1 bg-green-50 px-2.5 py-1 rounded-full">
+                      <CheckCircle size={12} color="#16a34a" />
+                      <Text className="text-xs text-green-600 font-medium">Activa</Text>
+                    </View>
+                  ) : (
+                    <View className="flex-row items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-full">
+                      <XCircle size={12} color="#9ca3af" />
+                      <Text className="text-xs text-gray-400 font-medium">Inactiva</Text>
+                    </View>
+                  )}
                 </View>
-                <Text className="text-sm font-semibold text-navy-900 flex-1">{route.name}</Text>
-                {route.isActive ? (
-                  <View className="flex-row items-center gap-1 bg-green-50 px-2.5 py-1 rounded-full">
-                    <CheckCircle size={12} color="#16a34a" />
-                    <Text className="text-xs text-green-600 font-medium">Activa</Text>
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-4">
+                    <View className="flex-row items-center gap-1">
+                      <Clock size={13} color="#f59e0b" />
+                      <Text className="text-sm text-gray-600">{route.estimatedDurationMinutes ? `${route.estimatedDurationMinutes} min` : '—'}</Text>
+                    </View>
+                    <View className="flex-row items-center gap-1">
+                      <MapPin size={13} color="#1a3a5c" />
+                      <Text className="text-sm text-gray-600">{route.stops?.length ?? 0} paradas</Text>
+                    </View>
                   </View>
-                ) : (
-                  <View className="flex-row items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-full">
-                    <XCircle size={12} color="#9ca3af" />
-                    <Text className="text-xs text-gray-400 font-medium">Inactiva</Text>
-                  </View>
-                )}
-              </View>
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-4">
-                  <View className="flex-row items-center gap-1">
-                    <Clock size={13} color="#f59e0b" />
-                    <Text className="text-sm text-gray-600">{route.estimatedDurationMinutes ? `${route.estimatedDurationMinutes} min` : '—'}</Text>
-                  </View>
-                  <View className="flex-row items-center gap-1">
-                    <MapPin size={13} color="#1a3a5c" />
-                    <Text className="text-sm text-gray-600">{route.stops?.length ?? 0} paradas</Text>
-                  </View>
+                  <Pressable onPress={() => navigation.navigate('RouteDetail', { routeId: route.id, admin: true })} className="flex-row items-center gap-1.5 p-1">
+                    <Eye size={14} color="#1a3a5c" />
+                    <Text className="text-xs font-medium text-navy-700">Ver detalle</Text>
+                  </Pressable>
                 </View>
-                <Pressable onPress={() => navigation.navigate('RouteDetail', { routeId: route.id, admin: true })} className="flex-row items-center gap-1.5">
-                  <Eye size={14} color="#1a3a5c" />
-                  <Text className="text-xs font-medium text-navy-700">Ver detalle</Text>
-                </Pressable>
-              </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {totalPages > 1 && (
+          <View className="p-4 border-t border-gray-100 flex-row items-center justify-between bg-gray-50/50">
+            <Text className="text-xs font-medium text-gray-500">Pág. {currentPage} de {totalPages}</Text>
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                onPress={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className={`p-1.5 rounded-lg border border-gray-200 ${currentPage === 1 ? 'opacity-40' : 'bg-white'}`}
+              >
+                <ChevronLeft size={16} color="#4b5563" />
+              </Pressable>
+              <Pressable
+                onPress={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className={`p-1.5 rounded-lg border border-gray-200 ${currentPage === totalPages ? 'opacity-40' : 'bg-white'}`}
+              >
+                <ChevronRight size={16} color="#4b5563" />
+              </Pressable>
             </View>
-          ))
+          </View>
         )}
       </View>
 
@@ -528,6 +583,69 @@ export function AdminRoutesScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Map Preview Modal */}
+      <Modal visible={!!previewRouteMap} transparent animationType="fade" onRequestClose={() => setPreviewRouteMap(null)}>
+        <View className="flex-1 bg-black/60 justify-end">
+          <View className="bg-white rounded-t-3xl pt-2 pb-6 px-4 max-h-[85%]">
+            <View className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4" />
+            <View className="flex-row items-center justify-between mb-4">
+              <View>
+                <Text className="text-lg font-bold text-navy-900">{previewRouteMap?.name}</Text>
+                <Text className="text-sm text-gray-500">{previewRouteMap?.stops?.length || 0} paradas</Text>
+              </View>
+              <Pressable onPress={() => setPreviewRouteMap(null)} className="p-2 rounded-full bg-gray-100">
+                <X size={20} color="#6b7280" />
+              </Pressable>
+            </View>
+
+            <View className="h-80 rounded-2xl overflow-hidden border border-gray-200">
+              {previewRouteMap && (
+                <MapView
+                  ref={previewMapRef}
+                  provider={PROVIDER_DEFAULT}
+                  style={{ flex: 1 }}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  pitchEnabled={false}
+                  rotateEnabled={false}
+                  initialRegion={{
+                    ...MAP_CENTER_DEFAULT,
+                    latitudeDelta: 0.08,
+                    longitudeDelta: 0.08,
+                  }}
+                  onMapReady={() => {
+                    if (previewMapRef.current && previewRouteMap?.stops && previewRouteMap.stops.length > 0) {
+                      const coords = previewRouteMap.stops
+                        .filter(s => s.latitude && s.longitude)
+                        .map(s => ({ latitude: s.latitude, longitude: s.longitude }));
+                      
+                      if (coords.length > 0) {
+                        previewMapRef.current.fitToCoordinates(coords, {
+                          edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+                          animated: false,
+                        });
+                      }
+                    }
+                  }}
+                >
+                  {previewRouteMap.stops?.filter(s => s.latitude && s.longitude).map((stop, i) => (
+                    <Marker
+                      key={stop.stopId}
+                      coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
+                      title={`${i + 1}. ${stop.stopName}`}
+                    />
+                  ))}
+                  {previewRouteMap.pathPolyline ? (
+                    <Polyline coordinates={decodePolyline(previewRouteMap.pathPolyline)} strokeColor="#1e3a8a" strokeWidth={4} />
+                  ) : null}
+                </MapView>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </ScreenContainer>
   );
 }

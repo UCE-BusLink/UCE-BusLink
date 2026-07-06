@@ -11,8 +11,17 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
+
 @Repository
 public interface SpringDataTripRepository extends JpaRepository<TripJpaEntity, UUID> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM TripJpaEntity t WHERE t.id = :id")
+    Optional<TripJpaEntity> findByIdWithPessimisticLock(UUID id);
 
     Page<TripJpaEntity> findByState(TripState state, Pageable pageable);
 
