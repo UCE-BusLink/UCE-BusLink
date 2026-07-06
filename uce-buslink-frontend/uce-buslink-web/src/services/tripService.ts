@@ -10,11 +10,11 @@ export async function fetchTripsByRoute(
   routeId: string,
   size = 20
 ): Promise<ApiTrip[]> {
-  const page = await apiFetch<{ content: ApiTrip[] }>(
+  const result = await apiFetch<any>(
     `/api/v1/supervisor/trips?routeId=${routeId}&page=0&size=${size}`,
     token
   );
-  return page.content;
+  return Array.isArray(result) ? result : (result.content ?? []);
 }
 
 export async function fetchTripById(token: string, tripId: string): Promise<ApiTrip> {
