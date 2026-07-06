@@ -6,12 +6,10 @@ import { useRoutes } from '../../hooks/useRoutes';
 import { fetchBuses, fetchStops, fetchDailyRouteReports, type ApiBus } from '../../services/adminService';
 import type { RouteDailyReport } from '../../services/adminService';
 import { useCurrentUser } from '../../context/AuthContext';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-
-const COLORS = ['#1e3a8a', '#10b981', '#f59e0b', '#ef4444']; // Navy, Green, Yellow, Red
 
 function StatCard({
   icon,
@@ -29,9 +27,8 @@ function StatCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center gap-4 ${
-        onClick ? 'cursor-pointer hover:shadow-md hover:border-navy-100 transition-all' : ''
-      }`}
+      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center gap-4 ${onClick ? 'cursor-pointer hover:shadow-md hover:border-navy-100 transition-all' : ''
+        }`}
     >
       <div className="w-14 h-14 bg-navy-50 rounded-2xl flex items-center justify-center flex-shrink-0 text-navy-700">
         {icon}
@@ -65,7 +62,7 @@ export function AdminDashboardPage() {
 
   const [buses, setBuses] = useState<ApiBus[]>([]);
   const [stopCount, setStopCount] = useState<number | null>(null);
-  
+
   const [reports, setReports] = useState<RouteDailyReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(true);
 
@@ -79,7 +76,7 @@ export function AdminDashboardPage() {
       fetchBuses(token, 0, 100)
         .then((p) => setBuses(p.content))
         .catch(() => setBuses([]));
-        
+
       fetchStops(token)
         .then((s) => setStopCount(s.length))
         .catch(() => setStopCount(0));
@@ -155,7 +152,7 @@ export function AdminDashboardPage() {
 
       {/* DASHBOARD CHARTS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* GRÁFICA PRINCIPAL: BARRAS */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
           <div className="flex items-center justify-between mb-6">
@@ -180,7 +177,7 @@ export function AdminDashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 500 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 500 }} />
-                  <Tooltip 
+                  <Tooltip
                     cursor={{ fill: '#f8fafc' }}
                     contentStyle={{ borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                   />
@@ -202,10 +199,10 @@ export function AdminDashboardPage() {
               <div className="p-2 bg-amber-50 rounded-lg"><PieChartIcon size={18} className="text-amber-600" /></div>
               <h2 className="text-sm font-bold text-navy-900 uppercase tracking-wide">Estado de Flota</h2>
             </div>
-            
+
             <div className="h-[220px]">
               {buses.length === 0 ? (
-                 <div className="h-full flex items-center justify-center text-gray-400 text-sm font-medium border-2 border-dashed border-gray-100 rounded-xl">Sin datos de buses</div>
+                <div className="h-full flex items-center justify-center text-gray-400 text-sm font-medium border-2 border-dashed border-gray-100 rounded-xl">Sin datos de buses</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -280,16 +277,16 @@ export function AdminDashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 500 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 500 }} />
-                <Tooltip 
+                <Tooltip
                   cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="pasajeros" 
-                  stroke="#10b981" 
-                  strokeWidth={4} 
-                  dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} 
+                <Line
+                  type="monotone"
+                  dataKey="pasajeros"
+                  stroke="#10b981"
+                  strokeWidth={4}
+                  dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
                   activeDot={{ r: 6, fill: '#10b981', strokeWidth: 0 }}
                   animationDuration={1500}
                 />
@@ -297,7 +294,7 @@ export function AdminDashboardPage() {
             </ResponsiveContainer>
           </div>
         </div>
-        
+
       </div>
     </div>
   );
