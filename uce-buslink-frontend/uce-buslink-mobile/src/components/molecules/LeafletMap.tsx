@@ -33,10 +33,11 @@ export function LeafletMap({ selectedRoute, loading, liveBus, liveBusTitle, show
     .filter((s) => s.latitude !== 0 || s.longitude !== 0);
 
   const polyPoints = selectedRoute?.pathPolyline ? decodePolyline(selectedRoute.pathPolyline) : [];
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !mapReady) return;
 
     const coords = polyPoints.length
       ? polyPoints
@@ -44,11 +45,11 @@ export function LeafletMap({ selectedRoute, loading, liveBus, liveBusTitle, show
 
     if (coords.length > 0) {
       map.fitToCoordinates(coords, {
-        edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-        animated: true,
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: false,
       });
     }
-  }, [selectedRoute]);
+  }, [selectedRoute, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -85,6 +86,7 @@ export function LeafletMap({ selectedRoute, loading, liveBus, liveBusTitle, show
             latitudeDelta: 0.08,
             longitudeDelta: 0.08,
           }}
+          onMapReady={() => setMapReady(true)}
         >
           {sortedStops.map((stop, i) => {
             const type = deriveStopType(i, sortedStops.length);

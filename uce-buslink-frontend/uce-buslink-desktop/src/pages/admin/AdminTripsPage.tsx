@@ -58,6 +58,10 @@ export function AdminTripsPage() {
   const [driversFailed, setDriversFailed] = useState(false);
   const [tick, setTick] = useState(0);
 
+  // Filtros
+  const [routeFilter, setRouteFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+
   // Estados del Wizard
   const [showForm, setShowForm] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -277,6 +281,14 @@ export function AdminTripsPage() {
   const currentSelectedDayEnum = upcomingDays.find(d => d.iso === selectedDateIso)?.enumDay || '';
   const availableTimesForCurrentDay = routeTimesByDayEnum[currentSelectedDayEnum] || [];
 
+  const filteredTrips = useMemo(() => {
+    return trips.filter(trip => {
+      if (routeFilter && trip.routeId !== routeFilter) return false;
+      if (statusFilter && trip.state !== statusFilter) return false;
+      return true;
+    });
+  }, [trips, routeFilter, statusFilter]);
+
   return (
     <div>
       {/* --- CABECERA PRINCIPAL --- */}
@@ -303,6 +315,40 @@ export function AdminTripsPage() {
         </div>
       </div>
 
+      {/* --- FILTROS --- */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+            Filtrar por Ruta
+          </label>
+          <select
+            value={routeFilter}
+            onChange={(e) => setRouteFilter(e.target.value)}
+            className="w-full sm:max-w-xs px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20 bg-white"
+          >
+            <option value="">Todas las rutas</option>
+            {routes.map((r) => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+            Filtrar por Estado
+          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full sm:max-w-xs px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20 bg-white"
+          >
+            <option value="">Todos los estados</option>
+            {Object.entries(STATE_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* --- TABLA DE VIAJES --- */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {/* Lógica de Renderizado de la tabla idéntica a antes */}
@@ -314,9 +360,9 @@ export function AdminTripsPage() {
           </div>
         ) : error ? (
           <div className="p-8 text-center text-red-400 text-sm">{error}</div>
-        ) : trips.length === 0 ? (
+        ) : filteredTrips.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm">
-            No hay viajes asignados. Crea uno con "Asignar viaje".
+            No se encontraron viajes.
           </div>
         ) : (
           <table className="w-full">
@@ -330,7 +376,7 @@ export function AdminTripsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {trips.map((trip) => (
+              {filteredTrips.map((trip) => (
                 <tr key={trip.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-4 text-sm font-semibold text-navy-900">
                     {routeNames.get(trip.routeId) ?? '—'}

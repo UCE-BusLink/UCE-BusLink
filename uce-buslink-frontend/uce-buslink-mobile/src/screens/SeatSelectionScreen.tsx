@@ -1,13 +1,15 @@
-import { useState, useMemo } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { useState, useMemo, useEffect } from 'react';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useNavigation, useRoute as useNavRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, User, Bus, Clock } from 'lucide-react-native';
+import { useAuth } from '@clerk/clerk-expo';
 import { useRoute } from '../hooks/useRoute';
 import { useTripById } from '../hooks/useTripById';
 import { useSeatsByTrip } from '../hooks/useSeatsByTrip';
 import { useCreateReservation } from '../hooks/useCreateReservation';
+import { fetchBusById, fetchBasicUserInfo } from '../services/tripService';
 import type { Seat, ApiReservation } from '../types';
 import { SeatMap, BookingSummary, ReservationConfirmModal } from '../components/molecules';
 import { Spinner } from '../components/atoms';
@@ -18,10 +20,15 @@ function formatTime(isoDateTime: string): string {
   return new Date(isoDateTime).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
+function formatDate(isoDateTime: string): string {
+  return new Date(isoDateTime).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
 export function SeatSelectionScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { params } = useNavRoute<RouteProp<RootStackParamList, 'SeatSelection'>>();
   const { routeId, tripId } = params;
+  const { getToken } = useAuth();
 
   const { route, loading: routeLoading, notFound: routeNotFound } = useRoute(routeId);
   const { trip, loading: tripLoading, notFound: tripNotFound } = useTripById(tripId);
@@ -30,6 +37,49 @@ export function SeatSelectionScreen() {
 
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<number | null>(null);
   const [confirmedReservation, setConfirmedReservation] = useState<ApiReservation | null>(null);
+  const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
+
+  const [bus, setBus] = useState<{ plateNumber: string; internalCode: string } | null>(null);
+  const [driver, setDriver] = useState<{ firstName: string; lastName: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadDetails() {
+      if (!trip) return;
+      try {
+        const token = await getToken({ template: 'uce-buslink' });
+        if (!token) return;
+
+        if (trip.busId && !bus) {
+          fetchBusById(token, trip.busId)
+            .then(data => { if (!cancelled) setBus(data); })
+            .catch(err => console.error(err));
+        }
+
+        if (trip.driverId && !driver) {
+          fetchBasicUserInfo(token, trip.driverId)
+            .then(data => { if (!cancelled) setDriver(data); })
+            .catch(err => console.error(err));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadDetails();
+    return () => { cancelled = true; };
+  }, [trip, getToken, bus, driver]);
+
+  useEffect(() => {
+    if (route?.stops && route.stops.length > 0 && !selectedStopId) {
+      const sorted = [...route.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+      setSelectedStopId(sorted[0].stopId);
+    }
+  }, [route, selectedStopId]);
+
+  const sortedStops = useMemo(() => {
+    if (!route?.stops) return [];
+    return [...route.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+  }, [route?.stops]);
 
   const seats = useMemo<Seat[]>(
     () =>
@@ -54,10 +104,8 @@ export function SeatSelectionScreen() {
   }
 
   async function handleConfirm() {
-    if (!tripId || !selectedSeatApi) return;
-    const boardingStopId = route?.stops?.[0]?.stopId;
-    if (!boardingStopId) return;
-    const result = await confirm(tripId, selectedSeatApi.id, boardingStopId);
+    if (!tripId || !selectedSeatApi || !selectedStopId) return;
+    const result = await confirm(tripId, selectedSeatApi.id, selectedStopId);
     if (result) setConfirmedReservation(result);
   }
 
@@ -98,13 +146,75 @@ export function SeatSelectionScreen() {
       </Pressable>
 
       <Text className="text-2xl font-bold text-navy-900 mb-1">
-        Seleccionar lugar – {route.name} ({tripTime})
+        Confirmar viaje – {route.name}
       </Text>
-      <Text className="text-gray-500 text-sm mb-8">Elige un asiento para tu viaje</Text>
+      <Text className="text-gray-500 text-sm mb-6 capitalize">
+        {formatDate(trip.departureTime)} a las {tripTime}
+      </Text>
 
       {seatsError ? <Text className="text-red-500 text-sm mb-4">{seatsError}</Text> : null}
 
       <View className="gap-6">
+        <View className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <Text className="text-sm font-semibold text-navy-900 mb-4">Información del viaje</Text>
+          
+          <View className="flex-row items-center gap-3 mb-4">
+            <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center">
+              <User size={18} color="#059669" />
+            </View>
+            <View>
+              <Text className="text-xs text-gray-400 font-semibold uppercase">Conductor</Text>
+              <Text className="text-sm font-medium text-navy-900">
+                {driver ? `${driver.firstName} ${driver.lastName}` : 'Cargando...'}
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row items-center gap-3 mb-4">
+            <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center">
+              <Bus size={18} color="#2563eb" />
+            </View>
+            <View>
+              <Text className="text-xs text-gray-400 font-semibold uppercase">Unidad</Text>
+              <Text className="text-sm font-medium text-navy-900">
+                {bus ? `${bus.internalCode} • ${bus.plateNumber}` : 'Cargando...'}
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row items-center gap-3">
+            <View className="w-10 h-10 rounded-full bg-amber-50 items-center justify-center">
+              <Clock size={18} color="#d97706" />
+            </View>
+            <View>
+              <Text className="text-xs text-gray-400 font-semibold uppercase">Hora de salida</Text>
+              <Text className="text-sm font-medium text-navy-900">{tripTime}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <Text className="text-sm font-semibold text-navy-900 mb-3">Seleccionar parada de embarque</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row pb-2">
+            {sortedStops.map(s => {
+              const isActive = selectedStopId === s.stopId;
+              return (
+                <Pressable
+                  key={s.stopId}
+                  onPress={() => setSelectedStopId(s.stopId)}
+                  className={`px-4 py-2 rounded-xl mr-2 border ${
+                    isActive ? 'bg-navy-900 border-navy-900' : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <Text className={`text-sm font-medium ${isActive ? 'text-white' : 'text-gray-600'}`}>
+                    {s.stopName}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
         <SeatMap
           seats={seats}
           standingSpots={[]}
@@ -112,6 +222,7 @@ export function SeatSelectionScreen() {
           onSelectSeat={selectSeat}
           onSelectStanding={() => {}}
         />
+
         <BookingSummary
           routeName={route.name}
           tripTime={tripTime}

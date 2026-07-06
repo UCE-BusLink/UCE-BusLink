@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { Ticket, Clock, QrCode, X, MapPin } from 'lucide-react-native';
+import { Ticket, Clock, QrCode, X, MapPin, User, Bus, Hash } from 'lucide-react-native';
 import type { ActiveReservationItem } from '../../types';
 
 function formatTime(iso: string) {
@@ -53,7 +53,22 @@ export function ActiveReservationCard({ item, onViewQr, onCancel, cancelling }: 
             <Clock size={14} color="rgba(255,255,255,0.4)" />
             <Text className="text-2xl font-bold text-white">{formatTime(trip.departureTime)}</Text>
           </View>
-          <Text className="text-xs text-white/40">{trip.availableSeats} cupos restantes</Text>
+          <View>
+             <View className="flex-row items-center gap-1.5 mb-0.5">
+               <User size={12} color="rgba(255,255,255,0.4)" />
+               <Text className="text-xs text-white/70" numberOfLines={1}>{item.driverName || 'Conductor'}</Text>
+             </View>
+             <View className="flex-row items-center gap-3">
+               <View className="flex-row items-center gap-1.5">
+                 <Bus size={12} color="rgba(255,255,255,0.4)" />
+                 <Text className="text-xs text-white/50">{trip.busId || 'Bus N/A'}</Text>
+               </View>
+               <View className="flex-row items-center gap-1.5">
+                 <Hash size={12} color="rgba(255,255,255,0.4)" />
+                 <Text className="text-xs text-white/50">Asiento {item.reservation.seatId || 'N/A'}</Text>
+               </View>
+             </View>
+          </View>
         </View>
       </View>
 

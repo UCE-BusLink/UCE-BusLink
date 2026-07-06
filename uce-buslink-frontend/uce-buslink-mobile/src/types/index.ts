@@ -79,6 +79,8 @@ export interface WeekDay {
   label: string;
   day: number;
   isToday: boolean;
+  hasTrips?: boolean;
+  dateString?: string;
 }
 
 export type SeatState = 'AVAILABLE' | 'RESERVED' | 'OCCUPIED' | 'BLOCKED';
@@ -113,6 +115,7 @@ export interface ActiveReservationItem {
   reservation: ApiReservation;
   trip: ApiTrip;
   route: ApiRoute;
+  driverName?: string;
 }
 
 export interface DriverTripView {
@@ -145,4 +148,13 @@ export interface LiveBusLocation {
   velocity: number;
   etaMinutes: number;
   nextStopName: string;
+}
+
+export interface DriverPassengerResponse {
+  reservationId: string;
+  tripId: string;
+  seatId: string;
+  status: string;
+  boardingStopId: string;
+  studentName: string;
 }

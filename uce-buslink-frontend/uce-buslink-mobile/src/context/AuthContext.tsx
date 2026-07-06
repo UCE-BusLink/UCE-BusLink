@@ -11,18 +11,21 @@ interface CurrentUser {
   firstName: string;
   lastName: string;
   role: string;
+  needsOnboarding: boolean;
 }
 
 interface AuthContextType {
   user: CurrentUser | null;
   loading: boolean;
   syncDone: boolean;
+  updateOnboardingStatus: (status: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   syncDone: false,
+  updateOnboardingStatus: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -30,9 +33,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { getToken } = useAuth();
   const syncedRef = useRef(false);
   const [role, setRole] = useState<string>('STUDENT');
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false);
   const [syncComplete, setSyncComplete] = useState(false);
   const syncDone = isLoaded && (!clerkUser || syncComplete);
   const { fcmToken } = usePushNotifications();
+
+  const updateOnboardingStatus = (status: boolean) => {
+    setNeedsOnboarding(status);
+  };
 
   useEffect(() => {
     if (syncComplete && fcmToken) {
@@ -61,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!clerkUser) {
       syncedRef.current = false;
       setRole('STUDENT');
+      setNeedsOnboarding(false);
       setSyncComplete(false);
       return;
     }
@@ -79,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           if (data.role) setRole(data.role);
+          if (data.needsOnboarding !== undefined) setNeedsOnboarding(data.needsOnboarding);
         }
       } catch {
         // silencioso
@@ -98,11 +108,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         firstName: clerkUser.firstName ?? '',
         lastName: clerkUser.lastName ?? '',
         role,
+        needsOnboarding,
       }
     : null;
 
   return (
-    <AuthContext.Provider value={{ user, loading: !isLoaded, syncDone }}>
+    <AuthContext.Provider value={{ user, loading: !isLoaded, syncDone, updateOnboardingStatus }}>
       {children}
     </AuthContext.Provider>
   );
