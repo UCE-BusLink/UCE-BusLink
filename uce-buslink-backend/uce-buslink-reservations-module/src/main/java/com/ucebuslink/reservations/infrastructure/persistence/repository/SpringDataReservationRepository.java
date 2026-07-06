@@ -22,6 +22,8 @@ public interface SpringDataReservationRepository extends JpaRepository<Reservati
     Page<ReservationJpaEntity> findByUserIdAndStatusOrderByReservedAtDesc(UUID userId, ReservationStatus status, Pageable pageable);
     
     java.util.List<ReservationJpaEntity> findByTripIdAndStatus(UUID tripId, ReservationStatus status);
+    
+    int countByTripIdAndStatus(UUID tripId, ReservationStatus status);
 
     List<ReservationJpaEntity> findByTripId(UUID tripId);
 

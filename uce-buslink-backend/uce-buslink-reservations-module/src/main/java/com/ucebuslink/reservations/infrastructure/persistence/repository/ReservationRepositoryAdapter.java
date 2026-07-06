@@ -92,6 +92,11 @@ public class ReservationRepositoryAdapter implements ReservationRepository {
     }
 
     @Override
+    public int countByTripIdAndStatus(UUID tripId, ReservationStatus status) {
+        return jpaRepository.countByTripIdAndStatus(tripId, status);
+    }
+
+    @Override
     public List<Reservation> findByTripId (UUID tripId) {
         return jpaRepository.findByTripId(tripId).stream().
                 map(this::toDomain).collect(java.util.stream.Collectors.toList());

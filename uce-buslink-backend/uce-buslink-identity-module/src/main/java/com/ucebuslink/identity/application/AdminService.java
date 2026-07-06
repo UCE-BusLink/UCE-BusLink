@@ -85,7 +85,9 @@ public class AdminService {
                 user.getLastName(),
                 user.getEmail(),
                 user.getRole(),
-                user.getStatus()
+                user.getStatus(),
+                user.getDocumentNumber(),
+                user.getPhone()
         );
     }
 }

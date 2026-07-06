@@ -327,6 +327,12 @@ public class ReservationApplicationService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public int getBoardedStudentCount(UUID tripId) {
+        log.debug("[RESERVATIONS] Consultando cantidad de estudiantes a bordo para el viaje {}", tripId);
+        return reservationRepository.countByTripIdAndStatus(tripId, ReservationStatus.COMPLETED);
+    }
+
     public Page<DriverPassengerResponse> getReservationsByTripForDriver(UUID tripId, UUID driverId, int page, int size) {
         log.info("[APP-RESERVATIONS] Solicitando lista de pasajeros paginada para el viaje ID: {} por el chofer ID: {}", tripId, driverId);
 

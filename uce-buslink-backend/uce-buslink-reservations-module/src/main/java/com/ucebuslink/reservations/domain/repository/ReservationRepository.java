@@ -22,6 +22,8 @@ public interface ReservationRepository {
     Optional<Reservation> findById(UUID id);
 
     java.util.List<Reservation> findByTripIdAndStatus(UUID tripId, ReservationStatus status);
+    
+    int countByTripIdAndStatus(UUID tripId, ReservationStatus status);
 
     List<Reservation> findByTripId(UUID tripId);
 
