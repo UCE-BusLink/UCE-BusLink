@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, Modal, ScrollView } from 'react-native';
-import { RefreshCw, Plus, X, Clock, Bus, User, ChevronRight, Calendar, AlertCircle } from 'lucide-react-native';
+import { View, Text, Pressable, Modal, ScrollView, TextInput } from 'react-native';
+import { RefreshCw, Plus, X, Clock, Bus, User, ChevronRight, Calendar, AlertCircle, Search, ChevronLeft } from 'lucide-react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import {
   fetchTrips, createTrip, fetchBuses, fetchDrivers, fetchRouteSchedules,
@@ -46,6 +46,11 @@ export function AdminTripsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [driversFailed, setDriversFailed] = useState(false);
   const [tick, setTick] = useState(0);
+
+  const [routeFilter, setRouteFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const [showForm, setShowForm] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -206,6 +211,24 @@ export function AdminTripsScreen() {
   const currentSelectedDayEnum = upcomingDays.find((d) => d.iso === selectedDateIso)?.enumDay || '';
   const availableTimesForCurrentDay = routeTimesByDayEnum[currentSelectedDayEnum] || [];
 
+  const filteredTrips = useMemo(() => {
+    return trips.filter(trip => {
+      if (routeFilter && trip.routeId !== routeFilter) return false;
+      if (statusFilter && trip.state !== statusFilter) return false;
+      return true;
+    });
+  }, [trips, routeFilter, statusFilter]);
+
+  const totalPages = Math.ceil(filteredTrips.length / itemsPerPage);
+  const currentTrips = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredTrips.slice(start, start + itemsPerPage);
+  }, [filteredTrips, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [routeFilter, statusFilter]);
+
   if (driversFailed) {
     return (
       <ScreenContainer>
@@ -227,6 +250,25 @@ export function AdminTripsScreen() {
         </Pressable>
       </View>
 
+      <View className="flex-row items-center gap-2 mb-4">
+        <View className="flex-1">
+          <Select
+            value={routeFilter}
+            placeholder="Todas las rutas"
+            options={[{ label: 'Todas las rutas', value: '' }, ...routes.map((r) => ({ label: r.name, value: r.id }))]}
+            onChange={setRouteFilter}
+          />
+        </View>
+        <View className="flex-1">
+          <Select
+            value={statusFilter}
+            placeholder="Todos los estados"
+            options={[{ label: 'Todos los estados', value: '' }, ...Object.entries(STATE_LABELS).map(([key, label]) => ({ label, value: key }))]}
+            onChange={setStatusFilter}
+          />
+        </View>
+      </View>
+
       <Pressable onPress={refetch} className="flex-row items-center gap-2 self-start px-4 py-2 rounded-xl border border-gray-200 mb-4">
         <RefreshCw size={14} color="#4b5563" />
         <Text className="text-sm text-gray-600">Recargar</Text>
@@ -239,23 +281,47 @@ export function AdminTripsScreen() {
           </View>
         ) : error ? (
           <Text className="p-8 text-center text-red-400 text-sm">{error}</Text>
-        ) : trips.length === 0 ? (
-          <Text className="p-8 text-center text-gray-400 text-sm">No hay viajes asignados. Crea uno con "Asignar".</Text>
+        ) : currentTrips.length === 0 ? (
+          <Text className="p-8 text-center text-gray-400 text-sm">No hay viajes que coincidan con los filtros.</Text>
         ) : (
-          trips.map((trip) => (
-            <View key={trip.id} className="px-5 py-4 border-b border-gray-50">
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="text-sm font-semibold text-navy-900 flex-1">{routeNames.get(trip.routeId) ?? '—'}</Text>
-                <View className={`px-2.5 py-1 rounded-full ${STATE_STYLES[trip.state] ?? 'bg-gray-100'}`}>
-                  <Text className={`text-xs font-medium ${STATE_TEXT[trip.state] ?? 'text-gray-600'}`}>
-                    {STATE_LABELS[trip.state] ?? trip.state}
-                  </Text>
+          <View>
+            {currentTrips.map((trip) => (
+              <View key={trip.id} className="px-5 py-4 border-b border-gray-50">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-sm font-semibold text-navy-900 flex-1">{routeNames.get(trip.routeId) ?? '—'}</Text>
+                  <View className={`px-2.5 py-1 rounded-full ${STATE_STYLES[trip.state] ?? 'bg-gray-100'}`}>
+                    <Text className={`text-xs font-medium ${STATE_TEXT[trip.state] ?? 'text-gray-600'}`}>
+                      {STATE_LABELS[trip.state] ?? trip.state}
+                    </Text>
+                  </View>
                 </View>
+                <Text className="text-xs text-gray-500">{busLabels.get(trip.busId) ?? '—'} · {driverNames.get(trip.driverId) ?? '—'}</Text>
+                <Text className="text-xs text-gray-600 capitalize mt-0.5">{formatDateTime(trip.departureTime)}</Text>
               </View>
-              <Text className="text-xs text-gray-500">{busLabels.get(trip.busId) ?? '—'} · {driverNames.get(trip.driverId) ?? '—'}</Text>
-              <Text className="text-xs text-gray-600 capitalize mt-0.5">{formatDateTime(trip.departureTime)}</Text>
+            ))}
+          </View>
+        )}
+        
+        {totalPages > 1 && (
+          <View className="p-4 border-t border-gray-100 flex-row items-center justify-between bg-gray-50/50">
+            <Text className="text-xs font-medium text-gray-500">Pág. {currentPage} de {totalPages}</Text>
+            <View className="flex-row items-center gap-2">
+              <Pressable
+                onPress={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className={`p-1.5 rounded-lg border border-gray-200 ${currentPage === 1 ? 'opacity-40' : 'bg-white'}`}
+              >
+                <ChevronLeft size={16} color="#4b5563" />
+              </Pressable>
+              <Pressable
+                onPress={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className={`p-1.5 rounded-lg border border-gray-200 ${currentPage === totalPages ? 'opacity-40' : 'bg-white'}`}
+              >
+                <ChevronRight size={16} color="#4b5563" />
+              </Pressable>
             </View>
-          ))
+          </View>
         )}
       </View>
 

@@ -45,8 +45,8 @@ export function SignInScreen() {
             <Image source={brandLogo} className="h-24 w-40" resizeMode="contain" />
           </View>
 
-          <Text className="text-2xl font-bold text-navy-900 mb-1">Iniciar sesión</Text>
-          <Text className="text-gray-500 text-sm mb-7">Accede con tu correo institucional</Text>
+          <Text className="text-2xl font-bold text-navy-900 mb-1 text-center">Iniciar sesión</Text>
+          <Text className="text-gray-500 text-sm mb-7 text-center">Accede con tu correo institucional</Text>
 
           <OAuthButtons onError={setError} />
 
@@ -106,12 +106,6 @@ export function SignInScreen() {
             </Pressable>
           </View>
 
-          <View className="flex-row justify-center mt-6">
-            <Text className="text-sm text-gray-500">¿No tienes cuenta? </Text>
-            <Pressable onPress={() => navigation.navigate('SignUp')}>
-              <Text className="text-sm text-navy-900 font-semibold">Regístrate</Text>
-            </Pressable>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

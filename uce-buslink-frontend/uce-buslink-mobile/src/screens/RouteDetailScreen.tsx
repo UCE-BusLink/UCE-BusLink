@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useNavigation, useRoute as useNavRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { AlertCircle } from 'lucide-react-native';
 import { getCurrentWeekDays } from '../data/mockData';
@@ -15,6 +15,7 @@ import {
   DepartureTimesList,
   RouteStopsList,
   RouteInfoCard,
+  LeafletMap,
 } from '../components/molecules';
 import { ScreenContainer } from '../components/layout/ScreenContainer';
 import type { RootStackParamList } from '../navigation/types';
@@ -25,13 +26,37 @@ export function RouteDetailScreen() {
   const routeId = params.routeId;
   const isAdminContext = !!params.admin;
 
-  const weekDays = getCurrentWeekDays();
-  const todayIndex = weekDays.findIndex((d) => d.isToday);
-  const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex >= 0 ? todayIndex : 0);
-  const [isFavorite, setIsFavorite] = useState(false);
-
   const { route, loading, error, notFound } = useRoute(routeId);
-  const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(isAdminContext ? undefined : routeId);
+  const { trips: allTrips, loading: tripsLoading, error: tripsError } = useTripsByRoute(routeId);
+  const trips = useMemo(() => allTrips.filter(t => t.state !== 'CANCELLED'), [allTrips]);
+
+  const [weekOffset, setWeekOffset] = useState<number>(0);
+
+  const weekDays = useMemo(() => {
+    return getCurrentWeekDays(weekOffset).map((day) => {
+      const hasTrips = trips.some((t) => t.departureTime.startsWith(day.dateString!));
+      return { ...day, hasTrips };
+    });
+  }, [trips, weekOffset]);
+
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+  const [hasInitializedDay, setHasInitializedDay] = useState(false);
+
+  useEffect(() => {
+    if (!tripsLoading && !hasInitializedDay) {
+      const defaultSelectedIndex = weekDays.findIndex((d) => d.hasTrips);
+      const todayIndex = weekDays.findIndex((d) => d.isToday);
+      
+      const initialIndex = defaultSelectedIndex >= 0 
+        ? defaultSelectedIndex 
+        : (todayIndex >= 0 ? todayIndex : 0);
+        
+      setSelectedDayIndex(initialIndex);
+      setHasInitializedDay(true);
+    }
+  }, [tripsLoading, weekDays, hasInitializedDay]);
+
+  const [isFavorite, setIsFavorite] = useState(false);
 
   if (loading) {
     return (
@@ -85,6 +110,9 @@ export function RouteDetailScreen() {
     navigation.navigate('SeatSelection', { routeId, tripId: trip.id });
   }
 
+  const selectedDay = weekDays[selectedDayIndex] || weekDays[0];
+  const filteredTrips = trips.filter((t) => t.departureTime.startsWith(selectedDay.dateString!));
+
   return (
     <ScreenContainer>
       <RouteDetailHeader
@@ -95,11 +123,20 @@ export function RouteDetailScreen() {
         onViewMap={() => navigation.navigate('Main', { screen: 'Map' })}
       />
 
-      <WeekDayPicker days={weekDays} selectedIndex={selectedDayIndex} onSelect={setSelectedDayIndex} />
+      <WeekDayPicker 
+        days={weekDays} 
+        selectedIndex={selectedDayIndex} 
+        onSelect={setSelectedDayIndex} 
+        weekOffset={weekOffset}
+        onWeekChange={(offset) => {
+          setWeekOffset(offset);
+          setSelectedDayIndex(0);
+        }}
+      />
 
       <View className="gap-6">
         <DepartureTimesList
-          trips={trips}
+          trips={filteredTrips}
           loading={tripsLoading}
           error={tripsError}
           onSelect={isAdminContext ? undefined : handleSelectTrip}
@@ -113,6 +150,21 @@ export function RouteDetailScreen() {
           stopsCount={stops.length}
           departuresCount={trips.length}
         />
+        
+        <View className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <View className="px-6 py-4 border-b border-gray-100">
+            <Text className="font-bold text-navy-900">Mapa de la Ruta</Text>
+          </View>
+          <View className="p-3">
+            <View pointerEvents="none">
+              <LeafletMap
+                selectedRoute={route}
+                loading={false}
+                showLocateButton={false}
+              />
+            </View>
+          </View>
+        </View>
       </View>
     </ScreenContainer>
   );

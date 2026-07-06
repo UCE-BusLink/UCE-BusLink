@@ -1,15 +1,33 @@
-import { useState, useEffect } from 'react';
-import { MapPin, RefreshCw, CheckCircle, XCircle, Plus, X, Edit2, Trash2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { MapPin, RefreshCw, CheckCircle, XCircle, Plus, X, Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import {
   fetchStops, createStop, updateStop, deleteStop, toggleStopStatus, type ApiStop,
 } from '../../services/adminService';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { useRoutes } from '../../hooks/useRoutes';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 //@ts-expect-error
 delete L.Icon.Default.prototype._getIconUrl;
+
+const DefaultIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+const SelectedIcon = L.icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
 L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
@@ -22,12 +40,35 @@ function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number
   return null;
 }
 
+function FlyToStop({ stop }: { stop: ApiStop | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (stop) {
+      map.flyTo([stop.latitude, stop.longitude], 16, { animate: true, duration: 1.5 });
+    }
+  }, [stop, map]);
+  return null;
+}
+
 export function AdminStopsPage() {
   const { getToken } = useAuth();
+  const { routes } = useRoutes();
+
   const [stops, setStops] = useState<ApiStop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Filtros
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Interacción mapa
+  const [activeStop, setActiveStop] = useState<ApiStop | null>(null);
+
   const [trigger, setTrigger] = useState(0);
 
   const [showModal, setShowModal] = useState(false);
@@ -43,7 +84,8 @@ export function AdminStopsPage() {
       try {
         const token = await getToken({ template: 'uce-buslink' });
         if (!token) throw new Error('Sin token');
-        setStops(await fetchStops(token));
+        const data = await fetchStops(token);
+        setStops(data);
         setError(null);
       } catch {
         setError('No se pudieron cargar las paradas');
@@ -52,7 +94,7 @@ export function AdminStopsPage() {
       }
     }
     load();
-  }, [trigger]);
+  }, [getToken, trigger]);
 
   function refresh() {
     setLoading(true);
@@ -131,19 +173,36 @@ export function AdminStopsPage() {
     }
   }
 
-  const filtered = stops.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filtrado
+  const filtered = useMemo(() => {
+    return stops.filter((s) => {
+      if (statusFilter === 'ACTIVE' && !s.isActive) return false;
+      if (statusFilter === 'INACTIVE' && s.isActive) return false;
+      if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [stops, search, statusFilter]);
+
+  // Paginación
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const currentItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
 
   const markerPos: [number, number] | null =
     formLat && formLng ? [parseFloat(formLat), parseFloat(formLng)] : null;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-7">
+    <div className="animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-7">
         <div>
-          <h1 className="text-2xl font-bold text-navy-900">Paradas</h1>
-          <p className="text-gray-500 text-sm mt-1">{stops.length} paradas registradas</p>
+          <h1 className="text-2xl font-bold text-navy-900">Paradas del Sistema</h1>
+          <p className="text-gray-500 text-sm mt-1">{stops.length} paradas registradas en total</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -155,7 +214,7 @@ export function AdminStopsPage() {
           </button>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy-900 text-white text-sm font-semibold hover:bg-navy-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy-900 text-white text-sm font-semibold hover:bg-navy-800 transition-colors shadow-sm"
           >
             <Plus size={15} />
             Nueva parada
@@ -163,87 +222,187 @@ export function AdminStopsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <input
-            type="text"
-            placeholder="Buscar parada..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full max-w-sm px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+        
+        {/* COLUMNA IZQUIERDA: LISTA Y FILTROS */}
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              placeholder="Buscar parada..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20 bg-white"
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20 bg-white"
+            >
+              <option value="ALL">Todos los estados</option>
+              <option value="ACTIVE">Activas</option>
+              <option value="INACTIVE">Inactivas</option>
+            </select>
+          </div>
+
+          <div className="flex-1">
+            {loading ? (
+              <div className="p-6 space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-12 bg-gray-50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="p-8 text-center text-red-400 text-sm">{error}</div>
+            ) : currentItems.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-sm">No se encontraron paradas con estos filtros.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                      <th className="px-5 py-3">Nombre</th>
+                      <th className="px-5 py-3 hidden sm:table-cell">Coordenadas</th>
+                      <th className="px-5 py-3">Estado</th>
+                      <th className="px-5 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {currentItems.map((stop) => (
+                      <tr 
+                        key={stop.id} 
+                        onClick={() => setActiveStop(stop)}
+                        className={`transition-colors cursor-pointer ${activeStop?.id === stop.id ? 'bg-navy-50/50' : 'hover:bg-gray-50'}`}
+                      >
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${activeStop?.id === stop.id ? 'bg-navy-900 text-white' : 'bg-green-50 text-green-600'}`}>
+                              <MapPin size={14} />
+                            </div>
+                            <span className="text-sm font-semibold text-navy-900">{stop.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-xs text-gray-500 font-mono hidden sm:table-cell">
+                          {stop.latitude.toFixed(4)}, {stop.longitude.toFixed(4)}
+                        </td>
+                        <td className="px-5 py-4">
+                          <button onClick={(e) => { e.stopPropagation(); handleToggle(stop); }}>
+                            {stop.isActive ? (
+                              <span className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded-full hover:bg-green-100 transition-colors">
+                                <CheckCircle size={12} /> Activa
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-xs text-gray-400 font-medium bg-gray-100 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
+                                <XCircle size={12} /> Inactiva
+                              </span>
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2 justify-end">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openEdit(stop); }}
+                              className="text-navy-700 hover:text-navy-900 transition-colors p-1.5 rounded-lg hover:bg-navy-50"
+                              title="Editar"
+                            >
+                              <Edit2 size={15} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDelete(stop); }}
+                              className="text-red-400 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* CONTROLES DE PAGINACIÓN */}
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <span className="text-xs font-medium text-gray-500">
+                Página {currentPage} de {totalPages}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-40 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-white disabled:opacity-40 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {loading ? (
-          <div className="p-6 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-12 bg-gray-50 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="p-8 text-center text-red-400 text-sm">{error}</div>
-        ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">No se encontraron paradas.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
-              <thead>
-                <tr className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
-                  <th className="px-5 py-3">Nombre</th>
-                  <th className="px-5 py-3">Latitud</th>
-                  <th className="px-5 py-3">Longitud</th>
-                  <th className="px-5 py-3">Estado</th>
-                  <th className="px-5 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map((stop) => (
-                  <tr key={stop.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 bg-green-50 rounded-lg flex items-center justify-center">
-                          <MapPin size={13} className="text-green-600" />
-                        </div>
-                        <span className="text-sm font-medium text-navy-900">{stop.name}</span>
+        {/* COLUMNA DERECHA: MAPA */}
+        <div className="lg:col-span-5 h-[400px] lg:h-[600px] rounded-2xl border border-gray-200 overflow-hidden shadow-sm relative z-10">
+          <MapContainer
+            center={activeStop ? [activeStop.latitude, activeStop.longitude] : MAP_CENTER}
+            zoom={activeStop ? 16 : 13}
+            style={{ height: '100%', width: '100%' }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; OpenStreetMap'
+            />
+            <FlyToStop stop={activeStop} />
+            
+            {stops.filter(s => s.isActive).map(stop => {
+              // Buscar rutas asociadas a esta parada
+              const relatedRoutes = routes.filter(r => r.stops?.some(rs => rs.stopId === stop.id));
+              const isSelected = activeStop?.id === stop.id;
+
+              return (
+                <Marker 
+                  key={stop.id} 
+                  position={[stop.latitude, stop.longitude]}
+                  icon={isSelected ? SelectedIcon : DefaultIcon}
+                  eventHandlers={{
+                    click: () => setActiveStop(stop),
+                  }}
+                >
+                  <Popup>
+                    <div className="min-w-[150px]">
+                      <h3 className="font-bold text-sm text-navy-900 mb-1">{stop.name}</h3>
+                      <div className="text-[11px] text-gray-500 mb-2 border-b border-gray-100 pb-2">
+                        {stop.latitude.toFixed(5)}, {stop.longitude.toFixed(5)}
                       </div>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-gray-500 font-mono">{stop.latitude.toFixed(5)}</td>
-                    <td className="px-5 py-4 text-sm text-gray-500 font-mono">{stop.longitude.toFixed(5)}</td>
-                    <td className="px-5 py-4">
-                      <button onClick={() => handleToggle(stop)}>
-                        {stop.isActive ? (
-                          <span className="flex items-center gap-1 text-xs text-green-600 font-medium bg-green-50 px-2.5 py-1 rounded-full hover:bg-green-100 transition-colors">
-                            <CheckCircle size={12} /> Activa
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-xs text-gray-400 font-medium bg-gray-100 px-2.5 py-1 rounded-full hover:bg-gray-200 transition-colors">
-                            <XCircle size={12} /> Inactiva
-                          </span>
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEdit(stop)}
-                          className="flex items-center gap-1 text-xs font-medium text-navy-700 hover:text-navy-900 transition-colors px-2 py-1 rounded-lg hover:bg-navy-50"
-                        >
-                          <Edit2 size={13} /> Editar
-                        </button>
-                        <button
-                          onClick={() => handleDelete(stop)}
-                          className="flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700 transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
-                        >
-                          <Trash2 size={13} /> Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Rutas que pasan por aquí:</p>
+                      {relatedRoutes.length === 0 ? (
+                        <p className="text-xs italic text-gray-400">Ninguna ruta asignada.</p>
+                      ) : (
+                        <ul className="space-y-1 max-h-[100px] overflow-y-auto">
+                          {relatedRoutes.map(rr => (
+                            <li key={rr.id} className="text-xs font-semibold text-navy-700 bg-navy-50 px-2 py-1 rounded truncate">
+                              • {rr.name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
+        </div>
       </div>
 
       {showModal && (
@@ -316,7 +475,7 @@ export function AdminStopsPage() {
                 >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
+                    attribution='&copy; OpenStreetMap'
                   />
                   <MapClickHandler
                     onMapClick={(lat, lng) => {

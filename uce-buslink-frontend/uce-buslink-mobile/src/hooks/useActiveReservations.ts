@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
+import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '../services/api';
 import { fetchTripById } from '../services/tripService';
 import { fetchRouteById } from '../services/routeService';
+import { fetchBasicUserInfo } from '../services/userService';
 import type { ApiReservation, ApiTrip, ActiveReservationItem, PageResponse } from '../types';
 
 interface UseActiveReservationsResult {
@@ -14,64 +15,62 @@ interface UseActiveReservationsResult {
 
 export function useActiveReservations(): UseActiveReservationsResult {
   const { getToken } = useAuth();
-  const [items, setItems] = useState<ActiveReservationItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
 
-  const refetch = useCallback(() => setTick((n) => n + 1), []);
+  const query = useQuery({
+    queryKey: ['activeReservations'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No auth token');
 
-  useEffect(() => {
-    let cancelled = false;
+      const page = await apiFetch<PageResponse<ApiReservation>>(
+        '/api/v1/reservations/my-history?status=ACTIVE&page=0&size=20',
+        token
+      );
 
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token) throw new Error('No auth token');
-
-        const page = await apiFetch<PageResponse<ApiReservation>>(
-          '/api/v1/reservations/my-history?status=ACTIVE&page=0&size=20',
-          token
-        );
-
-        if (!page.content || page.content.length === 0) {
-          if (!cancelled) { setItems([]); setLoading(false); }
-          return;
-        }
-
-        const trips = await Promise.all(
-          page.content.map((r) => fetchTripById(token, r.tripId))
-        );
-
-        const routeIds = [...new Set(trips.map((t: ApiTrip) => t.routeId))];
-        const routeList = await Promise.all(routeIds.map((id) => fetchRouteById(token, id)));
-        const routeMap = Object.fromEntries(routeList.map((r) => [r.id, r]));
-
-        const result: ActiveReservationItem[] = page.content.map((reservation, i) => ({
-          reservation,
-          trip: trips[i],
-          route: routeMap[trips[i].routeId],
-        }));
-
-        result.sort(
-          (a, b) =>
-            new Date(a.trip.departureTime).getTime() - new Date(b.trip.departureTime).getTime()
-        );
-
-        if (!cancelled) setItems(result);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error al cargar reservas');
-      } finally {
-        if (!cancelled) setLoading(false);
+      if (!page.content || page.content.length === 0) {
+        return [];
       }
-    }
 
-    load();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick]);
+      const trips = await Promise.all(
+        page.content.map((r) => fetchTripById(token, r.tripId))
+      );
 
-  return { items, loading, error, refetch };
+      const routeIds = [...new Set(trips.map((t: ApiTrip) => t.routeId))];
+      const routeList = await Promise.all(routeIds.map((id) => fetchRouteById(token, id)));
+      const routeMap = Object.fromEntries(routeList.map((r) => [r.id, r]));
+
+      const driverIds = [...new Set(trips.map((t: ApiTrip) => t.driverId))];
+      const driverList = await Promise.all(
+        driverIds.map((id) => fetchBasicUserInfo(token, id).catch(() => null))
+      );
+      const driverMap = Object.fromEntries(
+        driverList.filter(Boolean).map((d) => [d!.id, `${d!.nombres} ${d!.apellidos}`])
+      );
+
+      const result: ActiveReservationItem[] = page.content.map((reservation, i) => {
+        const trip = trips[i];
+        return {
+          reservation,
+          trip,
+          route: routeMap[trip.routeId],
+          driverName: driverMap[trip.driverId] || 'Conductor asignado',
+        };
+      });
+
+      result.sort(
+        (a, b) =>
+          new Date(a.trip.departureTime).getTime() - new Date(b.trip.departureTime).getTime()
+      );
+
+      return result;
+    },
+    staleTime: 60 * 1000,
+  });
+
+  return {
+    items: query.data ?? [],
+    loading: query.isLoading,
+    error: query.error ? query.error.message : null,
+    refetch: query.refetch,
+  };
 }
