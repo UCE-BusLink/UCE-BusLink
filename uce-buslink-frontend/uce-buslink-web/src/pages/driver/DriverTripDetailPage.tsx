@@ -6,6 +6,7 @@ import { useDriverTrip } from '../../hooks/useDriverTrip';
 import { useRoute } from '../../hooks/useRoute';
 import { useTrackingConnection } from '../../hooks/useTrackingConnection';
 import { useDriverLocationPublisher } from '../../hooks/useDriverLocationPublisher';
+import { useTripSimulation } from '../../hooks/useTripSimulation';
 import { TripSummaryCard, QrScannerModal, LeafletMap } from '../../components/molecules';
 import { Spinner } from '../../components/atoms';
 import { scanReservation, adminCancelReservation, changeTripState, fetchTripPassengers } from '../../services/driverService';
@@ -21,6 +22,7 @@ export function DriverTripDetailPage() {
   const [scannerMode, setScannerMode] = useState<ScannerMode>(null);
   const [updatingState, setUpdatingState] = useState(false);
   const [stateError, setStateError] = useState<string | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
 
   const [passengers, setPassengers] = useState<DriverPassengerResponse[]>([]);
   const [, setLoadingPassengers] = useState(false);
@@ -29,8 +31,18 @@ export function DriverTripDetailPage() {
   // We want to fetch the route even if it's not ongoing to show the stops
   const { route } = useRoute(trip?.routeId);
   const isOngoing = trip?.state === 'ONGOING';
+  
+  const simulatedPosition = useTripSimulation({ route: route ?? null, isSimulating });
+  
   const { client, isConnected } = useTrackingConnection(isOngoing);
-  const position = useDriverLocationPublisher(client, isConnected, trip?.busId ?? null, isOngoing);
+  const position = useDriverLocationPublisher(
+    client, 
+    isConnected, 
+    trip?.busId ?? null, 
+    isOngoing, 
+    isSimulating, 
+    simulatedPosition
+  );
 
   // Update current time every 10 seconds for the button disable logic
   useEffect(() => {
@@ -86,8 +98,26 @@ export function DriverTripDetailPage() {
       if (!token) throw new Error('No token');
       await changeTripState(token, tripId, 'ONGOING');
       setTrip((prev) => (prev ? { ...prev, state: 'ONGOING' } : prev));
+      setIsSimulating(false);
     } catch (err) {
       setStateError(err instanceof Error ? err.message : 'No se pudo iniciar el viaje.');
+    } finally {
+      setUpdatingState(false);
+    }
+  }, [tripId, getToken, setTrip]);
+
+  const handleSimulate = useCallback(async () => {
+    if (!tripId) return;
+    setUpdatingState(true);
+    setStateError(null);
+    try {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No token');
+      await changeTripState(token, tripId, 'ONGOING');
+      setTrip((prev) => (prev ? { ...prev, state: 'ONGOING' } : prev));
+      setIsSimulating(true);
+    } catch (err) {
+      setStateError(err instanceof Error ? err.message : 'No se pudo simular el viaje.');
     } finally {
       setUpdatingState(false);
     }
@@ -102,6 +132,7 @@ export function DriverTripDetailPage() {
       if (!token) throw new Error('No token');
       await changeTripState(token, tripId, 'COMPLETED');
       setTrip((prev) => (prev ? { ...prev, state: 'COMPLETED' } : prev));
+      setIsSimulating(false);
     } catch (err) {
       setStateError(err instanceof Error ? err.message : 'No se pudo finalizar el viaje.');
     } finally {
@@ -154,8 +185,16 @@ export function DriverTripDetailPage() {
                   <Radio size={20} className={isConnected ? 'animate-pulse' : ''} />
                 </div>
                 <div>
-                  <p className="text-base">{isConnected ? 'Transmitiendo ubicación en vivo' : 'Conectando al satélite...'}</p>
-                  <p className="font-medium opacity-75">{isConnected ? 'Los estudiantes pueden ver tu progreso.' : 'Espera un momento, por favor.'}</p>
+                  <p className="text-base">
+                    {isConnected 
+                      ? (isSimulating ? 'SIMULACIÓN EN CURSO' : 'Transmitiendo ubicación en vivo') 
+                      : 'Conectando al satélite...'}
+                  </p>
+                  <p className="font-medium opacity-75">
+                    {isConnected 
+                      ? (isSimulating ? `Velocidad actual: ${simulatedPosition?.velocity || 0} km/h` : 'Los estudiantes pueden ver tu progreso.') 
+                      : 'Espera un momento, por favor.'}
+                  </p>
                 </div>
               </div>
             )}
@@ -172,15 +211,25 @@ export function DriverTripDetailPage() {
             )}
 
             {trip.state === 'SCHEDULED' && (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <button
                   onClick={handleStart}
                   disabled={updatingState || !canStartTrip}
                   className="w-full flex items-center justify-center gap-3 px-6 py-5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-lg font-bold rounded-2xl hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg transition-all disabled:opacity-50 disabled:from-gray-400 disabled:to-gray-500 disabled:shadow-none active:scale-[0.98]"
                 >
                   <Play size={24} fill="currentColor" />
-                  {updatingState ? 'Iniciando viaje...' : 'INICIAR VIAJE AHORA'}
+                  {updatingState ? 'Procesando...' : 'INICIAR VIAJE AHORA'}
                 </button>
+                
+                <button
+                  onClick={handleSimulate}
+                  disabled={updatingState || !canStartTrip}
+                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-purple-50 text-purple-700 border-2 border-purple-200 text-base font-bold rounded-2xl hover:bg-purple-100 hover:border-purple-300 hover:shadow transition-all disabled:opacity-50 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 disabled:shadow-none active:scale-[0.98]"
+                >
+                  <Play size={20} />
+                  SIMULAR VIAJE (PRUEBA)
+                </button>
+
                 {!canStartTrip && (
                   <p className="text-center text-sm text-gray-500 font-medium animate-pulse">
                     Disponible 10 minutos antes de la hora de salida.
