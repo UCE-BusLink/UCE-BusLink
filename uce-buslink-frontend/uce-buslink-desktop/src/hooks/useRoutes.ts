@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import { fetchRoutes } from '../services/routeService';
 import type { ApiRoute } from '../types';
@@ -11,36 +11,24 @@ interface UseRoutesResult {
 }
 
 export function useRoutes(): UseRoutesResult {
-  const { getToken } = useAuth();
-  const [routes, setRoutes] = useState<ApiRoute[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
+  const { getToken, isLoaded, isSignedIn } = useAuth();
 
-  // HU-243 — recarga manual (equivalente desktop al pull-to-refresh móvil)
-  const refetch = useCallback(() => setReloadKey((k) => k + 1), []);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['routes'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No auth token');
+      const page = await fetchRoutes(token);
+      return page.content;
+    },
+    enabled: isLoaded && isSignedIn,
+    staleTime: 1000 * 60 * 30, // 30 mins
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token) throw new Error('No auth token');
-        const page = await fetchRoutes(token);
-        if (!cancelled) setRoutes(page.content);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error al cargar rutas');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => { cancelled = true; };
-  }, [getToken, reloadKey]);
-
-  return { routes, loading, error, refetch };
+  return {
+    routes: data || [],
+    loading: isLoading,
+    error: error instanceof Error ? error.message : null,
+    refetch,
+  };
 }

@@ -9,6 +9,8 @@ import { DriverTripDetailScreen } from '../screens/driver/DriverTripDetailScreen
 import { LandingScreen } from '../screens/auth/LandingScreen';
 import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
+import { OnboardingModal } from '../components/organisms/OnboardingModal';
+import { useProfile } from '../hooks/useProfile';
 import type { RootStackParamList, AuthStackParamList } from './types';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -34,19 +36,35 @@ function AuthNavigator() {
 }
 
 function AppNavigator() {
+  const { user, updateOnboardingStatus } = useCurrentUser();
+  const { data: profile, refetch } = useProfile();
+
   return (
-    <RootStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: '#ffffff' },
-        headerTintColor: '#0a1628',
-        headerTitleStyle: { fontWeight: '700' },
-      }}
-    >
-      <RootStack.Screen name="Main" component={MainDrawer} options={{ headerShown: false }} />
-      <RootStack.Screen name="RouteDetail" component={RouteDetailScreen} options={{ title: 'Detalle de ruta' }} />
-      <RootStack.Screen name="SeatSelection" component={SeatSelectionScreen} options={{ title: 'Reservar lugar' }} />
-      <RootStack.Screen name="DriverTripDetail" component={DriverTripDetailScreen} options={{ title: 'Detalle del viaje' }} />
-    </RootStack.Navigator>
+    <>
+      <RootStack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: '#ffffff' },
+          headerTintColor: '#0a1628',
+          headerTitleStyle: { fontWeight: '700' },
+        }}
+      >
+        <RootStack.Screen name="Main" component={MainDrawer} options={{ headerShown: false }} />
+        <RootStack.Screen name="RouteDetail" component={RouteDetailScreen} options={{ title: 'Detalle de ruta' }} />
+        <RootStack.Screen name="SeatSelection" component={SeatSelectionScreen} options={{ title: 'Reservar lugar' }} />
+        <RootStack.Screen name="DriverTripDetail" component={DriverTripDetailScreen} options={{ title: 'Detalle del viaje' }} />
+      </RootStack.Navigator>
+      
+      {user?.needsOnboarding && profile && (
+        <OnboardingModal 
+          visible={true}
+          profile={profile.usuario} 
+          onComplete={() => {
+            refetch();
+            updateOnboardingStatus(false);
+          }} 
+        />
+      )}
+    </>
   );
 }
 

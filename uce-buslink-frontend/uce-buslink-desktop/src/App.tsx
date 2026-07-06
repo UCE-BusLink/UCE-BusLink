@@ -1,58 +1,79 @@
+// src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { SignedIn, SignedOut } from '@clerk/clerk-react'
+
+import {
+  SignedIn,
+  SignedOut,
+  RedirectToSignIn,
+} from '@clerk/clerk-react'
 
 import { AppLayout } from './components/layout/AppLayout'
+import { DashboardPage } from './pages/DashboardPage'
+import { RoutesPage } from './pages/RoutesPage'
+import { RouteDetailPage } from './pages/RouteDetailPage'
+import { SeatSelectionPage } from './pages/SeatSelectionPage'
+import { TripsPage } from './pages/TripsPage'
+import { MapPage } from './pages/MapPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
-import AdminMapPage from './pages/admin/AdminMapPage'
 import { AdminRoutesPage } from './pages/admin/AdminRoutesPage'
 import { AdminBusesPage } from './pages/admin/AdminBusesPage'
 import { AdminStopsPage } from './pages/admin/AdminStopsPage'
 import { AdminDriversPage } from './pages/admin/AdminDriversPage'
 import { AdminTripsPage } from './pages/admin/AdminTripsPage'
-import { RouteDetailPage } from './pages/RouteDetailPage'
-import { ProfilePage } from './pages/ProfilePage'
+// NUEVA IMPORTACIÓN AQUÍ
+import AdminMapPage from './pages/admin/AdminMapPage' 
+import { DriverDashboardPage } from './pages/driver/DriverDashboardPage'
+import { DriverTripDetailPage } from './pages/driver/DriverTripDetailPage'
+
 import { SignInPage } from './pages/auth/SignInPage'
-import { AccessDeniedPage } from './pages/AccessDeniedPage'
+import { SignUpPage } from './pages/auth/SignUpPage'
+import { LandingPage } from './pages/LandingPage'
 
 import { useCurrentUser } from './context/AuthContext'
 
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-navy-900 border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
-}
-
-function AdminOnly({ children }: { children: React.ReactNode }) {
-  const { user, syncDone } = useCurrentUser()
-  if (!syncDone) return <LoadingScreen />
-  if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'ADMIN') return <AccessDeniedPage />
-  return <>{children}</>
-}
-
-function LoginRoute() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <SignedIn>
-        <Navigate to="/admin" replace />
-      </SignedIn>
+      <SignedIn>{children}</SignedIn>
       <SignedOut>
-        <SignInPage />
+        <RedirectToSignIn />
       </SignedOut>
     </>
   )
 }
 
+function StudentOnly({ element }: { element: React.ReactNode }) {
+  const { user, syncDone } = useCurrentUser()
+  if (!syncDone) return null
+  if (user?.role === 'ADMIN') return <Navigate to="/admin" replace />
+  if (user?.role === 'DRIVER') return <Navigate to="/driver" replace />
+  return <>{element}</>
+}
+
+function DriverOnly({ element }: { element: React.ReactNode }) {
+  const { user, syncDone } = useCurrentUser()
+  if (!syncDone) return null
+  if (user?.role !== 'DRIVER') return <Navigate to="/dashboard" replace />
+  return <>{element}</>
+}
+
 function RootRedirect() {
+  const { user, loading, syncDone } = useCurrentUser()
+
   return (
     <>
       <SignedIn>
-        <Navigate to="/admin" replace />
+        {loading || !syncDone ? (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-navy-900 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <Navigate to={user?.role === 'ADMIN' ? '/admin' : user?.role === 'DRIVER' ? '/driver' : '/dashboard'} replace />
+        )}
       </SignedIn>
       <SignedOut>
-        <Navigate to="/login" replace />
+        <LandingPage />
       </SignedOut>
     </>
   )
@@ -61,21 +82,45 @@ function RootRedirect() {
 export default function App() {
   const { loading } = useCurrentUser()
 
-  if (loading) return <LoadingScreen />
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-gray-500">Cargando sesión...</p>
+      </div>
+    )
+  }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login/*" element={<LoginRoute />} />
+        {/* AUTH */}
+        <Route path="/login/*" element={<SignInPage />} />
+        <Route path="/register/*" element={<SignUpPage />} />
 
+        {/* PRIVATE */}
         <Route
           element={
-            <AdminOnly>
+            <ProtectedRoute>
               <AppLayout />
-            </AdminOnly>
+            </ProtectedRoute>
           }
         >
+          {/* Student */}
+          <Route path="/dashboard" element={<StudentOnly element={<DashboardPage />} />} />
+          <Route path="/routes" element={<StudentOnly element={<RoutesPage />} />} />
+          <Route path="/routes/:routeId" element={<StudentOnly element={<RouteDetailPage />} />} />
+          <Route path="/routes/:routeId/seats/:tripId" element={<StudentOnly element={<SeatSelectionPage />} />} />
+          <Route path="/trips" element={<StudentOnly element={<TripsPage />} />} />
+          <Route path="/map" element={<StudentOnly element={<MapPage />} />} />
+          <Route path="/profile" element={<ProfilePage />} />
+
+          {/* Driver */}
+          <Route path="/driver" element={<DriverOnly element={<DriverDashboardPage />} />} />
+          <Route path="/driver/trips/:tripId" element={<DriverOnly element={<DriverTripDetailPage />} />} />
+
+          {/* Admin */}
           <Route path="/admin" element={<AdminDashboardPage />} />
+          {/* NUEVA RUTA AQUÍ */}
           <Route path="/admin/map" element={<AdminMapPage />} />
           <Route path="/admin/routes" element={<AdminRoutesPage />} />
           <Route path="/admin/routes/:routeId" element={<RouteDetailPage />} />
@@ -83,10 +128,12 @@ export default function App() {
           <Route path="/admin/stops" element={<AdminStopsPage />} />
           <Route path="/admin/drivers" element={<AdminDriversPage />} />
           <Route path="/admin/trips" element={<AdminTripsPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
+        {/* ROOT */}
         <Route path="/" element={<RootRedirect />} />
+
+        {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
