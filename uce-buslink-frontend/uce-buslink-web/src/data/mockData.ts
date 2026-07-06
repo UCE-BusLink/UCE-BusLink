@@ -167,18 +167,23 @@ export const mockUser = {
   punctualityRate: 100,
 };
 
-export function getCurrentWeekDays(): WeekDay[] {
+export function getCurrentWeekDays(weekOffset: number = 0): WeekDay[] {
   const LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   const today = new Date();
+  
+  // Calcular el inicio de la semana actual (lunes)
   const dayOfWeek = today.getDay();
   const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysFromMonday);
+  const currentMonday = new Date(today);
+  currentMonday.setDate(today.getDate() - daysFromMonday);
+  
+  // Aplicar el offset de semanas (weekOffset = 1 significa la próxima semana)
+  const targetMonday = new Date(currentMonday);
+  targetMonday.setDate(currentMonday.getDate() + (weekOffset * 7));
 
   return LABELS.map((label, i) => {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
+    const date = new Date(targetMonday);
+    date.setDate(targetMonday.getDate() + i);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const dayOfMonth = String(date.getDate()).padStart(2, '0');
