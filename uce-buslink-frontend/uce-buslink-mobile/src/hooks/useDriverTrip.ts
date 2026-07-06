@@ -38,7 +38,7 @@ export function useDriverTrip(tripId: string) {
 
   const error = queryError ? 'No se pudo cargar el viaje.' : null;
 
-  const setTrip = (newTrip: DriverTripDetailView | ((prev: DriverTripDetailView | undefined) => DriverTripDetailView)) => {
+  const setTrip = (newTrip: DriverTripDetailView | ((prev: DriverTripDetailView | undefined) => DriverTripDetailView | undefined)) => {
     queryClient.setQueryData(['driverTrip', tripId], newTrip);
   };
 
