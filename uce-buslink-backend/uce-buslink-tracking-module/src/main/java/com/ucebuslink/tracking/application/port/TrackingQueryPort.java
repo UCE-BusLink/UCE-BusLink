@@ -26,4 +26,5 @@ public interface TrackingQueryPort {
     int getBusTotalCapacity(UUID busId);
 
     List<UUID> getUnboardedStudentIdsByTrip(UUID tripId);
+    int getBoardedStudentCount(UUID tripId);
 }
