@@ -5,12 +5,12 @@ server {
 
     server_tokens off;
 
-    # Requerido por Certbot para validar el dominio (challenge HTTP-01)
+    # Certbot HTTP-01 challenge
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
 
-    # Usado por el healthcheck del contenedor (evita depender del redirect a HTTPS)
+    # Container healthcheck (skips the HTTPS redirect)
     location = /healthz {
         access_log off;
         return 200;

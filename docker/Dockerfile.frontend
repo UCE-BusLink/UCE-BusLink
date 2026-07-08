@@ -37,9 +37,7 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 FROM --platform=$TARGETPLATFORM nginx:1.27-alpine AS runtime
 
-# Actualiza paquetes del OS para parchear CVEs de Alpine (musl, libxml2, nghttp2-libs, zlib)
-# openssl: genera el certificado autofirmado temporal (bootstrap antes de Certbot)
-# gettext: provee envsubst, usado para inyectar $DOMAIN en la plantilla de Nginx
+# Patch Alpine CVEs; openssl/gettext for cert bootstrap + envsubst
 RUN apk upgrade --no-cache && \
     apk add --no-cache openssl gettext
 
@@ -50,16 +48,13 @@ LABEL version="${APP_VERSION}"
 
 RUN rm /etc/nginx/conf.d/default.conf
 
-# error.log/access.log del base image son symlinks a /dev/stderr y /dev/stdout.
-# Los apuntamos directo, sin pasar por /var/log/nginx, para que los logs se
-# vean con "docker logs" sin depender de la resolucion del symlink.
+# Point logs straight to stdout/stderr instead of the symlinked files
 RUN sed -i \
     -e 's#/var/log/nginx/error.log#/dev/stderr#' \
     -e 's#/var/log/nginx/access.log#/dev/stdout#' \
     /etc/nginx/nginx.conf
 
-# Dos plantillas: con TLS (QA/Prod, requiere DOMAIN) y solo HTTP (local, sin
-# dominio publico). entrypoint.sh elige una segun ENABLE_HTTPS.
+# entrypoint.sh picks TLS vs HTTP-only template based on ENABLE_HTTPS
 COPY docker/nginx-https.conf.template /etc/nginx/templates/nginx-https.conf.template
 COPY docker/nginx-http.conf.template /etc/nginx/templates/nginx-http.conf.template
 COPY docker/nginx-entrypoint.sh /entrypoint.sh
@@ -74,10 +69,7 @@ RUN chmod +x /entrypoint.sh && \
     touch /var/run/nginx.pid && \
     chown nginx:nginx /var/run/nginx.pid
 
-# El proceso maestro arranca como root (necesario para dejar el volumen de
-# certificados con permisos correctas y generar el certificado de bootstrap).
-# Los workers -los que atienden trafico externo- bajan a "nginx" solos, via
-# la directiva "user nginx;" ya presente en el nginx.conf base de la imagen.
+# Master runs as root for cert setup; workers drop to "nginx" via nginx.conf
 
 EXPOSE 80 443
 
