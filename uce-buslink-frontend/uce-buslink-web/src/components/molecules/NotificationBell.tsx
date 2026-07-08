@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
+import { useAppStore } from '../../store/useAppStore';
 
 interface NotificationResponse {
   id: string;
@@ -51,6 +52,11 @@ export function NotificationBell({
 
   const notifications = data?.content || [];
   const unreadCount = notifications.filter(n => !n.isRead).length;
+  const setUnreadNotificationsCount = useAppStore((state) => state.setUnreadNotificationsCount);
+
+  useEffect(() => {
+    setUnreadNotificationsCount(unreadCount);
+  }, [unreadCount, setUnreadNotificationsCount]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

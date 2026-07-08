@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Radio } from 'lucide-react';
 import { useRoutes } from '../hooks/useRoutes';
@@ -6,6 +6,7 @@ import { useRoute } from '../hooks/useRoute';
 import { useActiveReservations } from '../hooks/useActiveReservations';
 import { useStudentBusTracking } from '../hooks/useStudentBusTracking';
 import { RouteTabBar, LeafletMap, RouteMetaCards, MapStopsSidebar } from '../components/molecules';
+import { useAppStore } from '../store/useAppStore';
 
 export function MapPage() {
   const navigate = useNavigate();
@@ -27,6 +28,15 @@ export function MapPage() {
       routeReservations.find((item) => item.trip.state === 'ONGOING') ??
       routeReservations[0])?.trip.id ?? null;
   const { location: liveBus, isConnected } = useStudentBusTracking(trackedTripId);
+
+  const setActiveTracking = useAppStore((state) => state.setActiveTracking);
+  const clearActiveTracking = useAppStore((state) => state.clearActiveTracking);
+
+  useEffect(() => {
+    if (!trackedTripId) return;
+    setActiveTracking({ routeId: selectedId, tripId: trackedTripId });
+    return () => clearActiveTracking();
+  }, [selectedId, trackedTripId, setActiveTracking, clearActiveTracking]);
 
   const sortedStops = selectedRoute?.stops
     ? [...selectedRoute.stops].sort((a, b) => a.stopOrder - b.stopOrder)

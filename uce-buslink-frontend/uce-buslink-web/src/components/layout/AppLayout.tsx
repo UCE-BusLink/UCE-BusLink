@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProfile } from "../../hooks/useProfile";
 import { fetchRoutes } from "../../services/routeService";
@@ -11,11 +11,13 @@ import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { OnboardingModal } from "../organisms/OnboardingModal";
 import { useCurrentUser } from "../../context/AuthContext";
 import { Toaster } from "react-hot-toast";
+import { useAppStore } from "../../store/useAppStore";
 
 export function AppLayout() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const { user, updateOnboardingStatus } = useCurrentUser();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isSidebarOpen = useAppStore((state) => state.isSidebarOpen);
+  const closeSidebar = useAppStore((state) => state.closeSidebar);
   const queryClient = useQueryClient();
 
   usePushNotifications();
@@ -45,20 +47,20 @@ export function AppLayout() {
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
       <Toaster position="top-center" reverseOrder={false} />
       {/* Mobile Sidebar Overlay */}
-      {isMobileMenuOpen && (
-        <div 
+      {isSidebarOpen && (
+        <div
           className="fixed inset-0 bg-black/20 z-40 lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={closeSidebar}
         />
       )}
-      
+
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out`}>
-        <Sidebar onMobileClose={() => setIsMobileMenuOpen(false)} />
+      <div className={`fixed inset-y-0 left-0 z-50 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out`}>
+        <Sidebar />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header onMenuClick={() => setIsMobileMenuOpen(true)} />
+        <Header />
         <main className="flex-1 p-4 md:p-8 overflow-auto">
           <Outlet />
         </main>
