@@ -17,13 +17,18 @@ import { getFieldErrors } from '../../schemas/common';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-// Solución para corregir los íconos rotos por defecto de Leaflet en entornos modernos de bundling (Vite/Webpack)
+// Solución para corregir los íconos rotos por defecto de Leaflet en entornos modernos de bundling (Vite/Webpack):
+// se empaquetan los assets con Vite en vez de depender de un CDN externo en tiempo de ejecución.
 //@ts-expect-error
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
 });
 
 const DAYS_OF_WEEK = [
@@ -241,11 +246,19 @@ export function AdminRoutesPage() {
         .filter((s) => !s.id)
         .map((s) => ({ name: s.name, latitude: s.latitude, longitude: s.longitude }));
 
-      const createdStops = stopsToCreate.length ? await createBatchStops(token, stopsToCreate) : [];
+      let createdStops: ApiStop[] = [];
+      if (stopsToCreate.length) {
+        const batchResult = await createBatchStops(token, stopsToCreate);
+        if (batchResult.failureCount > 0) {
+          const reasons = batchResult.failed.map((f) => `parada #${f.index + 1}: ${f.reason}`).join('; ');
+          throw new Error(`No se pudieron crear ${batchResult.failureCount} parada(s) (${reasons}).`);
+        }
+        createdStops = batchResult.succeeded;
+      }
 
       let createdIndex = 0;
       const orderedStops = newStops.map((s) =>
-        s.id ? s : { ...s, id: createdStops[createdIndex++].id as string }
+        s.id ? s : { ...s, id: createdStops[createdIndex++].id }
       );
 
       const waypoints = orderedStops.map((s) => ({ stopId: s.id as string }));

@@ -76,6 +76,20 @@ export interface BatchStop {
   longitude: number;
 }
 
+export interface BatchItemError {
+  index: number;
+  reason: string;
+  fieldErrors?: Record<string, string> | null;
+}
+
+export interface BatchResult<T> {
+  succeeded: T[];
+  failed: BatchItemError[];
+  totalReceived: number;
+  successCount: number;
+  failureCount: number;
+}
+
 export interface SchedulePayload {
   routeId: string;
   details: {
@@ -210,7 +224,7 @@ export async function createTrip(token: string, payload: CreateTripPayload): Pro
 // --- FUNCIONES NUEVAS DEL WIZARD (Corregidas para usar apiFetch) ---
 
 export async function createBatchStops(token: string, stops: BatchStop[]) {
-  return apiFetch<any[]>('/api/v1/supervisor/fleet/stops/batch', token, {
+  return apiFetch<BatchResult<ApiStop>>('/api/v1/supervisor/fleet/stops/batch', token, {
     method: 'POST',
     body: JSON.stringify(stops),
   });

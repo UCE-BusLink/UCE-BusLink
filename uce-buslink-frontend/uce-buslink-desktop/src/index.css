@@ -30,3 +30,9 @@
 .animate-scale-in {
   animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+/* Recolorea el marcador azul por defecto de Leaflet para el estado "seleccionado",
+   evitando depender de un ícono rojo servido desde un CDN externo. */
+.marker-selected-red {
+  filter: hue-rotate(150deg) saturate(3);
+}

@@ -1,4 +1,5 @@
 import { SignIn } from '@clerk/clerk-react'
+import { Link } from 'react-router-dom';
 import heroImg from '../../assets/brand/FacePage.webp';
 import brandLogo from '../../assets/brand/Logo.png';
 
@@ -55,6 +56,12 @@ export function SignInPage() {
               },
             }}
           />
+
+          <p className="text-center text-sm text-gray-500 mt-4">
+            <Link to="/forgot-password" className="text-navy-900 font-semibold hover:text-navy-700">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </p>
         </div>
       </div>
     </div>
