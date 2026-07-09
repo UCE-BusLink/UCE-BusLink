@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Radio } from 'lucide-react';
+import { Radio, MapPinCheck } from 'lucide-react';
 import { useRoutes } from '../hooks/useRoutes';
 import { useRoute } from '../hooks/useRoute';
 import { useActiveReservations } from '../hooks/useActiveReservations';
 import { useStudentBusTracking } from '../hooks/useStudentBusTracking';
 import { RouteTabBar, LeafletMap, RouteMetaCards, MapStopsSidebar } from '../components/molecules';
 import { useAppStore } from '../store/useAppStore';
+import type { ApiRouteStop } from '../types';
 
 export function MapPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export function MapPage() {
   const routeIdParam = searchParams.get('routeId');
   const { routes, loading: routesLoading } = useRoutes();
   const [manualSelectedId, setSelectedId] = useState<string>('');
+  const [myStop, setMyStop] = useState<ApiRouteStop | null>(null);
   const { items: reservations } = useActiveReservations(true);
 
   const paramRouteId = reservations.find((item) => item.trip.id === tripIdParam)?.trip.routeId;
@@ -27,7 +29,10 @@ export function MapPage() {
     (routeReservations.find((item) => item.trip.id === tripIdParam) ??
       routeReservations.find((item) => item.trip.state === 'ONGOING') ??
       routeReservations[0])?.trip.id ?? null;
-  const { location: liveBus, isConnected } = useStudentBusTracking(trackedTripId);
+  const { location: liveBus, isConnected, stopDistanceMeters, stopEtaMinutes } = useStudentBusTracking(
+    trackedTripId,
+    myStop ? { latitude: myStop.latitude, longitude: myStop.longitude } : null
+  );
 
   const setActiveTracking = useAppStore((state) => state.setActiveTracking);
   const clearActiveTracking = useAppStore((state) => state.clearActiveTracking);
@@ -41,6 +46,10 @@ export function MapPage() {
   const sortedStops = selectedRoute?.stops
     ? [...selectedRoute.stops].sort((a, b) => a.stopOrder - b.stopOrder)
     : [];
+
+  useEffect(() => {
+    setMyStop(null);
+  }, [selectedId]);
 
   return (
     <div>
@@ -83,13 +92,38 @@ export function MapPage() {
               loading={routeLoading}
               liveBus={liveBus}
               showLocateButton
+              selectedStopId={myStop?.stopId}
+              onStopSelect={(stopId) =>
+                setMyStop(sortedStops.find((s) => s.stopId === stopId) ?? null)
+              }
             />
             <RouteMetaCards route={selectedRoute} stopsCount={sortedStops.length} />
+
+            {myStop && liveBus && (
+              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-navy-100 bg-navy-50/60 px-4 py-3">
+                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-navy-900 text-white shrink-0">
+                  <MapPinCheck size={16} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">
+                    Distancia y tiempo a <span className="font-semibold text-navy-900">{myStop.stopName}</span>{' '}
+                    (calculado en el navegador con WebAssembly)
+                  </p>
+                  <p className="text-sm font-semibold text-navy-900">
+                    {stopDistanceMeters != null ? `${Math.round(stopDistanceMeters)} m` : '—'}
+                    {' · '}
+                    {stopEtaMinutes != null ? `${Math.round(stopEtaMinutes)} min` : 'bus detenido'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           <MapStopsSidebar
             stops={sortedStops}
             loading={routeLoading}
             onViewTrips={() => navigate(`/routes/${selectedId}`)}
+            selectedStopId={myStop?.stopId}
+            onStopSelect={setMyStop}
           />
         </div>
       )}

@@ -8,12 +8,30 @@ const DOT_CLASS: Record<StopType, string> = {
   destination: 'bg-amber-500 ring-amber-100',
 };
 
-function StopRow({ stop, type, isLast }: { stop: ApiRouteStop; type: StopType; isLast: boolean }) {
+function StopRow({
+  stop,
+  type,
+  isLast,
+  isSelected,
+  onSelect,
+}: {
+  stop: ApiRouteStop;
+  type: StopType;
+  isLast: boolean;
+  isSelected: boolean;
+  onSelect?: (stop: ApiRouteStop) => void;
+}) {
   const label = type === 'origin' ? 'Origen' : type === 'destination' ? 'Destino' : 'Parada';
   const Icon = type === 'origin' ? Navigation : type === 'destination' ? Flag : MapPin;
 
   return (
-    <div className="flex gap-4">
+    <button
+      type="button"
+      onClick={() => onSelect?.(stop)}
+      className={`flex gap-4 w-full text-left rounded-xl -mx-2 px-2 py-1 transition-colors ${
+        onSelect ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'
+      } ${isSelected ? 'bg-navy-50' : ''}`}
+    >
       <div className="flex flex-col items-center">
         <div className={`w-7 h-7 rounded-full flex items-center justify-center ring-4 ${DOT_CLASS[type]}`}>
           <Icon size={type === 'stop' ? 11 : 13} className="text-white" />
@@ -30,7 +48,7 @@ function StopRow({ stop, type, isLast }: { stop: ApiRouteStop; type: StopType; i
           </p>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -38,9 +56,17 @@ interface MapStopsSidebarProps {
   stops: ApiRouteStop[];
   loading: boolean;
   onViewTrips: () => void;
+  selectedStopId?: string | null;
+  onStopSelect?: (stop: ApiRouteStop) => void;
 }
 
-export function MapStopsSidebar({ stops, loading, onViewTrips }: MapStopsSidebarProps) {
+export function MapStopsSidebar({
+  stops,
+  loading,
+  onViewTrips,
+  selectedStopId,
+  onStopSelect,
+}: MapStopsSidebarProps) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 h-fit">
       <div className="flex items-center justify-between mb-5">
@@ -56,6 +82,8 @@ export function MapStopsSidebar({ stops, loading, onViewTrips }: MapStopsSidebar
               stop={stop}
               type={deriveStopType(i, stops.length)}
               isLast={i === stops.length - 1}
+              isSelected={selectedStopId === stop.stopId}
+              onSelect={onStopSelect}
             />
           ))}
         </div>
