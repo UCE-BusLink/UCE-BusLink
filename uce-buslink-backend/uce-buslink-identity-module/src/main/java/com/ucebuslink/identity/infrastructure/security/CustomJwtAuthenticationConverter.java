@@ -27,7 +27,7 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
         String clerkUserId = jwt.getSubject();
         Optional<User> userOpt = userRepository.findByClerkUserId(clerkUserId);
 
-        // Usuario NO sincronizado
+        // User NOT synchronized
         if (userOpt.isEmpty()) {
 
             return new JwtAuthenticationToken(
@@ -37,7 +37,7 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
             );
         }
 
-        // Usuario sincronizado
+        // Synchronized user
         User user = userOpt.get();
 
         SimpleGrantedAuthority authority =
@@ -50,7 +50,7 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Abstract
                         clerkUserId
                 );
 
-        // ⭐ AQUÍ guardas el UUID interno SIN romper nada
+        // ⭐ HERE you save the internal UUID WITHOUT breaking anything
         token.setDetails(user.getId());
 
         return token;

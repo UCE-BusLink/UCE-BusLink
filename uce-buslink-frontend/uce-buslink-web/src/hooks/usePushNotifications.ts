@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
 import { getToken, onMessage } from 'firebase/messaging'
-import { getMessagingIfSupported } from '../lib/firebase'
+import { firebaseConfig, getMessagingIfSupported } from '../lib/firebase'
 import { registerDevice } from '../services/notificationService'
 
 const VAPID_KEY = (import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined) || undefined
@@ -41,7 +41,10 @@ export function usePushNotifications() {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') return
 
-      await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      const swParams = new URLSearchParams(
+        firebaseConfig as unknown as Record<string, string>,
+      )
+      await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${swParams}`)
       const registration = await navigator.serviceWorker.ready
 
       const fcmToken = await getToken(messaging, {

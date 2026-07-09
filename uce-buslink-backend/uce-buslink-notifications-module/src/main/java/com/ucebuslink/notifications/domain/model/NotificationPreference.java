@@ -47,7 +47,7 @@ public class NotificationPreference {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    // Constructor por defecto según tu documentación
+    // Default constructor as per your documentation
     public static NotificationPreference defaultPreferences(UUID userId) {
         return new NotificationPreference(
                 UUID.randomUUID(),

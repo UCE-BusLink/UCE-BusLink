@@ -19,16 +19,16 @@ public class ReservationCreatedEventListener {
     @EventListener
     @Transactional
     public void handleReservationCreated(ReservationCreatedEvent event) {
-        log.info("[FLEET-LISTENER] Descontando 1 asiento del Viaje ID: {} por nueva reserva", event.tripId());
-        
+        log.info("[FLEET-LISTENER] Deducting 1 seat from Trip ID: {} for new reservation", event.tripId());
+
         Trip trip = tripRepository.findById(event.tripId())
-                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
         if (trip.getAvailableSeats() > 0) {
             trip.setAvailableSeats(trip.getAvailableSeats() - 1);
             tripRepository.save(trip);
         } else {
-            log.warn("[FLEET-LISTENER] Inconsistencia: El viaje {} ya no tiene asientos en el contador general.", event.tripId());
+            log.warn("[FLEET-LISTENER] Inconsistency: Trip {} no longer has seats in the general counter.", event.tripId());
         }
     }
 }

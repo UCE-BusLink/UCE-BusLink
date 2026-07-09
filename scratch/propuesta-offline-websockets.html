@@ -1,0 +1,608 @@
+<title>UCE-BusLink — Offline-First &amp; Push en Tiempo Real</title>
+<style>
+  :root {
+    --ink: #101826;
+    --ink-soft: #384358;
+    --paper: #eef1f6;
+    --paper-raised: #ffffff;
+    --line: #cfd6e2;
+    --accent: #a8721f;
+    --accent-soft: #f2e4cd;
+    --note: #a8721f;
+    --warn: #a3393c;
+    --warn-soft: #f6e2e1;
+    --info: #2f6e69;
+    --info-soft: #dcece9;
+    --code-bg: #101826;
+    --code-fg: #dbe4f3;
+    --code-accent: #e0b571;
+    --shadow: 0 1px 2px rgba(16,24,38,0.06), 0 8px 24px rgba(16,24,38,0.06);
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #e9edf5;
+    --ink-soft: #aab4c8;
+    --paper: #0c1220;
+    --paper-raised: #131b2c;
+    --line: #263049;
+    --accent: #e0b571;
+    --accent-soft: #2c2413;
+    --note: #e0b571;
+    --warn: #e2898b;
+    --warn-soft: #2e1618;
+    --info: #7cc2bb;
+    --info-soft: #12261f;
+    --code-bg: #070c16;
+    --code-fg: #d7e0f0;
+    --code-accent: #e0b571;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.35);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e9edf5;
+      --ink-soft: #aab4c8;
+      --paper: #0c1220;
+      --paper-raised: #131b2c;
+      --line: #263049;
+      --accent: #e0b571;
+      --accent-soft: #2c2413;
+      --note: #e0b571;
+      --warn: #e2898b;
+      --warn-soft: #2e1618;
+      --info: #7cc2bb;
+      --info-soft: #12261f;
+      --code-bg: #070c16;
+      --code-fg: #d7e0f0;
+      --code-accent: #e0b571;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.35);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .display {
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+  }
+
+  .mono {
+    font-family: "SF Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+  }
+
+  .sheet {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .topbar {
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--info));
+  }
+
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-bottom: 2.25rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .eyebrow {
+    font-family: "SF Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1.title {
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+    font-size: 2.15rem;
+    line-height: 1.15;
+    font-weight: 700;
+    margin: 0;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+
+  .dek {
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    max-width: 40rem;
+    margin: 0;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-family: "SF Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-top: 0.4rem;
+  }
+
+  .meta-row span b { color: var(--ink); font-weight: 600; }
+
+  /* Executive summary table */
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 2rem 0 3rem;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 640px) { .summary { grid-template-columns: 1fr; } }
+
+  .summary-cell {
+    background: var(--paper-raised);
+    padding: 1.3rem 1.4rem;
+  }
+
+  .summary-cell h3 {
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+    font-size: 0.95rem;
+    margin: 0 0 0.6rem;
+    color: var(--ink);
+  }
+
+  .summary-cell p {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+
+  .summary-cell .pick {
+    display: inline-block;
+    margin-top: 0.7rem;
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 0.2rem 0.55rem;
+    border-radius: 5px;
+    font-weight: 600;
+  }
+
+  /* Section structure */
+  section.part {
+    margin-top: 4rem;
+  }
+
+  .part-label {
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--info);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+    font-size: 1.55rem;
+    color: var(--ink);
+    margin: 0 0 1.3rem;
+    text-wrap: balance;
+    padding-bottom: 0.9rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  h3 {
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+    font-size: 1.12rem;
+    color: var(--ink);
+    margin: 2.2rem 0 0.9rem;
+  }
+
+  p { margin: 0 0 1.1rem; max-width: 40rem; }
+  ul, ol { margin: 0 0 1.1rem; padding-left: 1.3rem; max-width: 40rem; }
+  li { margin-bottom: 0.45rem; }
+  strong { color: var(--ink); }
+  code.inline {
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.85em;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    padding: 0.05em 0.4em;
+    border-radius: 4px;
+    color: var(--info);
+  }
+
+  a { color: var(--accent); }
+
+  /* Callouts */
+  .callout {
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    margin: 1.4rem 0;
+    max-width: 40rem;
+    border: 1px solid var(--line);
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .k {
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+  .callout p { font-family: ui-serif, Georgia, serif; font-size: 0.94rem; color: var(--ink-soft); }
+
+  .callout.note { background: var(--accent-soft); }
+  .callout.note .k { color: var(--note); }
+
+  .callout.warn { background: var(--warn-soft); }
+  .callout.warn .k { color: var(--warn); }
+
+  .callout.info { background: var(--info-soft); }
+  .callout.info .k { color: var(--info); }
+
+  /* Code blocks */
+  .code-wrap {
+    max-width: 40rem;
+    margin: 1.2rem 0 1.6rem;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .code-label {
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: #05070d;
+    color: var(--code-accent);
+    padding: 0.5rem 1rem;
+  }
+  pre {
+    margin: 0;
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 1.1rem 1.2rem;
+    overflow-x: auto;
+    font-family: "SF Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+
+  /* Diagram: outbox flow */
+  .diagram {
+    max-width: 40rem;
+    margin: 1.6rem 0 2rem;
+    padding: 1.5rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-width: 560px;
+  }
+  .node {
+    flex: 1;
+    text-align: center;
+    padding: 0.85rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--paper);
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+    font-size: 0.78rem;
+    color: var(--ink);
+  }
+  .node .sub {
+    display: block;
+    margin-top: 0.25rem;
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.66rem;
+    color: var(--ink-soft);
+  }
+  .arrow {
+    flex: 0 0 auto;
+    width: 2rem;
+    text-align: center;
+    color: var(--accent);
+    font-size: 1.1rem;
+  }
+  .diagram .caption {
+    margin-top: 0.9rem;
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+  }
+
+  /* Topic tree diagram */
+  .topics {
+    max-width: 40rem;
+    margin: 1.6rem 0 2rem;
+    padding: 1.3rem 1.5rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  .topics .row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.35rem 0;
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    border-bottom: 1px dashed var(--line);
+  }
+  .topics .row:last-child { border-bottom: none; }
+  .topics .row .path { color: var(--info); font-weight: 600; }
+  .topics .row .tag {
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+  }
+  .tag.existing { background: var(--info-soft); color: var(--info); }
+  .tag.new { background: var(--accent-soft); color: var(--accent); }
+  .tag.gap { background: var(--warn-soft); color: var(--warn); }
+  .topics .row .desc { color: var(--ink-soft); font-family: ui-serif, Georgia, serif; font-size: 0.85rem; }
+
+  table.matrix {
+    width: 100%;
+    max-width: 40rem;
+    border-collapse: collapse;
+    margin: 1.4rem 0 2rem;
+    font-size: 0.88rem;
+  }
+  table.matrix th, table.matrix td {
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.matrix th {
+    font-family: "Avenir Next", "Century Gothic", "Segoe UI", ui-sans-serif, sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+  }
+
+  footer.colophon {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    font-family: "SF Mono", Consolas, ui-monospace, monospace;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+</style>
+
+<div class="topbar"></div>
+<div class="sheet">
+
+  <header class="masthead">
+    <span class="eyebrow">Propuesta de arquitectura · UCE-BusLink</span>
+    <h1 class="title">Modo Offline-First y notificaciones push en tiempo real</h1>
+    <p class="dek">Diseño de alto nivel para que estudiantes, conductores y administradores sigan operando sin conexión, y para que los cambios de rutas/viajes se propaguen al instante — construido sobre la infraestructura STOMP y de datos que el proyecto ya tiene, no desde cero.</p>
+    <div class="meta-row">
+      <span>Stack&nbsp;objetivo: <b>React&nbsp;19 + Vite</b> / <b>Spring&nbsp;Boot&nbsp;3.2.5</b></span>
+      <span>Módulos&nbsp;afectados: <b>fleet</b>, <b>tracking</b>, <b>shared-kernel</b>, <b>web/desktop/mobile</b></span>
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="summary-cell">
+      <h3>Offline-First</h3>
+      <p>Capa de lectura con caché de <em>TanStack Query</em> (ya usado en el proyecto) persistida en IndexedDB, más una cola de escritura ("outbox") propia con Background Sync. No se necesita una base sincronizada tipo RxDB/WatermelonDB para el alcance actual.</p>
+      <span class="pick">Sin librería de sync pesada</span>
+    </div>
+    <div class="summary-cell">
+      <h3>Push en tiempo real</h3>
+      <p>Reutilizar el <em>broker STOMP</em> que ya corre en <code class="inline">tracking-module</code>. Nuevos eventos de dominio (<code class="inline">RouteChangedEvent</code>, <code class="inline">TripChangedEvent</code>) siguiendo el mismo patrón que ya existe para el GPS, con tópicos segmentados por entidad.</p>
+      <span class="pick">Extender, no reconstruir</span>
+    </div>
+  </div>
+
+  <!-- ============================= PARTE A ============================= -->
+  <section class="part">
+    <div class="part-label">Parte A — 01</div>
+    <h2>Modo Offline-First</h2>
+
+    <h3>Arquitectura de alto nivel</h3>
+    <p>El proyecto ya usa <em>TanStack Query</em> para mutaciones (<code class="inline">useUpdateProfile</code> en <code class="inline">OnboardingModal</code>) y <em>Zod</em> para validar formularios en el frontend web (<code class="inline">route.schema.ts</code>). La propuesta reutiliza ambas piezas en vez de introducir un framework de sincronización nuevo:</p>
+
+    <ul>
+      <li><strong>Capa de lectura (datos de referencia):</strong> rutas, paradas, horarios y el perfil del usuario se sirven con <code class="inline">staleTime</code> largo vía TanStack Query, persistidos en IndexedDB con <code class="inline">@tanstack/query-sync-storage-persister</code> (adaptado a IndexedDB con <code class="inline">idb-keyval</code>). Esto cubre "ver mis rutas/horarios sin conexión" para estudiantes y conductores sin escribir una capa de caché manual.</li>
+      <li><strong>Capa de escritura ("outbox"):</strong> toda acción que muta estado (crear/cancelar una reserva, reportar posición GPS, cambiar el estado de un viaje) se escribe primero en una tabla IndexedDB local <code class="inline">pendingActions</code>, con un <code class="inline">actionId</code> (UUID v4) generado en el cliente. La UI se actualiza de forma optimista de inmediato.</li>
+      <li><strong>Vaciado de la cola:</strong> un Service Worker (Workbox vía <code class="inline">vite-plugin-pwa</code>) usa <em>Background Sync</em> para disparar el envío de <code class="inline">pendingActions</code> en cuanto el navegador detecta conexión. Como Background Sync no existe en iOS Safari, se añade un flush manual al recuperar el foco de la app (<code class="inline">visibilitychange</code>) como respaldo.</li>
+    </ul>
+
+    <div class="diagram">
+      <div class="flow">
+        <div class="node">Acción del usuario<span class="sub">reservar asiento, GPS, etc.</span></div>
+        <div class="arrow">→</div>
+        <div class="node">IndexedDB<span class="sub">pendingActions[]</span></div>
+        <div class="arrow">→</div>
+        <div class="node">Service Worker<span class="sub">Background Sync</span></div>
+        <div class="arrow">→</div>
+        <div class="node">API Spring Boot<span class="sub">valida + Idempotency-Key</span></div>
+      </div>
+      <p class="caption">La UI nunca espera al paso 4: se actualiza de forma optimista al escribir en IndexedDB y se reconcilia cuando el servidor responde.</p>
+    </div>
+
+    <h3>Librerías y patrones recomendados</h3>
+    <table class="matrix">
+      <tr><th>Necesidad</th><th>Elección</th><th>Por qué no la alternativa</th></tr>
+      <tr>
+        <td>Caché de lectura offline</td>
+        <td><code class="inline">@tanstack/react-query</code> + persister IndexedDB</td>
+        <td>Ya está en el proyecto; añadir RxDB/WatermelonDB solo para esto duplica una capa de estado que ya existe.</td>
+      </tr>
+      <tr>
+        <td>Cola de escritura</td>
+        <td>Tabla propia en IndexedDB (<code class="inline">idb</code>) + Service Worker</td>
+        <td>El dominio no necesita replicación bidireccional genérica (no hay edición colaborativa); una cola con reintentos es más simple de auditar y depurar que un motor de sync completo.</td>
+      </tr>
+      <tr>
+        <td>PWA / Service Worker</td>
+        <td><code class="inline">vite-plugin-pwa</code> (Workbox)</td>
+        <td>Integra directo con Vite (ya usado en <code class="inline">uce-buslink-web</code>) y da <code class="inline">StaleWhileRevalidate</code>/<code class="inline">NetworkFirst</code> sin escribir el service worker a mano.</td>
+      </tr>
+      <tr>
+        <td>Validación antes de encolar</td>
+        <td>Zod (<code class="inline">route.schema.ts</code> ya existe)</td>
+        <td>Evita que una acción malformada llegue siquiera a la cola offline.</td>
+      </tr>
+    </table>
+
+    <div class="callout info">
+      <span class="k">Nota de alcance</span>
+      <p>Mobile (React Native/Expo) no tiene IndexedDB ni Service Workers nativos: ahí el mismo patrón de outbox se implementa con <code class="inline">expo-sqlite</code> o <code class="inline">AsyncStorage</code> + un listener de <code class="inline">NetInfo</code> en vez de Background Sync. La forma (cola + reconciliación) es la misma; solo cambia el motor de almacenamiento local.</p>
+    </div>
+
+    <h3>Seguridad: evitar que se sincronicen datos corruptos</h3>
+    <ul>
+      <li><strong>Doble validación:</strong> Zod valida antes de encolar (evita basura local), pero el backend <strong>siempre</strong> revalida con <code class="inline">@Valid</code> al recibir la acción — nunca se confía en que "ya pasó por el cliente".</li>
+      <li><strong>Idempotencia obligatoria:</strong> cada acción en <code class="inline">pendingActions</code> viaja con su <code class="inline">actionId</code> como header <code class="inline">Idempotency-Key</code>. El backend guarda claves procesadas recientemente (Redis, TTL de ~24h) y responde con el resultado ya cacheado si la clave se repite — así una reconexión inestable que reenvía la misma acción dos veces no crea una reserva duplicada.</li>
+      <li><strong>Autenticación fresca antes de vaciar la cola:</strong> el token de Clerk puede expirar mientras el dispositivo estuvo offline. Antes de reproducir el outbox, se refresca el token (<code class="inline">getToken({'{'}template:'uce-buslink'{'}'})</code>); si el refresco falla, la cola se conserva intacta y se le pide al usuario reautenticarse — nunca se reintenta con un token vencido ni se descarta la cola en silencio.</li>
+      <li><strong>Límite de lote:</strong> el endpoint de sincronización acepta como máximo ~50 acciones por llamada (paginado), para que un dispositivo con una cola enorme (o un cliente comprometido) no pueda enviar una ráfaga que sature al backend.</li>
+    </ul>
+
+    <div class="code-wrap">
+      <div class="code-label">pendingActions — forma del registro en IndexedDB</div>
+      <pre>interface PendingAction {
+  actionId: string;        // uuid v4, también viaja como Idempotency-Key
+  type: 'CREATE_RESERVATION' | 'GPS_PING' | 'CANCEL_RESERVATION';
+  payload: unknown;        // validado con Zod antes de insertarse aquí
+  createdAtLocal: string;  // solo para orden en UI, nunca fuente de verdad
+  status: 'pending' | 'syncing' | 'failed';
+  retryCount: number;
+}</pre>
+    </div>
+
+    <h3>Esquema de resolución de conflictos al reconectar</h3>
+    <p>No hace falta un motor de fusión genérico: el dominio ya distingue entre datos de referencia (rutas, paradas) que solo el admin escribe, y acciones puntuales (reservar, reportar GPS) que sí pueden chocar con el estado del servidor.</p>
+
+    <table class="matrix">
+      <tr><th>Escenario</th><th>Regla</th><th>Apoyo existente</th></tr>
+      <tr>
+        <td>Ruta/parada editada por el admin mientras el estudiante estaba offline</td>
+        <td>Gana el servidor. Al reconectar, se invalida la caché de TanStack Query para esa entidad (disparado por el mismo evento WebSocket de la Parte B) y se refresca — el estudiante nunca edita estos datos, así que no hay nada que fusionar.</td>
+        <td>Invalidación por WebSocket (ver Parte B)</td>
+      </tr>
+      <tr>
+        <td>Reserva de asiento encolada offline, pero el asiento ya lo tomó otro pasajero</td>
+        <td>El servidor es la autoridad: la reserva offline se rechaza con un error explícito ("ese asiento ya no está disponible"), se saca de la cola y se le ofrece al usuario elegir otro — nunca se sobrescribe la reserva ajena.</td>
+        <td><code class="inline">@Version</code> ya existe en <code class="inline">ReservationJpaEntity</code>/<code class="inline">SeatJpaEntity</code></td>
+      </tr>
+      <tr>
+        <td>Ráfaga de posiciones GPS encoladas por el conductor tras perder señal</td>
+        <td>Se reproducen en orden por su timestamp local; si el viaje ya terminó o se canceló mientras estaba offline, el backend las descarta silenciosamente (no son datos que un humano deba reconciliar).</td>
+        <td>Idempotencia + estado del viaje ya validado en <code class="inline">TrackingApplicationService</code></td>
+      </tr>
+      <tr>
+        <td>Un admin edita el mismo viaje/ruta desde dos sesiones (borde, poco frecuente)</td>
+        <td>Optimistic locking: la segunda escritura recibe <code class="inline">409 Conflict</code> por choque de <code class="inline">@Version</code>. En vez de fusionar automáticamente, se le pide al admin recargar y reaplicar — es de bajo volumen y alto impacto, mejor con una persona en el loop.</td>
+        <td><code class="inline">@Version</code> ya existe en <code class="inline">TripJpaEntity</code></td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- ============================= PARTE B ============================= -->
+  <section class="part">
+    <div class="part-label">Parte B — 02</div>
+    <h2>Notificaciones push en tiempo real (WebSockets)</h2>
+
+    <h3>Lo que ya existe (y de lo que hay que partir)</h3>
+    <p>El backend ya corre un broker STOMP completo en <code class="inline">tracking-module</code> (<code class="inline">WebSocketConfig</code>, endpoint <code class="inline">/ws/tracking</code>, <code class="inline">JwtChannelInterceptor</code> para autenticar el <em>CONNECT</em>) usado hoy para la posición GPS de los buses. La propuesta es extender ese mismo mecanismo para rutas y viajes, no levantar una segunda infraestructura de mensajería en paralelo.</p>
+
+    <div class="topics">
+      <div class="row"><span class="path">/topic/trip/{'{'}tripId{'}'}/location-update</span><span class="tag existing">existe</span><span class="desc">GPS + ETA de un viaje puntual</span></div>
+      <div class="row"><span class="path">/topic/supervisor/all-buses</span><span class="tag existing">existe</span><span class="desc">snapshot de toda la flota cada 5s</span></div>
+      <div class="row"><span class="path">/topic/routes/{'{'}routeId{'}'}</span><span class="tag new">nuevo</span><span class="desc">ruta creada/editada/desactivada</span></div>
+      <div class="row"><span class="path">/topic/trips/{'{'}tripId{'}'}/state</span><span class="tag new">nuevo</span><span class="desc">viaje reprogramado, cancelado, etc.</span></div>
+    </div>
+
+    <div class="callout warn">
+      <span class="k">Hallazgo al explorar el código</span>
+      <p><code class="inline">SubscriptionSecurityInterceptor</code> hoy solo valida destinos que empiezan con <code class="inline">/topic/trip/</code>. <code class="inline">/topic/supervisor/all-buses</code> no tiene ningún chequeo de rol al suscribirse. Al añadir los tópicos nuevos, conviene cerrar también ese hueco existente — cualquier cliente autenticado puede unirse hoy al feed completo de la flota.</p>
+    </div>
+
+    <h3>Arquitectura: eventos de dominio, no llamadas directas</h3>
+    <p>El proyecto ya tiene el patrón correcto para esto: <code class="inline">GpsLocationReceivedEvent</code> y <code class="inline">BusApproachingEvent</code> se publican como eventos de Spring (<code class="inline">ApplicationEventPublisher</code>) en vez de que <code class="inline">tracking-module</code> llame directo a otros módulos. Se propone lo mismo para rutas y viajes:</p>
+
+    <div class="code-wrap">
+      <div class="code-label">shared-kernel — nuevos eventos de dominio</div>
+      <pre>public record RouteChangedEvent(UUID routeId, RouteChangeType type) {}
+public record TripChangedEvent(UUID tripId, UUID routeId, TripChangeType type) {}
+
+public enum RouteChangeType { CREATED, UPDATED, STATUS_CHANGED }
+public enum TripChangeType  { CREATED, UPDATED, STATE_CHANGED, CANCELLED }</pre>
+    </div>
+
+    <div class="diagram">
+      <div class="flow">
+        <div class="node">RouteController<span class="sub">fleet-module</span></div>
+        <div class="arrow">→</div>
+        <div class="node">ManageRouteUseCase<span class="sub">persiste + publica evento</span></div>
+        <div class="arrow">→</div>
+        <div class="node">@EventListener<span class="sub">nuevo, en tracking-module</span></div>
+        <div class="arrow">→</div>
+        <div class="node">SimpMessagingTemplate<span class="sub">/topic/routes/{'{'}id{'}'}</span></div>
+      </div>
+      <p class="caption"><code class="inline">fleet-module</code> no depende de la infraestructura de mensajería: solo publica un evento de Spring. Quien sabe convertirlo en STOMP es un listener nuevo, siguiendo la separación que ya existe para el GPS.</p>
+    </div>
+
+    <h3>Cómo evitar saturar el servidor</h3>
+    <ul>
+      <li><strong>Tópicos segmentados, no un solo canal global.</strong> Un estudiante suscrito a <code class="inline">/topic/routes/{'{'}routeId{'}'}</code> de su ruta habitual no recibe cambios de las otras 30 rutas — el broker STOMP en memoria ya soporta esto sin trabajo extra.</li>
+      <li><strong>Un evento por operación, no por campo.</strong> El wizard de "Crear Nueva Ruta" tiene 3 pasos; el evento <code class="inline">RouteChangedEvent</code> se publica una sola vez, al confirmar el paso final (<code class="inline">createRoute</code>/<code class="inline">updateRoute</code>), no en cada tecla del formulario.</li>
+      <li><strong>Reusar el heartbeat ya configurado</strong> (30s/30s en <code class="inline">WebSocketConfig</code>) en vez de que cada cliente haga polling — esto ya está resuelto en el proyecto, solo hay que no reintroducir polling en los nuevos flujos.</li>
+      <li><strong>El volumen es bajo por naturaleza:</strong> solo administradores escriben rutas/viajes, así que a diferencia del GPS (que llega varias veces por segundo por bus), este canal emite eventos esporádicos — no necesita throttling adicional.</li>
+    </ul>
+
+    <h3>Escalar a más de una instancia de backend</h3>
+    <p>Hoy el broker STOMP es <code class="inline">enableSimpleBroker</code> — vive en memoria de una sola instancia de la JVM. Si el backend corre en más de un contenedor (por ejemplo detrás de un load balancer en QA/producción), un cliente conectado a la instancia A nunca ve un evento publicado desde la instancia B.</p>
+
+    <div class="callout note">
+      <span class="k">Recomendación</span>
+      <p>El proyecto ya usa Redis (hoy solo como caché key-value en <code class="inline">TrackingRedisConfig</code>). Se propone añadir un canal de <em>Redis Pub/Sub</em>: cada instancia publica el evento tanto a su <code class="inline">SimpMessagingTemplate</code> local como a un canal Redis; un <code class="inline">RedisMessageListenerContainer</code> en cada instancia escucha ese canal y reenvía a sus propios clientes STOMP. Es la opción más barata de operar frente a introducir un broker externo completo (RabbitMQ/ActiveMQ) cuando ya se paga por Redis en la infraestructura actual.</p>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <span>UCE-BusLink — nota técnica interna</span>
+    <span>Construido sobre: WebSocketConfig, TrackingRedisConfig, ManageRouteUseCase/ManageTripUseCase existentes</span>
+  </footer>
+
+</div>

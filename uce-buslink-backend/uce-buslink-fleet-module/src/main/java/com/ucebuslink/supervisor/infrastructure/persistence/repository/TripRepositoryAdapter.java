@@ -28,49 +28,49 @@ public class TripRepositoryAdapter implements TripRepository {
 
     @Override
     public Trip save(Trip trip) {
-        log.debug("[FLEET-TRIP] Guardando viaje. Estado actual: {}, Bus ID: {}, Ruta ID: {}", 
+        log.debug("[FLEET-TRIP] Saving trip. Current state: {}, Bus ID: {}, Route ID: {}",
                 trip.getState(), trip.getBusId(), trip.getRouteId());
-        
+
         TripJpaEntity entity = mapper.toJpa(trip);
         TripJpaEntity savedEntity = jpaRepository.save(entity);
-        
-        log.info("[FLEET-TRIP] Viaje guardado exitosamente con ID: {}", savedEntity.getId());
+
+        log.info("[FLEET-TRIP] Trip successfully saved with ID: {}", savedEntity.getId());
         return mapper.toDomain(savedEntity);
     }
 
     @Override
     public Optional<Trip> findById(UUID id) {
-        log.debug("[FLEET-TRIP] Buscando viaje por ID: {}", id);
+        log.debug("[FLEET-TRIP] Looking up trip by ID: {}", id);
         return jpaRepository.findById(id).map(mapper::toDomain);
     }
 
     @Override
     public Optional<Trip> findByIdWithLock(UUID id) {
-        log.debug("[FLEET-TRIP] Buscando viaje por ID con bloqueo: {}", id);
+        log.debug("[FLEET-TRIP] Looking up trip by ID with lock: {}", id);
         return jpaRepository.findByIdWithPessimisticLock(id).map(mapper::toDomain);
     }
 
     @Override
     public Page<Trip> findAll(Pageable pageable) {
-        log.debug("[FLEET-TRIP] Consultando viajes paginados: página {}, tamaño {}", pageable.getPageNumber(), pageable.getPageSize());
+        log.debug("[FLEET-TRIP] Querying paginated trips: page {}, size {}", pageable.getPageNumber(), pageable.getPageSize());
         return jpaRepository.findAll(pageable).map(mapper::toDomain);
     }
 
     @Override
     public Page<Trip> findByState(TripState state, Pageable pageable) {
-        log.debug("[FLEET-TRIP] Consultando viajes por estado {}: página {}, tamaño {}", state, pageable.getPageNumber(), pageable.getPageSize());
+        log.debug("[FLEET-TRIP] Querying trips by state {}: page {}, size {}", state, pageable.getPageNumber(), pageable.getPageSize());
         return jpaRepository.findByState(state, pageable).map(mapper::toDomain);
     }
 
     @Override
     public Page<Trip> findByRouteId(UUID routeId, Pageable pageable) {
-        log.debug("[FLEET-TRIP] Consultando viajes de la ruta {}: página {}, tamaño {}", routeId, pageable.getPageNumber(), pageable.getPageSize());
+        log.debug("[FLEET-TRIP] Querying trips for route {}: page {}, size {}", routeId, pageable.getPageNumber(), pageable.getPageSize());
         return jpaRepository.findByRouteId(routeId, pageable).map(mapper::toDomain);
     }
 
     @Override
     public Page<Trip> findByDriverId(UUID driverId, Pageable pageable) {
-        log.debug("[FLEET-TRIP] Consultando viajes del conductor {}: página {}, tamaño {}", driverId, pageable.getPageNumber(), pageable.getPageSize());
+        log.debug("[FLEET-TRIP] Querying trips for driver {}: page {}, size {}", driverId, pageable.getPageNumber(), pageable.getPageSize());
         return jpaRepository.findByDriverId(driverId, pageable).map(mapper::toDomain);
     }
 
@@ -81,6 +81,6 @@ public class TripRepositoryAdapter implements TripRepository {
 
         return jpaRepository
                 .findByDriverIdAndDepartureTimeBetweenOrderByDepartureTimeAsc(driverId, startOfDay, endOfDay, pageable)
-                .map(mapper::toDomain); // Transforma directamente los elementos de la página
+                .map(mapper::toDomain); // Directly transforms the page elements
     }
 }

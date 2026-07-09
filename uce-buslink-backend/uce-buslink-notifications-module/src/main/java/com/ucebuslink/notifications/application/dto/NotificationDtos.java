@@ -7,8 +7,8 @@ import jakarta.validation.constraints.NotNull;
 public class NotificationDtos {
 
     public record RegisterDeviceRequest(
-            @NotBlank(message = "El token FCM no puede estar vacío") String fcmToken,
-            @NotNull(message = "La plataforma es obligatoria") Platform platform
+            @NotBlank(message = "The FCM token cannot be empty") String fcmToken,
+            @NotNull(message = "Platform is required") Platform platform
     ) {}
 
     public record UpdatePreferencesRequest(

@@ -28,6 +28,7 @@ import { DriverTripDetailPage } from './pages/driver/DriverTripDetailPage'
 
 import { SignInPage } from './pages/auth/SignInPage'
 import { SignUpPage } from './pages/auth/SignUpPage'
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { LandingPage } from './pages/LandingPage'
 
 import { useCurrentUser } from './context/AuthContext'
@@ -96,6 +97,7 @@ export default function App() {
         {/* AUTH */}
         <Route path="/login/*" element={<SignInPage />} />
         <Route path="/register/*" element={<SignUpPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* PRIVATE */}
         <Route

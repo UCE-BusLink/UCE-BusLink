@@ -66,7 +66,7 @@ public class BusApplicationService implements ManageBusUseCase {
     @Transactional(readOnly = true)
     public BusResponse getBusById(UUID id) {
         Bus bus = busRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bus not found with id: " + id)); // Idealmente, usar una custom exception
+                .orElseThrow(() -> new RuntimeException("Bus not found with id: " + id)); // Ideally, use a custom exception
         return mapToResponse(bus);
     }
 
@@ -99,7 +99,7 @@ public class BusApplicationService implements ManageBusUseCase {
         bus.setSeatCapacity(command.seatCapacity());
         bus.setManufacturer(command.manufacturer());
         bus.setModel(command.model());
-        // bus.setManufacturingYear(command.manufacturingYear()); // Si añadiste el setter en la US anterior
+        // bus.setManufacturingYear(command.manufacturingYear()); // If the setter was added in the previous user story
 
         return mapToResponse(busRepository.save(bus));
     }

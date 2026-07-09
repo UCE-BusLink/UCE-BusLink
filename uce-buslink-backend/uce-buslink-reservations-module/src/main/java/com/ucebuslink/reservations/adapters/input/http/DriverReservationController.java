@@ -2,6 +2,7 @@ package com.ucebuslink.reservations.adapters.input.http;
 
 import com.ucebuslink.reservations.application.dto.DriverPassengerResponse;
 import com.ucebuslink.reservations.application.service.ReservationApplicationService;
+import com.ucebuslink.shared.security.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,9 +34,9 @@ public class DriverReservationController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
             
-        UUID driverId = (UUID) authentication.getDetails();
+        UUID driverId = CurrentUserProvider.requireUserId(authentication);
         
-        log.info("[REST-DRIVER] Solicitud GET recibida para listar pasajeros. TripID: {}, DriverID: {}, Page: {}, Size: {}", 
+        log.info("[REST-DRIVER] GET request received to list passengers. TripID: {}, DriverID: {}, Page: {}, Size: {}",
                 tripId, driverId, page, size);
         
         Page<DriverPassengerResponse> response = reservationApplicationService.getReservationsByTripForDriver(tripId, driverId, page, size);

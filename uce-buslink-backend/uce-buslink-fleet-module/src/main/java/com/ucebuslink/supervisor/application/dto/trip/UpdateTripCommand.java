@@ -6,16 +6,16 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record UpdateTripCommand(
-    @NotNull(message = "El ID de la ruta es obligatorio") 
+    @NotNull(message = "The route ID is required")
     UUID routeId,
-    
-    @NotNull(message = "El ID del bus es obligatorio") 
+
+    @NotNull(message = "The bus ID is required")
     UUID busId,
-    
-    @NotNull(message = "El ID del conductor es obligatorio") 
+
+    @NotNull(message = "The driver ID is required")
     UUID driverId,
-    
-    @NotNull(message = "La hora de salida es obligatoria") 
-    @Future(message = "La hora de salida debe ser en el futuro") 
+
+    @NotNull(message = "The departure time is required")
+    @Future(message = "The departure time must be in the future")
     LocalDateTime departureTime
 ) {}

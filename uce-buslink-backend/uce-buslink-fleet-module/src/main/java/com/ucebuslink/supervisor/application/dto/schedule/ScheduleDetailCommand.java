@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.Set;
 
 public record ScheduleDetailCommand(
-    @NotNull(message = "El tipo de horario es obligatorio")
+    @NotNull(message = "Schedule type is required")
     ScheduleType type,
 
-    @NotEmpty(message = "Debe especificar al menos un día de la semana")
+    @NotEmpty(message = "At least one day of the week must be specified")
     Set<DayOfWeek> daysOfWeek,
 
     List<LocalTime> fixedDepartureTimes,

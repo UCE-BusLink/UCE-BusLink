@@ -5,17 +5,19 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record CreateDriverRequest(
-    @NotBlank(message = "Los nombres son obligatorios")
+    // Field names kept in Spanish (nombres/apellidos): renaming them would break the
+    // frontend contract, which sends the request body with these exact JSON keys.
+    @NotBlank(message = "First name is required")
     String nombres,
 
-    @NotBlank(message = "Los apellidos son obligatorios")
+    @NotBlank(message = "Last name is required")
     String apellidos,
 
-    @NotBlank(message = "El correo es obligatorio")
-    @Email(message = "Formato de correo inválido")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
     String email,
 
-    @NotBlank(message = "La contraseña temporal es obligatoria")
-    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    @NotBlank(message = "Temporary password is required")
+    @Size(min = 6, message = "Password must be at least 6 characters long")
     String password
 ) {}

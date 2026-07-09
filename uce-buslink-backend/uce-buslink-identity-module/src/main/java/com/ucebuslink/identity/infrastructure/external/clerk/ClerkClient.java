@@ -48,14 +48,14 @@ public class ClerkClient {
                 return clerkId;
             }
             
-            // HTTP 200 sin ID
+            // HTTP 200 without ID
             log.error("[CLERK] Invalid response payload from Clerk. Missing 'id' for email: {}", email);
-            throw new RuntimeException("Respuesta inválida de Clerk al crear conductor");
-            
+            throw new RuntimeException("Invalid response from Clerk when creating driver");
+
         } catch (Exception e) {
-            // CRÍTICO
+            // CRITICAL
             log.error("[CLERK] Critical network/API error communicating with Clerk for email {}: ", email, e);
-            throw new RuntimeException("Error comunicándose con la API de Clerk: " + e.getMessage());
+            throw new RuntimeException("Error communicating with the Clerk API: " + e.getMessage());
         }
     }
 }

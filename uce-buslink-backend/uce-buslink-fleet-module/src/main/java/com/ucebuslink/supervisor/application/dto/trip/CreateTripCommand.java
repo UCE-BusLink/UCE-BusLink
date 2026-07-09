@@ -7,15 +7,15 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateTripCommand(
-    @NotNull(message = "El ID de la ruta es obligatorio") 
+    @NotNull(message = "The route ID is required")
     UUID routeId,
-    
-    @NotNull(message = "El ID del bus es obligatorio") 
+
+    @NotNull(message = "The bus ID is required")
     UUID busId,
-    
-    @NotNull(message = "El ID del conductor es obligatorio") 
+
+    @NotNull(message = "The driver ID is required")
     UUID driverId,
-    
-    @NotEmpty(message = "Debe enviar al menos una fecha y hora de salida")
+
+    @NotEmpty(message = "At least one departure date and time must be sent")
     List<LocalDateTime> departures
 ) {}

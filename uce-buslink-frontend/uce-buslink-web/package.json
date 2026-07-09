@@ -4,8 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run build:wasm",
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run build:wasm && tsc -b && vite build",
+    "build:wasm": "asc wasm/geo.ts --outFile src/wasm/geo.wasm --optimize --noAssert",
     "lint": "eslint . || true",
     "preview": "vite preview"
   },
@@ -26,7 +28,9 @@
     "react-leaflet": "^5.0.0",
     "react-qr-code": "^2.2.0",
     "react-router-dom": "^7.15.1",
-    "recharts": "^3.9.0"
+    "recharts": "^3.9.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -36,6 +40,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "assemblyscript": "^0.27.37",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

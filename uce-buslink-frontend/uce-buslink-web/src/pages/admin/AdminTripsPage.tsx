@@ -12,6 +12,8 @@ import {
 } from '../../services/adminService';
 import { fetchRoutes } from '../../services/routeService';
 import type { ApiTrip, ApiRoute } from '../../types';
+import { tripEntitiesFormSchema, createTripFormSchema } from '../../schemas/trip.schema';
+import { getFieldErrors } from '../../schemas/common';
 
 const STATE_STYLES: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 text-blue-700',
@@ -68,6 +70,7 @@ export function AdminTripsPage() {
   const [saving, setSaving] = useState(false);
   const [fetchingSchedules, setFetchingSchedules] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Paso 1: Entidades
   const [routeId, setRouteId] = useState('');
@@ -162,14 +165,18 @@ export function AdminTripsPage() {
     setRouteTimesByDayEnum({});
     setSelectedDateIso('');
     setSaveError(null);
+    setFieldErrors({});
   }
 
   // --- TRANSICIÓN AL PASO 2 Y PETICIÓN DE HORARIOS ---
   async function handleNextToStep2() {
-    if (!routeId || !busId || !driverId) {
+    const result = tripEntitiesFormSchema.safeParse({ routeId, busId, driverId });
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
       setSaveError('Por favor, selecciona la ruta, el bus y el conductor para continuar.');
       return;
     }
+    setFieldErrors({});
     setSaveError(null);
     setFetchingSchedules(true);
 
@@ -254,24 +261,27 @@ export function AdminTripsPage() {
     setSaveError(null);
 
     // Formatear los bloques a ISO Strings
-    const validDepartures: string[] = [];
+    const departures: string[] = [];
     Object.entries(scheduleBlocks).forEach(([dateIso, times]) => {
       times.forEach(t => {
         const fullTime = t.length <= 5 ? `${t}:00` : t;
-        validDepartures.push(`${dateIso}T${fullTime}`);
+        departures.push(`${dateIso}T${fullTime}`);
       });
     });
 
-    if (validDepartures.length === 0) {
-      setSaveError('Debes seleccionar al menos un horario de salida en alguno de los días.');
+    const result = createTripFormSchema.safeParse({ routeId, busId, driverId, departures });
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
+      setSaveError(getFieldErrors(result.error).departures ?? 'Revisa los horarios seleccionados.');
       return;
     }
+    setFieldErrors({});
 
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
 
     setSaving(true);
-    await createTrip(token, { routeId, busId, driverId, departures: validDepartures })
+    await createTrip(token, result.data)
       .then(() => { closeForm(); refetch(); })
       .catch((err) => setSaveError(err instanceof Error ? err.message : 'No se pudo crear el viaje. Verifica los datos e intenta de nuevo.'))
       .finally(() => setSaving(false));
@@ -459,6 +469,7 @@ export function AdminTripsPage() {
                         <option key={r.id} value={r.id}>{r.name}</option>
                       ))}
                     </select>
+                    {fieldErrors.routeId && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.routeId}</p>}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -476,6 +487,7 @@ export function AdminTripsPage() {
                           <option key={b.id} value={b.id}>{b.internalCode} · {b.plateNumber}</option>
                         ))}
                       </select>
+                      {fieldErrors.busId && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.busId}</p>}
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
@@ -491,6 +503,7 @@ export function AdminTripsPage() {
                           <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
                         ))}
                       </select>
+                      {fieldErrors.driverId && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.driverId}</p>}
                     </div>
                   </div>
                 </div>

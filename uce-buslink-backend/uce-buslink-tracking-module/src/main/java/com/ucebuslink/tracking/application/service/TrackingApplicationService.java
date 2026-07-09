@@ -30,7 +30,7 @@ public class TrackingApplicationService {
     private final ApplicationEventPublisher eventPublisher;
 
     public void processGpsUpdate(GpsUpdatePayload payload, String driverId) {
-        log.debug("[TRACKING] Procesando actualización GPS del bus {} enviada por conductor {}", payload.busId(), driverId);
+        log.debug("[TRACKING] Processing GPS update for bus {} sent by driver {}", payload.busId(), driverId);
 
         BusLocation location = new BusLocation(
                 payload.busId(),
@@ -57,7 +57,7 @@ public class TrackingApplicationService {
                 payload.velocity()
         ));
 
-        // 2. Calcular ETA con Haversine
+        // 2. Calculate ETA using Haversine
         double[] nextStopCoords = trackingQueryPort.getNextStopCoordinates(activeTripId);
         String nextStopName = trackingQueryPort.getNextStopName(activeTripId);
         int eta = 99;
@@ -86,15 +86,15 @@ public class TrackingApplicationService {
             }
         }
 
-        // 3. Crear el JSON ultra-ligero para los celulares
+        // 3. Build the ultra-lightweight JSON for mobile phones
         LocationBroadcastPayload broadcast = new LocationBroadcastPayload(
                 payload.busId(), activeTripId, payload.latitude(), 
                 payload.longitude(), payload.velocity(), eta, nextStopName
         );
 
-        // 4. Emitir el mensaje al tópico específico de este viaje
+        // 4. Emit the message to this trip's specific topic
         String destination = "/topic/trip/" + activeTripId + "/location-update";
         messagingTemplate.convertAndSend(destination, broadcast);
-        log.trace("[TRACKING] Broadcast enviado a {}", destination);
+        log.trace("[TRACKING] Broadcast sent to {}", destination);
     }
 }

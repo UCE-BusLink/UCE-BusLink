@@ -5,11 +5,11 @@ import java.util.UUID;
 import jakarta.validation.constraints.NotNull;
 
 public record CreateReservationRequest(
-    @NotNull(message = "El ID del viaje es obligatorio")
+    @NotNull(message = "Trip ID is required")
     UUID tripId,
-    
+
     UUID seatId,
 
-    @NotNull(message = "El ID de la parada de abordaje es obligatorio")
+    @NotNull(message = "Boarding stop ID is required")
     UUID boardingStopId
 ) {}

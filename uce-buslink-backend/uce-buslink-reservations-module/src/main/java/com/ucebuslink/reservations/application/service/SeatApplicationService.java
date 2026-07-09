@@ -26,7 +26,7 @@ public class SeatApplicationService {
 
     @Transactional
     public void generateSeatsForTrip(UUID tripId, Integer capacity) {
-        log.info("[RESERVATIONS] Generando {} asientos físicos para el Viaje ID: {}", capacity, tripId);
+        log.info("[RESERVATIONS] Generating {} physical seats for Trip ID: {}", capacity, tripId);
         
         List<Seat> seatsToCreate = new ArrayList<>();
         for (int i = 1; i <= capacity; i++) {
@@ -34,12 +34,12 @@ public class SeatApplicationService {
         }
         
         seatRepository.saveAll(seatsToCreate);
-        log.info("[RESERVATIONS] Asientos generados exitosamente para el Viaje ID: {}", tripId);
+        log.info("[RESERVATIONS] Seats successfully generated for Trip ID: {}", tripId);
     }
 
     @Transactional(readOnly = true)
     public List<SeatResponse> getSeatsByTrip(UUID tripId) {
-        log.debug("[RESERVATIONS] Consultando mapa de asientos para el Viaje ID: {}", tripId);
+        log.debug("[RESERVATIONS] Querying seat map for Trip ID: {}", tripId);
         return seatRepository.findByTripId(tripId).stream()
                 .map(seat -> new SeatResponse(
                         seat.getId(),
@@ -53,7 +53,7 @@ public class SeatApplicationService {
     @Transactional(readOnly = true)
     public Page<SeatResponse> getSeatsByTrip(UUID tripId, SeatState state, Pageable pageable) {
 
-        log.debug("[RESERVATIONS] Consultando mapa de asientos para el Viaje ID: {}", tripId);
+        log.debug("[RESERVATIONS] Querying seat map for Trip ID: {}", tripId);
 
         Page<Seat> seats = state == null
                 ? seatRepository.findByTripId(tripId, pageable)
