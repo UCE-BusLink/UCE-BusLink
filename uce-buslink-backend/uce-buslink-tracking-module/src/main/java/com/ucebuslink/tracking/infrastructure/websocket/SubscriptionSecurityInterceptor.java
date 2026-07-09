@@ -46,18 +46,16 @@ public class SubscriptionSecurityInterceptor implements ChannelInterceptor {
                 // If not an administrator, we validate that they have an actual reservation in the reservations module
                 if (!isAdminOrSupervisor) {
                     UUID tripId;
-                    UUID userId;
                     try {
                         // Extract the tripId from the URL "/topic/trip/1234.../location-update"
                         String[] parts = destination.split("/");
                         tripId = UUID.fromString(parts[3]);
-                        userId = (UUID) userAuth.getDetails();
                     } catch (Exception e) {
                         log.error("[WEBSOCKET-SECURITY] Error parsing the subscription: {}", destination);
                         throw new IllegalArgumentException("Invalid subscription destination.");
                     }
 
-                    if (userId == null) {
+                    if (!(userAuth.getDetails() instanceof UUID userId)) {
                         throw new IllegalArgumentException("User not synchronized.");
                     }
 

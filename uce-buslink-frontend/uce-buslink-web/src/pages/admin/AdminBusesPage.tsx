@@ -6,6 +6,8 @@ import {
 } from '../../services/adminService';
 import { useRoutes } from '../../hooks/useRoutes';
 import dayjs from 'dayjs';
+import { busFormSchema } from '../../schemas/bus.schema';
+import { getFieldErrors } from '../../schemas/common';
 
 const EMPTY_FORM = {
   plateNumber: '',
@@ -38,6 +40,7 @@ export function AdminBusesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Filters & Pagination
   const [search, setSearch] = useState('');
@@ -82,6 +85,7 @@ export function AdminBusesPage() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setSaveError(null);
+    setFieldErrors({});
     setShowForm(true);
   }
 
@@ -96,6 +100,7 @@ export function AdminBusesPage() {
       operationalStatus: bus.operationalStatus,
     });
     setSaveError(null);
+    setFieldErrors({});
     setShowForm(true);
   }
 
@@ -104,29 +109,32 @@ export function AdminBusesPage() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setSaveError(null);
+    setFieldErrors({});
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaveError(null);
+
+    const result = busFormSchema.safeParse(form);
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
+      return;
+    }
+    setFieldErrors({});
+
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
     setSaving(true);
     try {
-      const data = {
-        plateNumber: form.plateNumber.trim(),
-        internalCode: form.internalCode.trim(),
-        seatCapacity: Number(form.seatCapacity),
-        manufacturer: form.manufacturer.trim(),
-        model: form.model.trim(),
-      };
+      const { operationalStatus, ...data } = result.data;
       if (editing) {
         await updateBus(token, editing.id, data);
-        if (form.operationalStatus !== editing.operationalStatus) {
-          await changeBusStatus(token, editing.id, form.operationalStatus);
+        if (operationalStatus !== editing.operationalStatus) {
+          await changeBusStatus(token, editing.id, operationalStatus);
         }
       } else {
-        await createBus(token, { ...data, operationalStatus: form.operationalStatus });
+        await createBus(token, { ...data, operationalStatus });
       }
       closeForm();
       refresh();
@@ -422,6 +430,7 @@ export function AdminBusesPage() {
                     placeholder="PXX-0001"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.plateNumber && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.plateNumber}</p>}
                 </div>
                 <div>
                   <label htmlFor="bus-code" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -437,6 +446,7 @@ export function AdminBusesPage() {
                     placeholder="BUS-001"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.internalCode && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.internalCode}</p>}
                 </div>
               </div>
 
@@ -455,6 +465,7 @@ export function AdminBusesPage() {
                     placeholder="Volkswagen"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.manufacturer && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.manufacturer}</p>}
                 </div>
                 <div>
                   <label htmlFor="bus-model" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -470,6 +481,7 @@ export function AdminBusesPage() {
                     placeholder="Volksbus"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.model && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.model}</p>}
                 </div>
               </div>
 
@@ -489,6 +501,7 @@ export function AdminBusesPage() {
                     placeholder="30"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.seatCapacity && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.seatCapacity}</p>}
                 </div>
                 <div>
                   <label htmlFor="bus-status" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -505,6 +518,7 @@ export function AdminBusesPage() {
                     <option value="MAINTENANCE">Mantenimiento</option>
                     <option value="OUT_OF_SERVICE">Fuera de servicio</option>
                   </select>
+                  {fieldErrors.operationalStatus && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.operationalStatus}</p>}
                 </div>
               </div>
 

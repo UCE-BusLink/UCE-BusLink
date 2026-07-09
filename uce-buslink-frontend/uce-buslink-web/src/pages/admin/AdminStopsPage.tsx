@@ -5,6 +5,8 @@ import {
   fetchStops, createStop, updateStop, deleteStop, toggleStopStatus, type ApiStop,
 } from '../../services/adminService';
 import { useRoutes } from '../../hooks/useRoutes';
+import { stopFormSchema } from '../../schemas/stop.schema';
+import { getFieldErrors } from '../../schemas/common';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -78,6 +80,7 @@ export function AdminStopsPage() {
   const [formLng, setFormLng] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function load() {
@@ -107,6 +110,7 @@ export function AdminStopsPage() {
     setFormLat('');
     setFormLng('');
     setFormError(null);
+    setFieldErrors({});
     setShowModal(true);
   }
 
@@ -116,6 +120,7 @@ export function AdminStopsPage() {
     setFormLat(String(stop.latitude));
     setFormLng(String(stop.longitude));
     setFormError(null);
+    setFieldErrors({});
     setShowModal(true);
   }
 
@@ -123,23 +128,25 @@ export function AdminStopsPage() {
     setShowModal(false);
     setEditing(null);
     setFormError(null);
+    setFieldErrors({});
   }
 
   async function handleSave() {
-    if (!formName || !formLat || !formLng) {
-      setFormError('Completa todos los campos.');
+    setFormError(null);
+    const result = stopFormSchema.safeParse({ name: formName, latitude: formLat, longitude: formLng });
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
       return;
     }
+    setFieldErrors({});
     setSaving(true);
-    setFormError(null);
     try {
       const token = await getToken({ template: 'uce-buslink' });
       if (!token) throw new Error('No autorizado');
-      const payload = { name: formName, latitude: parseFloat(formLat), longitude: parseFloat(formLng) };
       if (editing) {
-        await updateStop(token, editing.id, payload);
+        await updateStop(token, editing.id, result.data);
       } else {
-        await createStop(token, payload);
+        await createStop(token, result.data);
       }
       closeModal();
       refresh();
@@ -433,6 +440,7 @@ export function AdminStopsPage() {
                     placeholder="Ej. Puerta Principal UCE"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.name && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.name}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -446,6 +454,7 @@ export function AdminStopsPage() {
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
                       placeholder="Clic en mapa"
                     />
+                    {fieldErrors.latitude && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.latitude}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -458,6 +467,7 @@ export function AdminStopsPage() {
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
                       placeholder="Clic en mapa"
                     />
+                    {fieldErrors.longitude && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.longitude}</p>}
                   </div>
                 </div>
                 {formError && (

@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
+import com.ucebuslink.shared.security.CurrentUserProvider;
 import com.ucebuslink.supervisor.application.dto.trip.TripResponse;
 import com.ucebuslink.supervisor.application.usecase.ManageTripUseCase; // Or a dedicated use case for the driver
 import lombok.RequiredArgsConstructor;
@@ -33,7 +34,7 @@ public class DriverTripController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
             
-        UUID driverId = (UUID) authentication.getDetails();
+        UUID driverId = CurrentUserProvider.requireUserId(authentication);
         LocalDate today = LocalDate.now();
         
         log.info("[REST-DRIVER] GET request received to list today's trips. DriverID: {}, Date: {}, Page: {}, Size: {}",
@@ -51,7 +52,7 @@ public class DriverTripController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
             
-        UUID driverId = (UUID) authentication.getDetails();
+        UUID driverId = CurrentUserProvider.requireUserId(authentication);
         
         log.info("[REST-DRIVER] GET request received for full trip history. DriverID: {}, Page: {}, Size: {}",
                 driverId, page, size);
