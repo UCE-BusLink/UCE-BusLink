@@ -4,19 +4,19 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Puerto de salida. Los módulos Fleet y Reservations deberán implementar 
- * esta interfaz para responderle a Tracking sin acoplar las bases de datos.
+ * Output port. The Fleet and Reservations modules must implement
+ * this interface to respond to Tracking without coupling the databases.
  */
 public interface TrackingQueryPort {
-    
-    // Le pregunta al Fleet Module: "¿Qué viaje está haciendo este bus ahora mismo?"
+
+    // Asks the Fleet Module: "What trip is this bus doing right now?"
     UUID getActiveTripIdByBus(UUID busId);
-    
-    // Le pregunta al Reservations Module: "¿Este estudiante tiene reserva activa en este viaje?"
+
+    // Asks the Reservations Module: "Does this student have an active reservation on this trip?"
     boolean hasActiveReservation(UUID userId, UUID tripId);
-    
-    // Simplificación para el Haversine (Se podría traer el objeto completo de la parada)
-    // Devuelve un array: [latitud, longitud] de la próxima parada, o null si no hay.
+
+    // Simplification for the Haversine formula (the full stop object could be brought instead)
+    // Returns an array: [latitude, longitude] of the next stop, or null if there isn't one.
     double[] getNextStopCoordinates(UUID tripId);
     String getNextStopName(UUID tripId);
 

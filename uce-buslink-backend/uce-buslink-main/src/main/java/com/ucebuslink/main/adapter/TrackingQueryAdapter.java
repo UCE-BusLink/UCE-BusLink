@@ -13,7 +13,7 @@ import java.util.UUID;
 
 /**
  * Adaptador de Arquitectura Hexagonal.
- * Vive en el módulo Main porque es el único que importa a todos los demás módulos.
+ * Lives in the Main module because it is the only one that imports all the other modules.
  * Implementa el puerto de Tracking y delega las consultas a Fleet y Reservations.
  */
 @Slf4j
@@ -68,7 +68,7 @@ public class TrackingQueryAdapter implements TrackingQueryPort {
 
     @Override
     public List<UUID> getUnboardedStudentIdsByTrip(UUID tripId) {
-        // Delegamos la llamada real al módulo de reservas
+        // We delegate the actual call to the reservations module
         return reservationApplicationService.getUnboardedStudentIdsByTrip(tripId);
     }
 

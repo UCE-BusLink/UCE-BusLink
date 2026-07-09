@@ -36,19 +36,19 @@ public class NotificationApplicationService {
 
     @Transactional
     public DeviceToken registerDevice(UUID userId, RegisterDeviceRequest request) {
-        log.info("[NOTIFICATIONS] Registrando dispositivo {} para el usuario {}", request.platform(), userId);
+        log.info("[NOTIFICATIONS] Registering device {} for user {}", request.platform(), userId);
 
-        // Validar si el token ya existe según regla de negocio
+        // Validate whether the token already exists according to business rule
         return deviceTokenRepository.findByFcmToken(request.fcmToken())
                 .map(existingToken -> {
-                    log.debug("[NOTIFICATIONS] Token existente, actualizando timestamp de actividad.");
+                    log.debug("[NOTIFICATIONS] Existing token, updating activity timestamp.");
                     existingToken.updateActivity();
-                    // Si el token cambió de dueño (raro pero posible si cambian de cuenta en el mismo celular)
+                    // If the token changed owner (rare but possible if they switch accounts on the same phone)
                     existingToken.setUserId(userId); 
                     return deviceTokenRepository.save(existingToken);
                 })
                 .orElseGet(() -> {
-                    log.debug("[NOTIFICATIONS] Creando nuevo registro de dispositivo.");
+                    log.debug("[NOTIFICATIONS] Creating new device registration.");
                     DeviceToken newToken = DeviceToken.createNew(userId, request.fcmToken(), request.platform());
                     return deviceTokenRepository.save(newToken);
                 });
@@ -56,7 +56,7 @@ public class NotificationApplicationService {
 
     @Transactional
     public NotificationPreference updatePreferences(UUID userId, UpdatePreferencesRequest request) {
-        log.info("[NOTIFICATIONS] Actualizando preferencias para el usuario {}", userId);
+        log.info("[NOTIFICATIONS] Updating preferences for user {}", userId);
 
         NotificationPreference prefs = preferenceRepository.findByUserId(userId)
                 .orElseGet(() -> NotificationPreference.defaultPreferences(userId));
@@ -87,7 +87,7 @@ public class NotificationApplicationService {
 
     @Transactional
     public void unregisterDevice(String fcmToken) {
-        log.info("[NOTIFICATIONS] Eliminando registro del dispositivo con token {}", fcmToken);
+        log.info("[NOTIFICATIONS] Removing device registration with token {}", fcmToken);
         deviceTokenRepository.findByFcmToken(fcmToken)
                 .ifPresent(deviceTokenRepository::delete);
     }

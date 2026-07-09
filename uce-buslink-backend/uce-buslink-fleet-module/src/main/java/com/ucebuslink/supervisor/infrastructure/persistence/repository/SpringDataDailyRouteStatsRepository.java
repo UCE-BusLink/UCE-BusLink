@@ -11,6 +11,6 @@ import java.util.UUID;
 @Repository
 public interface SpringDataDailyRouteStatsRepository extends JpaRepository<DailyRouteStatsJpaEntity, UUID> {
     
-    // Método para el dashboard: "Traer las estadísticas de este mes"
+    // Method for the dashboard: "Fetch this month's statistics"
     List<DailyRouteStatsJpaEntity> findByStatDateBetween(LocalDate startDate, LocalDate endDate);
 }

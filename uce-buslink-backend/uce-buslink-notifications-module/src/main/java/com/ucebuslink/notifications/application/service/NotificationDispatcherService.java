@@ -42,9 +42,9 @@ public class NotificationDispatcherService {
         NotificationPreference prefs = preferenceRepository.findByUserId(userId)
                 .orElseGet(() -> NotificationPreference.defaultPreferences(userId));
 
-        // 2. Evaluar si quiere recibir este TIPO de notificación
+        // 2. Check if the user wants to receive this notification TYPE
         if (!preferenceCheck.test(prefs)) {
-            log.debug("[NOTIFICATIONS] Envío cancelado por preferencias del usuario {}", userId);
+            log.debug("[NOTIFICATIONS] Sending cancelled due to user preferences {}", userId);
             return;
         }
 

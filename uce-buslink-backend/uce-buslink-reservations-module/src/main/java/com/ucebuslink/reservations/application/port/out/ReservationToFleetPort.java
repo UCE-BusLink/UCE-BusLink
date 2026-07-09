@@ -6,13 +6,13 @@ import java.time.LocalDateTime;
 
 public interface ReservationToFleetPort {
     /**
-     * Valida si un viaje específico está asignado a un chofer específico.
+     * Validates whether a specific trip is assigned to a specific driver.
      */
     boolean doesTripBelongToDriver(UUID tripId, UUID driverId);
-    
+
     /**
-     * Busca el viaje con un lock pesimista para garantizar exclusividad en la reserva.
-     * Si no existe, lanza una excepción que debería traducirse a 404.
+     * Looks up the trip with a pessimistic lock to guarantee exclusivity for the reservation.
+     * If it does not exist, throws an exception that should translate to 404.
      */
     TripData getTripWithLock(UUID tripId);
 

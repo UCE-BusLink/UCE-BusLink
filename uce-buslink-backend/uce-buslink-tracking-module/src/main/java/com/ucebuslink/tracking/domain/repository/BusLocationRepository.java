@@ -6,12 +6,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface BusLocationRepository {
-    // Guarda la data JSON y actualiza el índice geoespacial
+    // Saves the JSON data and updates the geospatial index
     void saveLocation(BusLocation location);
-    
-    // Obtiene la ubicación exacta en formato JSON
+
+    // Retrieves the exact location in JSON format
     Optional<BusLocation> getLocationByBusId(UUID busId);
-    
-    // Elimina el bus de Redis (útil cuando el viaje termina)
+
+    // Removes the bus from Redis (useful when the trip ends)
     void removeLocation(UUID busId);
 }

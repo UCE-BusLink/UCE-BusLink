@@ -24,7 +24,7 @@ public class ScheduleRepositoryAdapter implements ScheduleRepository {
     @Override
     public Schedule save(Schedule schedule) {
         RouteJpaEntity routeEntity = springDataRouteRepository.findById(schedule.getRouteId())
-                .orElseThrow(() -> new IllegalArgumentException("Ruta no encontrada con ID: " + schedule.getRouteId()));
+                .orElseThrow(() -> new IllegalArgumentException("Route not found with ID: " + schedule.getRouteId()));
         
         ScheduleJpaEntity jpaEntity = mapper.toEntity(schedule, routeEntity);
         ScheduleJpaEntity savedEntity = springDataScheduleRepository.save(jpaEntity);
@@ -50,17 +50,17 @@ public class ScheduleRepositoryAdapter implements ScheduleRepository {
 
     @Override
     public List<Schedule> saveAll(List<Schedule> schedules) {
-        // Mapeamos la lista de dominio a entidades JPA
+        // Map the domain list to JPA entities
         List<ScheduleJpaEntity> entitiesToSave = schedules.stream().map(schedule -> {
             RouteJpaEntity routeEntity = springDataRouteRepository.findById(schedule.getRouteId())
-                    .orElseThrow(() -> new IllegalArgumentException("Ruta no encontrada con ID: " + schedule.getRouteId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Route not found with ID: " + schedule.getRouteId()));
             return mapper.toEntity(schedule, routeEntity);
         }).collect(Collectors.toList());
 
-        // Guardamos todo el bloque en una sola operación de base de datos
+        // Save the whole batch in a single database operation
         List<ScheduleJpaEntity> savedEntities = springDataScheduleRepository.saveAll(entitiesToSave);
 
-        // Retornamos mapeado de vuelta al dominio
+        // Return mapped back to the domain
         return savedEntities.stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());

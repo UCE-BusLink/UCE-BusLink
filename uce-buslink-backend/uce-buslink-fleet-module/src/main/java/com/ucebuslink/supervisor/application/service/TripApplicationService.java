@@ -53,31 +53,31 @@ public class TripApplicationService implements ManageTripUseCase {
     @Override
     @Transactional
     public List<TripResponse> createTrip(CreateTripCommand command) {
-        log.info("[FLEET-TRIP] Iniciando validación para crear viajes por lote. Bus: {}, Ruta: {}", 
+        log.info("[FLEET-TRIP] Starting validation to create trips in batch. Bus: {}, Route: {}",
                 command.busId(), command.routeId());
 
         Bus bus = busRepository.findById(command.busId())
-                .orElseThrow(() -> new IllegalArgumentException("El bus especificado no existe."));
+                .orElseThrow(() -> new IllegalArgumentException("The specified bus does not exist."));
 
         com.ucebuslink.supervisor.domain.model.Route route = routeRepository.findById(command.routeId())
-                .orElseThrow(() -> new IllegalArgumentException("La ruta especificada no existe."));
+                .orElseThrow(() -> new IllegalArgumentException("The specified route does not exist."));
 
         List<TripResponse> responses = new ArrayList<>();
 
-        // Iterar sobre cada fecha y hora enviada desde el calendario del frontend
+        // Iterate over each date and time sent from the frontend calendar
         for (java.time.LocalDateTime departure : command.departures()) {
 
             validateDepartureAgainstSchedule(command.routeId(), departure);
-            
-            // TODO: Agregar validación para verificar que el Bus/Conductor no tengan otro viaje cruzado en esta misma hora.
+
+            // TODO: Add validation to check that the Bus/Driver doesn't have another overlapping trip at this same time.
 
             Trip trip = new Trip();
             trip.setRouteId(command.routeId());
             trip.setBusId(command.busId());
             trip.setDriverId(command.driverId());
             trip.setState(TripState.SCHEDULED);
-            
-            // Asignar salida y calcular llegada
+
+            // Set departure and calculate arrival
             trip.setDepartureTime(departure);
             trip.setEstimatedArrivalTime(departure.plusMinutes(route.getEstimatedDurationMinutes()));
             trip.setAvailableSeats(bus.getSeatCapacity());
@@ -93,7 +93,7 @@ public class TripApplicationService implements ManageTripUseCase {
             ));
         }
 
-        log.info("[FLEET-TRIP] Se programaron {} viajes exitosamente.", responses.size());
+        log.info("[FLEET-TRIP] {} trips were successfully scheduled.", responses.size());
         return responses;
     }
 
@@ -101,15 +101,15 @@ public class TripApplicationService implements ManageTripUseCase {
     @Transactional(readOnly = true)
     public TripResponse getTripById(UUID id) {
         Trip trip = tripRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found with ID: " + id));
         return mapToResponse(trip);
     }
 
     @Transactional
     public TripResponse getTripWithLock(UUID id) {
-        log.debug("[FLEET-TRIP] Obteniendo viaje con PESSIMISTIC_WRITE lock: {}", id);
+        log.debug("[FLEET-TRIP] Retrieving trip with PESSIMISTIC_WRITE lock: {}", id);
         Trip trip = tripRepository.findByIdWithLock(id)
-                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found with ID: " + id));
         return mapToResponse(trip);
     }
 
@@ -123,37 +123,37 @@ public class TripApplicationService implements ManageTripUseCase {
     @Override
     @Transactional
     public TripResponse updateTrip(UUID id, UpdateTripCommand command) {
-        log.info("[FLEET-TRIP] Iniciando actualización para viaje ID: {}", id);
+        log.info("[FLEET-TRIP] Starting update for trip ID: {}", id);
 
         Trip trip = tripRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found with ID: " + id));
 
-        // Validación de negocio: Solo se puede editar si no ha empezado
+        // Business validation: can only be edited if it hasn't started yet
         if (trip.getState() != TripState.SCHEDULED) {
-            log.warn("[FLEET-TRIP] Intento de editar viaje en estado {} denegado (ID: {})", trip.getState(), id);
-            throw new IllegalStateException("Solo se pueden editar viajes en estado SCHEDULED.");
+            log.warn("[FLEET-TRIP] Attempt to edit trip in state {} denied (ID: {})", trip.getState(), id);
+            throw new IllegalStateException("Only trips in SCHEDULED state can be edited.");
         }
 
         validateDepartureAgainstSchedule(command.routeId(), command.departureTime());
 
         Bus bus = busRepository.findById(command.busId())
-                .orElseThrow(() -> new IllegalArgumentException("El bus especificado no existe."));
+                .orElseThrow(() -> new IllegalArgumentException("The specified bus does not exist."));
 
         com.ucebuslink.supervisor.domain.model.Route route = routeRepository.findById(command.routeId())
-                .orElseThrow(() -> new IllegalArgumentException("La ruta especificada no existe."));
+                .orElseThrow(() -> new IllegalArgumentException("The specified route does not exist."));
 
-        // Aplicamos los cambios
+        // Apply the changes
         trip.setRouteId(command.routeId());
         trip.setBusId(command.busId());
         trip.setDriverId(command.driverId());
         trip.setDepartureTime(command.departureTime());
-        
-        // Recalculamos tiempos y asientos en caso de que hayan cambiado de ruta o bus
+
+        // Recalculate times and seats in case the route or bus changed
         trip.setEstimatedArrivalTime(command.departureTime().plusMinutes(route.getEstimatedDurationMinutes()));
         trip.setAvailableSeats(bus.getSeatCapacity());
 
         Trip updatedTrip = tripRepository.save(trip);
-        log.info("[FLEET-TRIP] Viaje actualizado exitosamente. Nuevo bus asignado: {}", updatedTrip.getBusId());
+        log.info("[FLEET-TRIP] Trip updated successfully. New bus assigned: {}", updatedTrip.getBusId());
         
         return mapToResponse(updatedTrip);
     }
@@ -172,7 +172,7 @@ public class TripApplicationService implements ManageTripUseCase {
 
         if (schedules.isEmpty()) {
             throw new IllegalArgumentException(
-                    "No hay horarios (Schedule) configurados para esta ruta.");
+                    "There are no schedules configured for this route.");
         }
 
         String targetDay = departureTime.getDayOfWeek().name();
@@ -206,26 +206,26 @@ public class TripApplicationService implements ManageTripUseCase {
 
         if (!isValid) {
             throw new IllegalArgumentException(
-                    "La fecha/hora " + departureTime +
-                    " no coincide con los días y horas permitidos en los horarios de la ruta.");
+                    "The date/time " + departureTime +
+                    " does not match the days and times allowed in the route's schedules.");
         }
     }
 
     @Override
     @Transactional
     public void cancelTrip(UUID id) {
-        log.info("[FLEET-TRIP] Intentando cancelar lógicamente el viaje ID: {}", id);
-        
+        log.info("[FLEET-TRIP] Attempting to logically cancel trip ID: {}", id);
+
         Trip trip = tripRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found with ID: " + id));
 
         if (trip.getState() == TripState.COMPLETED || trip.getState() == TripState.CANCELLED) {
-            throw new IllegalStateException("El viaje ya está completado o previamente cancelado.");
+            throw new IllegalStateException("The trip is already completed or previously cancelled.");
         }
 
         trip.setState(TripState.CANCELLED);
         trip.setCancelledAt(LocalDateTime.now());
-        trip.setDeletedAt(LocalDateTime.now()); // Borrado lógico para ocultarlo de listados comunes
+        trip.setDeletedAt(LocalDateTime.now()); // Logical delete to hide it from common listings
 
         List<UUID> students = reservationPort.getStudentIdsByTrip(trip.getId());
 
@@ -234,21 +234,21 @@ public class TripApplicationService implements ManageTripUseCase {
                 trip.getId(),
                 trip.getDriverId(),
                 students,
-                "Viaje cancelado"
+                "Trip cancelled"
             )
         );
 
         tripRepository.save(trip);
-        log.info("[FLEET-TRIP] Viaje ID: {} cancelado exitosamente.", id);
+        log.info("[FLEET-TRIP] Trip ID: {} successfully cancelled.", id);
     }
 
     @Override
     @Transactional
     public TripResponse changeTripState(UUID id, ChangeTripStateCommand command) {
-        log.info("[FLEET-TRIP] Cambiando estado del viaje ID: {} a {}", id, command.newState());
-        
+        log.info("[FLEET-TRIP] Changing state of trip ID: {} to {}", id, command.newState());
+
         Trip trip = tripRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado con ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found with ID: " + id));
 
         TripState currentState = trip.getState();
         TripState newState = command.newState();
@@ -258,13 +258,13 @@ public class TripApplicationService implements ManageTripUseCase {
         }
 
         if (currentState == TripState.CANCELLED || currentState == TripState.COMPLETED) {
-            throw new IllegalStateException("No se puede cambiar el estado de un viaje finalizado o cancelado.");
+            throw new IllegalStateException("The state of a finished or cancelled trip cannot be changed.");
         }
 
-        // Validación de transiciones permitidas
+        // Validation of allowed transitions
         if (newState == TripState.ONGOING && currentState == TripState.SCHEDULED) {
             if (LocalDateTime.now().isBefore(trip.getDepartureTime().minusMinutes(10))) {
-                throw new IllegalStateException("No se puede iniciar el viaje antes de 10 minutos de la salida programada.");
+                throw new IllegalStateException("The trip cannot be started earlier than 10 minutes before the scheduled departure.");
             }
             trip.setState(TripState.ONGOING);
             trip.setStartedAt(LocalDateTime.now());
@@ -281,7 +281,7 @@ public class TripApplicationService implements ManageTripUseCase {
             eventPublisher.publishEvent(new TripCompletedEvent(trip.getId(), students));
             
         } else {
-            throw new IllegalStateException("Transición de estado inválida: de " + currentState + " a " + newState);
+            throw new IllegalStateException("Invalid state transition: from " + currentState + " to " + newState);
         }
 
         Trip updatedTrip = tripRepository.save(trip);
@@ -311,10 +311,10 @@ public class TripApplicationService implements ManageTripUseCase {
 
     @Transactional(readOnly = true)
     public UUID getActiveTripIdByBus(UUID busId) {
-        log.debug("[FLEET-TRIP] Consultando viaje activo para el bus {}", busId);
-        
-        // Buscamos entre los viajes ONGOING cuál le pertenece a este bus
-        // Usamos la primera página asumiendo que un bus no tiene 2 viajes activos al mismo tiempo
+        log.debug("[FLEET-TRIP] Querying active trip for bus {}", busId);
+
+        // Search among ONGOING trips for the one belonging to this bus
+        // We use the first page assuming a bus does not have 2 active trips at the same time
         Page<TripResponse> ongoingTrips = getTripsByState(TripState.ONGOING, 0, 50);
         
         return ongoingTrips.stream()
@@ -326,61 +326,61 @@ public class TripApplicationService implements ManageTripUseCase {
 
     @Transactional(readOnly = true)
     public String getBusPlateNumber(UUID busId) {
-        log.debug("[FLEET-TRIP] Consultando placa del bus {}", busId);
+        log.debug("[FLEET-TRIP] Querying plate number for bus {}", busId);
         return busRepository.findById(busId)
-                // Nota: Ajusta ".getPlate()" si tu entidad Bus usa otro nombre (ej. getPlateNumber)
-                .map(Bus::getPlateNumber) 
-                .orElse("Desconocido");
+                // Note: Adjust ".getPlate()" if your Bus entity uses a different name (e.g. getPlateNumber)
+                .map(Bus::getPlateNumber)
+                .orElse("Unknown");
     }
 
     @Transactional(readOnly = true)
     public int getBusTotalCapacity(UUID busId) {
-        log.debug("[FLEET-TRIP] Consultando capacidad total del bus {}", busId);
+        log.debug("[FLEET-TRIP] Querying total capacity for bus {}", busId);
         return busRepository.findById(busId)
-                .map(Bus::getSeatCapacity) // Este getter lo vimos en tu código de creación de viajes
+                .map(Bus::getSeatCapacity) // This getter was seen in the trip creation code
                 .orElse(0);
     }
 
     @Transactional(readOnly = true)
     public String getRouteNameByTrip(UUID tripId) {
-        log.debug("[FLEET-TRIP] Consultando nombre de la ruta para el viaje {}", tripId);
+        log.debug("[FLEET-TRIP] Querying route name for trip {}", tripId);
         return tripRepository.findById(tripId)
                 .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
-                // Nota: Ajusta ".getName()" si tu entidad Route usa otro nombre para el nombre de la ruta
-                .map(com.ucebuslink.supervisor.domain.model.Route::getName) 
-                .orElse("Ruta Desconocida");
+                // Note: Adjust ".getName()" if your Route entity uses a different name for the route name
+                .map(com.ucebuslink.supervisor.domain.model.Route::getName)
+                .orElse("Unknown Route");
     }
 
     @Transactional(readOnly = true)
     public int getTripOccupiedSeats(UUID tripId) {
-        log.debug("[FLEET-TRIP] Consultando asientos ocupados para el viaje {}", tripId);
+        log.debug("[FLEET-TRIP] Querying occupied seats for trip {}", tripId);
         return tripRepository.findById(tripId)
                 .flatMap(trip -> busRepository.findById(trip.getBusId())
-                        // Ocupados = Capacidad total - Asientos disponibles actualmente
+                        // Occupied = Total capacity - Currently available seats
                         .map(bus -> bus.getSeatCapacity() - trip.getAvailableSeats()))
                 .orElse(0);
     }
 
     @Transactional(readOnly = true)
     public double[] getNextStopCoordinates(UUID tripId) {
-        log.debug("[FLEET-TRIP] Consultando coordenadas de la próxima parada para el viaje {}", tripId);
+        log.debug("[FLEET-TRIP] Querying next stop coordinates for trip {}", tripId);
         return tripRepository.findById(tripId)
                 .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
                 .filter(route -> route.getRouteStops() != null && !route.getRouteStops().isEmpty())
                 .map(route -> {
-                    // Obtenemos la parada inicial de la ruta basándonos en el orden
+                    // Get the route's initial stop based on order
                     Stop nextStop = route.getRouteStops().stream()
                             .min((rs1, rs2) -> Integer.compare(rs1.getStopOrder(), rs2.getStopOrder()))
                             .orElseThrow()
                             .getStop();
                     return new double[]{nextStop.getLatitude(), nextStop.getLongitude()};
                 })
-                .orElse(null); // Retorna null si no hay paradas, el Haversine lo manejará
+                .orElse(null); // Returns null if there are no stops, the Haversine will handle it
     }
 
     @Transactional(readOnly = true)
     public String getNextStopName(UUID tripId) {
-        log.debug("[FLEET-TRIP] Consultando nombre de la próxima parada para el viaje {}", tripId);
+        log.debug("[FLEET-TRIP] Querying next stop name for trip {}", tripId);
         return tripRepository.findById(tripId)
                 .flatMap(trip -> routeRepository.findById(trip.getRouteId()))
                 .filter(route -> route.getRouteStops() != null && !route.getRouteStops().isEmpty())
@@ -391,23 +391,23 @@ public class TripApplicationService implements ManageTripUseCase {
                             .getStop();
                     return nextStop.getName();
                 })
-                .orElse("Parada Desconocida");
+                .orElse("Unknown Stop");
     }
 
     public Page<TripResponse> getTripsByDriverAndDate(UUID driverId, LocalDate date, int page, int size) {
-        log.info("[APP-FLEET] Consultando viajes paginados para el chofer ID: {} en la fecha: {}", driverId, date);
-        
+        log.info("[APP-FLEET] Querying paginated trips for driver ID: {} on date: {}", driverId, date);
+
         Pageable pageable = PageRequest.of(page, size);
-        
+
         return tripRepository.findTripsByDriverAndDate(driverId, date, pageable)
-                .map(this::mapToResponse);// Transforma Dominio a DTO manteniendo la estructura Page
+                .map(this::mapToResponse);// Transforms Domain to DTO while keeping the Page structure
     }
 
     /**
-     * Tarea automática: Se ejecuta cada 1 minuto.
-     * Busca viajes en estado SCHEDULED que tengan más de 30 minutos de retraso
-     * (departureTime < (ahora - 30 mins)) y los cancela automáticamente.
-     * También alerta si el viaje lleva retraso en múltiplos de 5 minutos (5, 10, 15...).
+     * Automatic task: Runs every 1 minute.
+     * Finds trips in SCHEDULED state that are more than 30 minutes delayed
+     * (departureTime < (now - 30 mins)) and automatically cancels them.
+     * It also alerts if the trip's delay is a multiple of 5 minutes (5, 10, 15...).
      */
     @Scheduled(fixedRate = 60000)
     @Transactional
@@ -419,23 +419,23 @@ public class TripApplicationService implements ManageTripUseCase {
         
         for (Trip trip : scheduledTrips) {
             if (trip.getDepartureTime().isBefore(cancelThreshold)) {
-                log.warn("[FLEET-TRIP-JOB] Cancelando viaje retrasado (ID: {}) programado para {}", trip.getId(), trip.getDepartureTime());
+                log.warn("[FLEET-TRIP-JOB] Cancelling delayed trip (ID: {}) scheduled for {}", trip.getId(), trip.getDepartureTime());
                 cancelTrip(trip.getId());
             } else {
                 long diffMins = java.time.Duration.between(trip.getDepartureTime(), now).toMinutes();
                 if (diffMins > 0 && diffMins % 5 == 0 && diffMins <= 30) {
-                    log.info("[FLEET-TRIP-JOB] Alerta de demora para viaje (ID: {}) no iniciado", trip.getId());
+                    log.info("[FLEET-TRIP-JOB] Delay alert for trip (ID: {}) not yet started", trip.getId());
                     eventPublisher.publishEvent(new com.ucebuslink.shared.event.TripDelayedEvent(
-                            trip.getId(), trip.getDriverId(), "Lleva " + diffMins + " minutos de retraso para iniciar el viaje.", (int) diffMins));
+                            trip.getId(), trip.getDriverId(), "It has been " + diffMins + " minutes delayed in starting the trip.", (int) diffMins));
                 }
             }
         }
     }
 
     /**
-     * Tarea automática: Se ejecuta cada 1 minuto.
-     * Busca viajes en estado SCHEDULED que estén a exactamente 15, 10, 5 o 0 minutos
-     * de iniciar y envía un recordatorio al conductor.
+     * Automatic task: Runs every 1 minute.
+     * Finds trips in SCHEDULED state that are exactly 15, 10, 5, or 0 minutes
+     * away from starting and sends a reminder to the driver.
      */
     @Scheduled(fixedRate = 60000)
     @Transactional(readOnly = true)
@@ -447,15 +447,15 @@ public class TripApplicationService implements ManageTripUseCase {
             long diffMins = java.time.Duration.between(now, trip.getDepartureTime()).toMinutes();
             
             if (diffMins == 15 || diffMins == 10 || diffMins == 5 || diffMins == 0) {
-                log.info("[FLEET-TRIP-JOB] Recordatorio de viaje (ID: {}) en {} minutos", trip.getId(), diffMins);
+                log.info("[FLEET-TRIP-JOB] Trip reminder (ID: {}) in {} minutes", trip.getId(), diffMins);
                 eventPublisher.publishEvent(new com.ucebuslink.shared.event.TripReminderEvent(trip.getId(), trip.getDriverId(), (int) diffMins));
             }
         }
     }
 
     /**
-     * Tarea automática: Se ejecuta cada 1 minuto.
-     * Busca viajes en estado ONGOING. Alerta si falta 5 mins para llegar, o si se pasó en múltiplos de 10 mins.
+     * Automatic task: Runs every 1 minute.
+     * Finds trips in ONGOING state. Alerts if 5 minutes remain to arrival, or if it has exceeded it by multiples of 10 minutes.
      */
     @Scheduled(fixedRate = 60000)
     @Transactional(readOnly = true)
@@ -472,7 +472,7 @@ public class TripApplicationService implements ManageTripUseCase {
                     eventPublisher.publishEvent(new com.ucebuslink.shared.event.TripReminderEvent(trip.getId(), trip.getDriverId(), 5));
                 } else if (diffPastArrival > 0 && diffPastArrival % 10 == 0) {
                     eventPublisher.publishEvent(new com.ucebuslink.shared.event.TripDelayedEvent(
-                            trip.getId(), trip.getDriverId(), "El viaje está tomando más tiempo del estimado. Retraso: " + diffPastArrival + " min.", (int) diffPastArrival));
+                            trip.getId(), trip.getDriverId(), "The trip is taking longer than estimated. Delay: " + diffPastArrival + " min.", (int) diffPastArrival));
                 }
             }
         }

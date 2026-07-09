@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record UpdateStopCommand(
-    @NotBlank(message = "El nombre es obligatorio") String name,
+    @NotBlank(message = "Name is required") String name,
     @NotNull @Min(-90) @Max(90) Double latitude,
     @NotNull @Min(-180) @Max(180) Double longitude
 ) {}

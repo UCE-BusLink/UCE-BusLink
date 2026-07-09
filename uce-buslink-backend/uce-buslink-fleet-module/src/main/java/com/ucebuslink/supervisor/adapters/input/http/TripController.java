@@ -27,7 +27,7 @@ public class TripController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<java.util.List<TripResponse>> createTrip(@Valid @RequestBody CreateTripCommand command) {
-        log.debug("[REST-FLEET] Solicitud POST recibida para planificar viajes.");
+        log.debug("[REST-FLEET] POST request received to schedule trips.");
         java.util.List<TripResponse> response = manageTripUseCase.createTrip(command);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -41,10 +41,10 @@ public class TripController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         
-        log.debug("[REST-FLEET] Solicitud GET para listar viajes con filtros (Estado: {}, Ruta: {}, Conductor: {}, Página: {}, Tamaño: {}).", 
+        log.debug("[REST-FLEET] GET request to list trips with filters (State: {}, Route: {}, Driver: {}, Page: {}, Size: {}).",
                 state, routeId, driverId, page, size);
 
-        // Lógica de enrutamiento basada en los parámetros presentes
+        // Routing logic based on the parameters present
         if (state != null) {
             return ResponseEntity.ok(manageTripUseCase.getTripsByState(state, page, size));
         } else if (routeId != null) {
@@ -59,7 +59,7 @@ public class TripController {
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TripResponse> getTripById(@PathVariable java.util.UUID id) {
-        log.debug("[REST-FLEET] Solicitud GET para buscar viaje con ID: {}", id);
+        log.debug("[REST-FLEET] GET request to find trip with ID: {}", id);
         return ResponseEntity.ok(manageTripUseCase.getTripById(id));
     }
 
@@ -68,7 +68,7 @@ public class TripController {
     public ResponseEntity<TripResponse> updateTrip(
             @PathVariable java.util.UUID id,
             @Valid @RequestBody UpdateTripCommand command) {
-        log.debug("[REST-FLEET] Solicitud PUT para actualizar viaje ID: {}", id);
+        log.debug("[REST-FLEET] PUT request to update trip ID: {}", id);
         return ResponseEntity.ok(manageTripUseCase.updateTrip(id, command));
     }
 
@@ -77,14 +77,14 @@ public class TripController {
     public ResponseEntity<TripResponse> changeTripState(
             @PathVariable java.util.UUID id,
             @Valid @RequestBody ChangeTripStateCommand command) {
-        log.debug("[REST-FLEET] Solicitud PATCH para cambiar estado del viaje ID: {}", id);
+        log.debug("[REST-FLEET] PATCH request to change state of trip ID: {}", id);
         return ResponseEntity.ok(manageTripUseCase.changeTripState(id, command));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> cancelTrip(@PathVariable java.util.UUID id) {
-        log.debug("[REST-FLEET] Solicitud DELETE para cancelar lógicamente el viaje ID: {}", id);
+        log.debug("[REST-FLEET] DELETE request to logically cancel trip ID: {}", id);
         manageTripUseCase.cancelTrip(id);
         return ResponseEntity.noContent().build();
     }

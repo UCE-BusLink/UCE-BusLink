@@ -16,7 +16,7 @@ public class TripCompletedEventListener {
 
     @EventListener
     public void handleTripCompleted(TripCompletedEvent event) {
-        log.info("[RESERVATIONS-LISTENER] Evento de viaje completado recibido para Trip ID: {}. Procesando faltas (NO_SHOW).", event.tripId());
+        log.info("[RESERVATIONS-LISTENER] Trip completed event received for Trip ID: {}. Processing no-shows (NO_SHOW).", event.tripId());
         reservationApplicationService.processNoShowsForTrip(event.tripId());
     }
 }

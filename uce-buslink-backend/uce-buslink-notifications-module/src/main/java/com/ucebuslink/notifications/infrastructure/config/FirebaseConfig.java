@@ -23,7 +23,7 @@ public class FirebaseConfig {
     public FirebaseApp firebaseApp() {
         try {
             if (firebaseCredentials == null || firebaseCredentials.trim().isEmpty()) {
-                log.warn("[FCM] Variable FIREBASE_CREDENTIALS vacía. Firebase no se inicializará.");
+                log.warn("[FCM] FIREBASE_CREDENTIALS variable is empty. Firebase will not be initialized.");
                 return null;
             }
 
@@ -49,7 +49,7 @@ public class FirebaseConfig {
             return FirebaseApp.getInstance();
 
         } catch (IllegalArgumentException e) {
-            log.error("[FCM] La variable FIREBASE_CREDENTIALS no contiene un Base64 válido", e);
+            log.error("[FCM] The FIREBASE_CREDENTIALS variable does not contain valid Base64", e);
             return null;
 
         } catch (Exception e) {

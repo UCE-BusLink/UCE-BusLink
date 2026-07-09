@@ -10,8 +10,8 @@ public class Schedule {
     private final boolean active;
 
     public Schedule(UUID id, UUID routeId, List<ScheduleDetail> details, boolean active) {
-        if (routeId == null) throw new IllegalArgumentException("Ruta inválida.");
-        if (details == null || details.isEmpty()) throw new IllegalArgumentException("Debe tener al menos un detalle.");
+        if (routeId == null) throw new IllegalArgumentException("Invalid route.");
+        if (details == null || details.isEmpty()) throw new IllegalArgumentException("Must have at least one detail.");
         
         this.id = id;
         this.routeId = routeId;

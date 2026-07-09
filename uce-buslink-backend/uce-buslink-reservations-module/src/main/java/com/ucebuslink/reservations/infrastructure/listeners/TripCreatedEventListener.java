@@ -14,10 +14,10 @@ public class TripCreatedEventListener {
 
     private final SeatApplicationService seatApplicationService;
 
-    // Escucha automáticamente el evento lanzado desde el Fleet Module
+    // Automatically listens for the event fired from the Fleet Module
     @EventListener
     public void handleTripCreatedEvent(TripCreatedEvent event) {
-        log.info("[RESERVATIONS-LISTENER] Evento TripCreatedEvent recibido. Trip ID: {}, Capacidad: {}", 
+        log.info("[RESERVATIONS-LISTENER] TripCreatedEvent received. Trip ID: {}, Capacity: {}",
                 event.tripId(), event.seatCapacity());
         
         seatApplicationService.generateSeatsForTrip(event.tripId(), event.seatCapacity());

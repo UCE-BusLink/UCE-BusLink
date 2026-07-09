@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Immutable // Crucial: Le dice a Hibernate que NUNCA intente hacer un UPDATE o INSERT aquí
+@Immutable // Crucial: tells Hibernate to NEVER attempt an UPDATE or INSERT here
 @Table(name = "daily_route_stats")
 @Getter
 @NoArgsConstructor

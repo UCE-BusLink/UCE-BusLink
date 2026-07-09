@@ -25,9 +25,9 @@ public class SupervisorSnapshotAggregator {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
-    private final TrackingQueryPort trackingQueryPort; // Descomentar cuando implementes el puerto
+    private final TrackingQueryPort trackingQueryPort; // Uncomment when implementing the port
 
-    // Se ejecuta cada 5000 milisegundos (5 segundos)
+    // Runs every 5000 milliseconds (5 seconds)
     @Scheduled(fixedRate = 5000)
     public void buildAndBroadcastSnapshot() {
         List<BusSnapshot> activeBuses = new ArrayList<>();
@@ -35,8 +35,8 @@ public class SupervisorSnapshotAggregator {
         int totalBoarded = 0;
         int availableSeats = 0;
 
-        // 1. Escanear Redis buscando TODAS las llaves de ubicaciones activas
-        // Usamos SCAN en lugar de KEYS para no bloquear Redis si hay muchas conexiones
+        // 1. Scan Redis looking for ALL active location keys
+        // We use SCAN instead of KEYS to avoid blocking Redis when there are many connections
         ScanOptions options = ScanOptions.scanOptions().match("bus:*:location").count(100).build();
         try (Cursor<String> cursor = redisTemplate.scan(options)) {
             while (cursor.hasNext()) {
@@ -45,7 +45,7 @@ public class SupervisorSnapshotAggregator {
 
                 if (value instanceof BusLocation location) {
 
-                    // LÓGICA DE AGREGACIÓN (Descomentar al implementar puerto)
+                    // AGGREGATION LOGIC (Uncomment when implementing the port)
                     UUID tripId = trackingQueryPort.getActiveTripIdByBus(location.busId());
 
                     if (tripId != null) {
@@ -78,20 +78,20 @@ public class SupervisorSnapshotAggregator {
                 }
             }
         } catch (Exception e) {
-            log.error("[TRACKING-SNAPSHOT] Error al leer ubicaciones de Redis.", e);
+            log.error("[TRACKING-SNAPSHOT] Error reading locations from Redis.", e);
             return;
         }
 
         if (activeBuses.isEmpty()) {
-            return; // No saturar el websocket si no hay buses operando
+            return; // Avoid flooding the websocket when no buses are operating
         }
 
-        // 2. Construir Estadísticas Globales
+        // 2. Build Global Statistics
         NetworkStatistics stats = new NetworkStatistics(activeBuses.size(), totalStudents, totalBoarded, 0, availableSeats);
         SupervisorSnapshotPayload payload = new SupervisorSnapshotPayload(activeBuses, stats);
 
-        // 3. Emitir al canal masivo de supervisores
+        // 3. Broadcast to the supervisors' mass channel
         messagingTemplate.convertAndSend("/topic/supervisor/all-buses", payload);
-        log.trace("[TRACKING-SNAPSHOT] Snapshot de {} buses enviado al supervisor.", activeBuses.size());
+        log.trace("[TRACKING-SNAPSHOT] Snapshot of {} buses sent to the supervisor.", activeBuses.size());
     }
 }
