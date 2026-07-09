@@ -26,7 +26,7 @@ public class SeatRepositoryAdapter implements SeatRepository {
 
     @Override
     public List<Seat> saveAll(List<Seat> seats) {
-        log.debug("[RESERVATIONS] Guardando bloque de {} asientos.", seats.size());
+        log.debug("[RESERVATIONS] Saving batch of {} seats.", seats.size());
         List<SeatJpaEntity> entities = seats.stream().map(this::toJpa).collect(Collectors.toList());
         return jpaRepository.saveAll(entities).stream().map(this::toDomain).collect(Collectors.toList());
     }
@@ -43,7 +43,7 @@ public class SeatRepositoryAdapter implements SeatRepository {
 
     @Override
     public List<Seat> findByTripId(UUID tripId) {
-        log.debug("[RESERVATIONS] Consultando asientos para el Viaje ID: {}", tripId);
+        log.debug("[RESERVATIONS] Querying seats for Trip ID: {}", tripId);
         return jpaRepository.findByTripIdOrderBySeatNumberAsc(tripId)
                 .stream().map(this::toDomain).collect(Collectors.toList());
     }
@@ -72,7 +72,7 @@ public class SeatRepositoryAdapter implements SeatRepository {
 
     @Override
     public Page<Seat> findByTripId(UUID tripId, Pageable pageable) {
-        log.debug("[RESERVATIONS] Consultando asientos para el Viaje ID: {}", tripId);
+        log.debug("[RESERVATIONS] Querying seats for Trip ID: {}", tripId);
         return jpaRepository
             .findByTripIdOrderBySeatNumberAsc(tripId, pageable)
             .map(this::toDomain);

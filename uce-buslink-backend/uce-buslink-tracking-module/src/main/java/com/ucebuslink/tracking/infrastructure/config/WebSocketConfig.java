@@ -20,7 +20,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
-@Order(Ordered.HIGHEST_PRECEDENCE + 99) // Nos aseguramos de que esta configuración de seguridad se aplique correctamente
+@Order(Ordered.HIGHEST_PRECEDENCE + 99) // We ensure this security configuration is applied correctly
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtChannelInterceptor jwtChannelInterceptor;
@@ -37,9 +37,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Endpoint principal para la conexión del WebSocket según la documentación
+        // Main endpoint for the WebSocket connection according to the documentation
         registry.addEndpoint("/ws/tracking")
-                .setAllowedOriginPatterns("*"); // Permitir todos los orígenes (CORS) - En producción restringir a los dominios válidos
+                .setAllowedOriginPatterns("*"); // Allow all origins (CORS) - Restrict to valid domains in production
     }
 
     @Override

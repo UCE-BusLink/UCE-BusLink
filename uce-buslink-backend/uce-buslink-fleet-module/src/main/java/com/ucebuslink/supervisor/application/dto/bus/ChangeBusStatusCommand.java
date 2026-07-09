@@ -4,5 +4,5 @@ import com.ucebuslink.supervisor.domain.model.BusStatus;
 import jakarta.validation.constraints.NotNull;
 
 public record ChangeBusStatusCommand(
-    @NotNull(message = "El estado es obligatorio") BusStatus status
+    @NotNull(message = "The status is required") BusStatus status
 ) {}

@@ -1,7 +1,7 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
 import com.ucebuslink.supervisor.application.dto.trip.TripResponse;
-import com.ucebuslink.supervisor.application.usecase.ManageTripUseCase; // O un caso de uso específico para el chofer
+import com.ucebuslink.supervisor.application.usecase.ManageTripUseCase; // Or a dedicated use case for the driver
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,7 +23,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DriverTripController {
 
-    // Nota: Puedes usar tu ManageTripUseCase existente o crear un DriverTripUseCase dedicado.
+    // Note: You can use your existing ManageTripUseCase or create a dedicated DriverTripUseCase.
     private final ManageTripUseCase manageTripUseCase;
 
     @GetMapping("/today")
@@ -36,7 +36,7 @@ public class DriverTripController {
         UUID driverId = (UUID) authentication.getDetails();
         LocalDate today = LocalDate.now();
         
-        log.info("[REST-DRIVER] Solicitud GET recibida para listar viajes del día. DriverID: {}, Fecha: {}, Page: {}, Size: {}", 
+        log.info("[REST-DRIVER] GET request received to list today's trips. DriverID: {}, Date: {}, Page: {}, Size: {}",
                 driverId, today, page, size);
         
         Page<TripResponse> response = manageTripUseCase.getTripsByDriverAndDate(driverId, today, page, size);
@@ -53,7 +53,7 @@ public class DriverTripController {
             
         UUID driverId = (UUID) authentication.getDetails();
         
-        log.info("[REST-DRIVER] Solicitud GET recibida para historial completo de viajes. DriverID: {}, Page: {}, Size: {}", 
+        log.info("[REST-DRIVER] GET request received for full trip history. DriverID: {}, Page: {}, Size: {}",
                 driverId, page, size);
         
         Page<TripResponse> response = manageTripUseCase.getTripsByDriverId(driverId, page, size);

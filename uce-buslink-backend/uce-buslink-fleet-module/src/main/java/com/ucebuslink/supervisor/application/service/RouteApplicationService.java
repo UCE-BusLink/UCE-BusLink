@@ -150,7 +150,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
                 return new RouteStop(stop, stopCommand.stopOrder(), stopCommand.estimatedMinutesFromStart(), LocalDateTime.now());
             }).collect(Collectors.toList());
             
-            // CORRECCIÓN PARA HIBERNATE: Limpiar y rellenar en lugar de setear una lista nueva
+            // HIBERNATE FIX: Clear and refill instead of setting a new list
             route.getRouteStops().clear();
             route.getRouteStops().addAll(updatedStops);
         }
@@ -164,11 +164,11 @@ public class RouteApplicationService implements ManageRouteUseCase {
         
         List<RouteResponse.RouteStopDetailResponse> stopDetails = null;
 
-        // Verificamos que la ruta tenga paradas para evitar NullPointerExceptions
+        // Verify that the route has stops to avoid NullPointerExceptions
         if (route.getRouteStops() != null) {
             stopDetails = route.getRouteStops().stream()
                 .map(routeStop -> {
-                    // Extraemos la parada asociada a esta relación
+                    // Extract the stop associated with this relationship
                     Stop stop = routeStop.getStop();
                     
                     return new RouteResponse.RouteStopDetailResponse(
@@ -190,7 +190,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
                 route.getIsActive(),
                 route.getEstimatedDurationMinutes(),
                 route.getPathPolyline(),
-                stopDetails // <-- Pasamos la lista construida aquí
+                stopDetails // <-- We pass the built list here
         );
     }
 
@@ -211,8 +211,8 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
         route.setIsActive(isActive);
         
-        // Usamos el método update que corregimos anteriormente para asegurar 
-        // que las colecciones se sincronicen correctamente
+        // We use the update method we fixed earlier to ensure
+        // the collections are synchronized correctly
         Route updatedRoute = routeRepository.update(route); 
         
         log.info("Route {} status updated successfully", id);

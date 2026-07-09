@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.application.usecase;
 
+import com.ucebuslink.shared.dto.BatchResult;
 import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.stop.ChangeStopStatusCommand;
 import com.ucebuslink.supervisor.application.dto.stop.CreateStopCommand;
@@ -11,7 +12,7 @@ import java.util.UUID;
 
 public interface ManageStopUseCase {
     StopResponse createStop(CreateStopCommand command);
-    List<StopResponse> createStopsBatch(List<CreateStopCommand> commands);
+    BatchResult<StopResponse> createStopsBatch(List<CreateStopCommand> commands);
     List<StopResponse> getAllActiveStops();
     StopResponse updateStop(UUID id, UpdateStopCommand command);
     void deleteStop(UUID id);

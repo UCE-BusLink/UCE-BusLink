@@ -1,6 +1,6 @@
 package com.ucebuslink.supervisor.infrastructure.persistence.repository;
 
-import com.ucebuslink.supervisor.infrastructure.persistence.entity.RouteJpaEntity; // <-- IMPORTANTE: Importar la entidad
+import com.ucebuslink.supervisor.infrastructure.persistence.entity.RouteJpaEntity; // <-- IMPORTANT: Import the entity
 import com.ucebuslink.supervisor.infrastructure.persistence.projection.DailyRouteStatsProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-// EL CAMBIO ESTÁ AQUÍ: Cambiamos DailyRouteStatsProjection por RouteJpaEntity en la declaración genérica
+// THE CHANGE IS HERE: We swap DailyRouteStatsProjection for RouteJpaEntity in the generic declaration
 public interface DailyRouteStatsRepository extends Repository<RouteJpaEntity, UUID> {
 
     @Query(value = "SELECT * FROM mv_daily_route_stats ORDER BY operation_date DESC",

@@ -19,12 +19,12 @@ public class RedisBusLocationRepositoryAdapter implements BusLocationRepository 
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    // Prefijos para nuestras llaves en Redis
+    // Prefixes for our Redis keys
     private static final String LOCATION_KEY_PREFIX = "bus:%s:location";
     private static final String GEO_INDEX_KEY = "buses:active:geo";
     
-    // TTL de seguridad: Si un bus se desconecta o entra a un túnel y no envía GPS, 
-    // su ubicación expira en Redis automáticamente después de 15 minutos para evitar "buses fantasma".
+    // Safety TTL: If a bus disconnects or enters a tunnel and does not send GPS,
+    // its location automatically expires in Redis after 15 minutes to avoid "ghost buses".
     private static final Duration LOCATION_TTL = Duration.ofMinutes(15);
 
     @Override
@@ -32,17 +32,17 @@ public class RedisBusLocationRepositoryAdapter implements BusLocationRepository 
         String key = String.format(LOCATION_KEY_PREFIX, location.busId());
 
         try {
-            // 1. Guardar el payload completo en JSON con expiración (TTL)
+            // 1. Save the full payload as JSON with expiration (TTL)
             redisTemplate.opsForValue().set(key, location, LOCATION_TTL);
 
-            // 2. Guardar las coordenadas exactas en el índice Geoespacial de Redis
-            // Redis GEOADD espera primero LONGITUD y luego LATITUD
+            // 2. Save the exact coordinates in the Redis Geospatial index
+            // Redis GEOADD expects LONGITUDE first, then LATITUDE
             Point geoPoint = new Point(location.longitude(), location.latitude());
             redisTemplate.opsForGeo().add(GEO_INDEX_KEY, geoPoint, location.busId().toString());
             
-            log.trace("[REDIS-TRACKING] Localización actualizada exitosamente para Bus: {}", location.busId());
+            log.trace("[REDIS-TRACKING] Location successfully updated for Bus: {}", location.busId());
         } catch (Exception e) {
-            log.error("[REDIS-TRACKING] Error al guardar localización en Redis para Bus: {}", location.busId(), e);
+            log.error("[REDIS-TRACKING] Error saving location to Redis for Bus: {}", location.busId(), e);
         }
     }
 
@@ -56,7 +56,7 @@ public class RedisBusLocationRepositoryAdapter implements BusLocationRepository 
                 return Optional.of((BusLocation) result);
             }
         } catch (Exception e) {
-            log.error("[REDIS-TRACKING] Error al leer localización de Redis para Bus: {}", busId, e);
+            log.error("[REDIS-TRACKING] Error reading location from Redis for Bus: {}", busId, e);
         }
         return Optional.empty();
     }
@@ -65,13 +65,13 @@ public class RedisBusLocationRepositoryAdapter implements BusLocationRepository 
     public void removeLocation(UUID busId) {
         String key = String.format(LOCATION_KEY_PREFIX, busId);
         try {
-            // Eliminar el JSON
+            // Remove the JSON
             redisTemplate.delete(key);
-            // Eliminar del índice geoespacial
+            // Remove from the geospatial index
             redisTemplate.opsForGeo().remove(GEO_INDEX_KEY, busId.toString());
-            log.debug("[REDIS-TRACKING] Ubicación del Bus {} eliminada de la memoria activa.", busId);
+            log.debug("[REDIS-TRACKING] Bus {} location removed from active memory.", busId);
         } catch (Exception e) {
-            log.error("[REDIS-TRACKING] Error al eliminar localización de Redis para Bus: {}", busId, e);
+            log.error("[REDIS-TRACKING] Error removing location from Redis for Bus: {}", busId, e);
         }
     }
 }

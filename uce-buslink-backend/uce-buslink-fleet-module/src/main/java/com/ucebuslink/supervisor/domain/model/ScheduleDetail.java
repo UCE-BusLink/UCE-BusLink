@@ -43,12 +43,12 @@ public class ScheduleDetail {
 
     private void validate() {
         if (type == null) {
-            throw new IllegalArgumentException("El tipo de horario es obligatorio.");
+            throw new IllegalArgumentException("The schedule type is required.");
         }
 
         if (daysOfWeek.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Debe especificarse al menos un día de operación."
+                    "At least one operating day must be specified."
             );
         }
 
@@ -56,7 +56,7 @@ public class ScheduleDetail {
             case FIXED -> validateFixedSchedule();
             case FREQUENCY -> validateFrequencySchedule();
             default -> throw new IllegalArgumentException(
-                    "Tipo de horario no soportado: " + type
+                    "Unsupported schedule type: " + type
             );
         }
     }
@@ -64,7 +64,7 @@ public class ScheduleDetail {
     private void validateFixedSchedule() {
         if (fixedDepartureTimes == null || fixedDepartureTimes.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Los horarios fijos requieren al menos una hora de salida."
+                    "Fixed schedules require at least one departure time."
             );
         }
 
@@ -72,7 +72,7 @@ public class ScheduleDetail {
                 || frequencyEndTime != null
                 || frequencyIntervalMinutes != null) {
             throw new IllegalArgumentException(
-                    "Un horario FIXED no debe contener datos de frecuencia."
+                    "A FIXED schedule must not contain frequency data."
             );
         }
     }
@@ -80,37 +80,37 @@ public class ScheduleDetail {
     private void validateFrequencySchedule() {
         if (frequencyStartTime == null) {
             throw new IllegalArgumentException(
-                    "La hora de inicio es obligatoria para horarios por frecuencia."
+                    "The start time is required for frequency-based schedules."
             );
         }
 
         if (frequencyEndTime == null) {
             throw new IllegalArgumentException(
-                    "La hora de fin es obligatoria para horarios por frecuencia."
+                    "The end time is required for frequency-based schedules."
             );
         }
 
         if (frequencyIntervalMinutes == null) {
             throw new IllegalArgumentException(
-                    "El intervalo de frecuencia es obligatorio."
+                    "The frequency interval is required."
             );
         }
 
         if (!frequencyStartTime.isBefore(frequencyEndTime)) {
             throw new IllegalArgumentException(
-                    "La hora de inicio debe ser anterior a la hora de fin."
+                    "The start time must be before the end time."
             );
         }
 
         if (frequencyIntervalMinutes <= 0) {
             throw new IllegalArgumentException(
-                    "El intervalo debe ser mayor que cero."
+                    "The interval must be greater than zero."
             );
         }
 
         if (!fixedDepartureTimes.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Un horario FREQUENCY no debe contener horas fijas."
+                    "A FREQUENCY schedule must not contain fixed times."
             );
         }
     }

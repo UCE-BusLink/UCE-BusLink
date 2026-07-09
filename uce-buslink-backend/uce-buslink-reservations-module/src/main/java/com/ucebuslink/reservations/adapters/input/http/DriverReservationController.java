@@ -35,7 +35,7 @@ public class DriverReservationController {
             
         UUID driverId = (UUID) authentication.getDetails();
         
-        log.info("[REST-DRIVER] Solicitud GET recibida para listar pasajeros. TripID: {}, DriverID: {}, Page: {}, Size: {}", 
+        log.info("[REST-DRIVER] GET request received to list passengers. TripID: {}, DriverID: {}, Page: {}, Size: {}",
                 tripId, driverId, page, size);
         
         Page<DriverPassengerResponse> response = reservationApplicationService.getReservationsByTripForDriver(tripId, driverId, page, size);

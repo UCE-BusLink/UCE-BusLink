@@ -13,7 +13,7 @@ public interface ManageRouteUseCase {
     RouteResponse getRouteById(UUID id);
     void deleteRoute(UUID id);
 
-    RouteResponse updateRoute(UUID id, CreateRouteCommand command); // Usamos el DTO de creación por simplicidad
+    RouteResponse updateRoute(UUID id, CreateRouteCommand command); // Reusing the create DTO for simplicity
 
     PageResponse<RouteResponse> getRoutes(boolean isActive, int page, int size);
 

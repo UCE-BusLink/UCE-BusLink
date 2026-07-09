@@ -20,9 +20,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @RequiredArgsConstructor
 public class GpsBatchProcessorService {
 
-    private final GpsLocationHistoryRepository historyRepository; // Inyecta el Puerto (Interface)
-    
-    // Cola thread-safe almacenando el Modelo de Dominio Puro
+    private final GpsLocationHistoryRepository historyRepository; // Injects the Port (Interface)
+
+    // Thread-safe queue holding the pure Domain Model
     private final Queue<GpsLocationHistory> buffer = new ConcurrentLinkedQueue<>();
 
     @Async
@@ -50,9 +50,9 @@ public class GpsBatchProcessorService {
 
         try {
             historyRepository.saveAll(batchToSave);
-            log.debug("[TRACKING-HISTORY] Flush exitoso: {} puntos guardados en BD.", batchToSave.size());
+            log.debug("[TRACKING-HISTORY] Flush successful: {} points saved to DB.", batchToSave.size());
         } catch (Exception e) {
-            log.error("[TRACKING-HISTORY] Error guardando lote GPS en BD.", e);
+            log.error("[TRACKING-HISTORY] Error saving GPS batch to DB.", e);
         }
     }
 }

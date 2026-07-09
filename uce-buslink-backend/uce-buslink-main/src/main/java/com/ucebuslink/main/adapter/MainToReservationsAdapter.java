@@ -18,7 +18,7 @@ public class MainToReservationsAdapter implements FleetToReservationPort {
 
     @Override
     public List<UUID> getStudentIdsByTrip(UUID tripId) {
-        // Obtenemos directamente de la BD saltándonos el servicio que causa el bucle
+        // We fetch directly from the DB, bypassing the service that causes the loop
         return reservationRepository.findByTripId(tripId)
                 .stream()
                 .filter(res -> !res.getStatus().name().startsWith("CANCELLED"))

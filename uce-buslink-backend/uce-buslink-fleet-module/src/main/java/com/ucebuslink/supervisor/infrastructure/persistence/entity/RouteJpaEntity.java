@@ -27,7 +27,7 @@ public class RouteJpaEntity {
     private Integer estimatedDurationMinutes;
 
     @Column(name = "path_polyline", columnDefinition = "TEXT")
-    private String pathPolyline; // Soporte flexible para almacenar el trazado de calles
+    private String pathPolyline; // Flexible support for storing the street path
 
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("stopOrder ASC")
@@ -59,13 +59,13 @@ public class RouteJpaEntity {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Métodos Helper para sincronizar la relación bidireccional de paradas
+    // Helper methods to synchronize the bidirectional stops relationship
     public void addStop(RouteStopJpaEntity routeStop) {
         routeStops.add(routeStop);
         routeStop.setRoute(this);
     }
 
-    // Getters y Setters
+    // Getters and Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public String getName() { return name; }

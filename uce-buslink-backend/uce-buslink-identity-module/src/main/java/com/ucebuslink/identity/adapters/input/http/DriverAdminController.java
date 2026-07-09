@@ -49,7 +49,7 @@ public class DriverAdminController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
             
-        log.info("[REST-IDENTITY] Solicitud GET recibida para listar todos los conductores. Page: {}, Size: {}", page, size);
+        log.info("[REST-IDENTITY] GET request received to list all drivers. Page: {}, Size: {}", page, size);
         
         Page<UserResponse> response = adminService.getAllDrivers(page, size);
         

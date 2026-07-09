@@ -25,7 +25,7 @@ public class TrackingMessageController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_DRIVER"));
 
         if (!isDriver) {
-            log.warn("[WEBSOCKET-TRACKING] Intento de actualización GPS bloqueado. El usuario {} no es CONDUCTOR.", userId);
+            log.warn("[WEBSOCKET-TRACKING] GPS update attempt blocked. User {} is not a DRIVER.", userId);
             return; 
         }
 
