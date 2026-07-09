@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class SyncUserUseCase {
 
@@ -30,6 +32,7 @@ public class SyncUserUseCase {
 
         User user = userRepository
                 .findByClerkUserId(clerkUserId)
+                .or(() -> relinkExistingUserByEmail(clerkUserId, email))
                 .orElseGet(() -> createUser(
                         clerkUserId,
                         email,
@@ -46,6 +49,18 @@ public class SyncUserUseCase {
                 user.getLastName(),
                 user.getRole().name(),
                 needsOnboarding);
+    }
+
+    // Handles users whose local row already exists (e.g. drivers/admins provisioned by AdminService)
+    // but whose Clerk ID no longer matches the JWT subject, instead of rejecting them
+    // as a brand-new self-registration attempt.
+    private Optional<User> relinkExistingUserByEmail(String clerkUserId, String email) {
+        return userRepository.findByEmail(email).map(existing -> {
+            log.warn("[AUTH] Relinking existing user {} (role {}) to new Clerk ID for email: {}",
+                    existing.getId(), existing.getRole(), email);
+            existing.setClerkUserId(clerkUserId);
+            return userRepository.save(existing);
+        });
     }
 
     private User createUser(

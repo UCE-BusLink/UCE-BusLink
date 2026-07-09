@@ -4,6 +4,7 @@ import com.ucebuslink.notifications.application.dto.NotificationDtos.*;
 import com.ucebuslink.notifications.application.service.NotificationApplicationService;
 import com.ucebuslink.notifications.domain.model.DeviceToken;
 import com.ucebuslink.notifications.domain.model.NotificationPreference;
+import com.ucebuslink.shared.security.CurrentUserProvider;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,7 @@ public class NotificationController {
             @Valid @RequestBody RegisterDeviceRequest request,
             Authentication authentication) {
 
-        UUID userId = (UUID) authentication.getDetails();
+        UUID userId = CurrentUserProvider.requireUserId(authentication);
 
         DeviceToken savedToken =
                 notificationService.registerDevice(userId, request);
@@ -46,7 +47,7 @@ public class NotificationController {
 
     @PutMapping("/preferences")
     public ResponseEntity<?> updatePreferences(@Valid @RequestBody UpdatePreferencesRequest request, Authentication authentication) {
-        UUID userId = (UUID) authentication.getDetails();
+        UUID userId = CurrentUserProvider.requireUserId(authentication);
         
         NotificationPreference updatedPrefs = notificationService.updatePreferences(userId, request);
 
@@ -68,7 +69,7 @@ public class NotificationController {
             @RequestParam(name="size", defaultValue = "5") int size,
             Authentication authentication) {
         
-        UUID userId = (UUID) authentication.getDetails();
+        UUID userId = CurrentUserProvider.requireUserId(authentication);
         return ResponseEntity.ok(notificationService.getUserNotifications(userId, page, size));
     }
 

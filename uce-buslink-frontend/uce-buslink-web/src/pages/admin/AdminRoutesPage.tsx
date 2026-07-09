@@ -10,6 +10,8 @@ import {
   createRoute, createBatchStops, previewRoute, createSchedule, fetchStops,
   type BatchStop, type ApiStop
 } from '../../services/adminService';
+import { routeInfoFormSchema, routeStopsListSchema, scheduleGroupSchema, scheduleGroupsListSchema } from '../../schemas/route.schema';
+import { getFieldErrors } from '../../schemas/common';
 
 // Importaciones de Leaflet para el mapeo interactivo
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
@@ -110,6 +112,7 @@ export function AdminRoutesPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Estado Paso 1: Información Básica
   const [form, setForm] = useState(EMPTY_FORM);
@@ -180,6 +183,7 @@ export function AdminRoutesPage() {
     setCreatedRouteId(null);
     setRoutePolylineRaw('');
     setSaveError(null);
+    setFieldErrors({});
   }
 
   function handleAddTempStop() {
@@ -198,28 +202,37 @@ export function AdminRoutesPage() {
 
   // Lógica para añadir un bloque de horarios al grupo principal
   function handleAddScheduleGroup() {
-    if (currentGroupDays.length === 0 || currentGroupTimes.length === 0) {
-      setSaveError('Por favor selecciona al menos un día y un horario para agregar el bloque de operación.');
+    const result = scheduleGroupSchema.safeParse({
+      daysOfWeek: currentGroupDays,
+      fixedDepartureTimes: [...currentGroupTimes].sort(),
+    });
+    if (!result.success) {
+      setSaveError(Object.values(getFieldErrors(result.error))[0] ?? 'Revisa el bloque de horarios.');
       return;
     }
     setSaveError(null);
-    setScheduleGroups([...scheduleGroups, {
-      daysOfWeek: currentGroupDays,
-      fixedDepartureTimes: [...currentGroupTimes].sort()
-    }]);
+    setScheduleGroups([...scheduleGroups, result.data]);
     setCurrentGroupDays([]);
     setCurrentGroupTimes([]);
   }
 
   // --- TRANSICIONES Y LLAMADAS A LA API ---
   async function handleNextFromStep2() {
-    if (newStops.length < 2) {
-      setSaveError('Añade al menos 2 paradas para trazar una ruta.');
+    const stopsResult = routeStopsListSchema.safeParse(newStops);
+    const infoResult = routeInfoFormSchema.safeParse(form);
+    if (!stopsResult.success || !infoResult.success) {
+      setFieldErrors(infoResult.success ? {} : getFieldErrors(infoResult.error));
+      setSaveError(
+        !stopsResult.success
+          ? stopsResult.error.issues[0]?.message
+          : 'Revisa la información básica de la ruta.'
+      );
       return;
     }
+    setFieldErrors({});
     setSaveError(null);
     setSaving(true);
-    
+
     try {
       const token = await getToken({ template: 'uce-buslink' });
       if (!token) throw new Error('No autorizado');
@@ -242,9 +255,9 @@ export function AdminRoutesPage() {
       setRoutePolylineRaw(polyline);
 
       const routePayload = {
-        name: form.name,
-        description: form.description,
-        estimatedDurationMinutes: Number(form.estimatedDurationMinutes),
+        name: infoResult.data.name,
+        description: infoResult.data.description,
+        estimatedDurationMinutes: infoResult.data.estimatedDurationMinutes,
         pathPolyline: polyline,
         stops: orderedStops.map((s, index) => ({
           stopId: s.id as string,
@@ -268,11 +281,13 @@ export function AdminRoutesPage() {
   }
 
   async function handleFinalizeSchedule() {
-    if (scheduleGroups.length === 0) {
-      setSaveError('Debes estructurar al menos un bloque de horarios antes de finalizar.');
+    const result = scheduleGroupsListSchema.safeParse(scheduleGroups);
+    if (!result.success) {
+      setSaveError(result.error.issues[0]?.message ?? 'Revisa los bloques de horarios.');
       return;
     }
-    
+    setSaveError(null);
+
     setSaving(true);
     try {
       const token = await getToken({ template: 'uce-buslink' });
@@ -570,6 +585,7 @@ export function AdminRoutesPage() {
                       placeholder="Ej. Ruta Troncal Sur - Campus Central"
                       className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-900/20 outline-none"
                     />
+                    {fieldErrors.name && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.name}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Descripción</label>
@@ -580,6 +596,7 @@ export function AdminRoutesPage() {
                       placeholder="Indique detalles sobre recorridos o facultades cubiertas..."
                       className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-900/20 resize-none outline-none"
                     />
+                    {fieldErrors.description && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.description}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Duración estimada (minutos)</label>
@@ -591,6 +608,9 @@ export function AdminRoutesPage() {
                       placeholder="Ej. 35"
                       className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-900/20 outline-none"
                     />
+                    {fieldErrors.estimatedDurationMinutes && (
+                      <p className="text-[11px] text-red-500 mt-1">{fieldErrors.estimatedDurationMinutes}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -910,8 +930,15 @@ export function AdminRoutesPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (form.name && form.estimatedDurationMinutes) setCurrentStep(2);
-                      else setSaveError('Completa los campos obligatorios antes de proceder.');
+                      const result = routeInfoFormSchema.safeParse(form);
+                      if (!result.success) {
+                        setFieldErrors(getFieldErrors(result.error));
+                        setSaveError('Completa los campos obligatorios antes de proceder.');
+                        return;
+                      }
+                      setFieldErrors({});
+                      setSaveError(null);
+                      setCurrentStep(2);
                     }}
                     className="flex items-center gap-1.5 px-5 py-2 bg-navy-900 text-white text-sm font-semibold rounded-xl hover:bg-navy-800 transition-colors"
                   >

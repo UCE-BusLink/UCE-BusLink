@@ -7,6 +7,7 @@ import com.ucebuslink.reservations.application.dto.CreateReservationRequest;
 import com.ucebuslink.reservations.application.dto.ReservationResponse;
 import com.ucebuslink.reservations.application.service.ReservationApplicationService;
 import com.ucebuslink.shared.constant.ReservationStatus;
+import com.ucebuslink.shared.security.CurrentUserProvider;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class ReservationController {
             @Valid @RequestBody CreateReservationRequest request,
             Authentication authentication) {
 
-        UUID userId = (UUID) authentication.getDetails();
+        UUID userId = CurrentUserProvider.requireUserId(authentication);
 
         CreateReservationCommand command =
                 new CreateReservationCommand(
@@ -59,7 +60,7 @@ public class ReservationController {
             @RequestParam(name = "size", defaultValue = "10") int size,
             Authentication authentication) {
         
-        UUID userId = (UUID) authentication.getDetails();
+        UUID userId = CurrentUserProvider.requireUserId(authentication);
         log.debug("[REST-RESERVATIONS] GET history request for user: {} with status filter: {}", userId, status);
         
         return ResponseEntity.ok(reservationApplicationService.getUserReservations(userId, status, page, size));
@@ -72,7 +73,7 @@ public class ReservationController {
             @Valid @RequestBody CancelReservationRequest request,
             Authentication authentication) {
         
-        UUID userId = (UUID) authentication.getDetails();
+        UUID userId = CurrentUserProvider.requireUserId(authentication);
 
         CancelReservationCommand command =
                 new CancelReservationCommand(

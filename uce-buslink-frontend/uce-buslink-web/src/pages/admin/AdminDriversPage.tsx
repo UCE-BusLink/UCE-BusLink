@@ -4,6 +4,8 @@ import { useAuth } from '@clerk/clerk-react';
 import { fetchDrivers, createDriver, fetchTrips, type ApiDriver, type ApiTrip } from '../../services/adminService';
 import { useRoutes } from '../../hooks/useRoutes';
 import dayjs from 'dayjs';
+import { driverFormSchema } from '../../schemas/driver.schema';
+import { getFieldErrors } from '../../schemas/common';
 
 const EMPTY_FORM = { nombres: '', apellidos: '', email: '', password: '', confirmPassword: '', cedula: '', telefono: '' };
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -39,6 +41,7 @@ export function AdminDriversPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +106,7 @@ export function AdminDriversPage() {
     setForm(EMPTY_FORM);
     setShowPassword(false);
     setSaveError(null);
+    setFieldErrors({});
   }
 
   // Auto-generar correo y contraseña
@@ -140,20 +144,25 @@ export function AdminDriversPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setSaveError(null);
-    if (!formValid) {
+
+    const result = driverFormSchema.safeParse(form);
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
       setSaveError('Revisa los campos: correo válido y contraseña que cumpla los requisitos.');
       return;
     }
+    setFieldErrors({});
+
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
     setSaving(true);
     await createDriver(token, {
-      nombres: form.nombres.trim(),
-      apellidos: form.apellidos.trim(),
-      email: form.email.trim(),
-      password: form.password,
-      cedula: form.cedula.trim(),
-      telefono: form.telefono.trim(),
+      nombres: result.data.nombres,
+      apellidos: result.data.apellidos,
+      email: result.data.email,
+      password: result.data.password,
+      cedula: result.data.cedula,
+      telefono: result.data.telefono,
     })
       .then(() => {
         closeForm();
@@ -391,6 +400,7 @@ export function AdminDriversPage() {
                     placeholder="Daniel"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.nombres && <p className="text-[11px] text-red-400 mt-1">{fieldErrors.nombres}</p>}
                 </div>
                 <div>
                   <label htmlFor="driver-apellidos" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -406,6 +416,7 @@ export function AdminDriversPage() {
                     placeholder="Pérez"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.apellidos && <p className="text-[11px] text-red-400 mt-1">{fieldErrors.apellidos}</p>}
                 </div>
               </div>
 
@@ -424,6 +435,7 @@ export function AdminDriversPage() {
                     placeholder="17xxxxxxxx"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.cedula && <p className="text-[11px] text-red-400 mt-1">{fieldErrors.cedula}</p>}
                 </div>
                 <div>
                   <label htmlFor="driver-telefono" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -439,6 +451,7 @@ export function AdminDriversPage() {
                     placeholder="099xxxxxxx"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.telefono && <p className="text-[11px] text-red-400 mt-1">{fieldErrors.telefono}</p>}
                 </div>
               </div>
 
