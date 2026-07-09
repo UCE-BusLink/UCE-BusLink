@@ -19,11 +19,11 @@ public class TokenAuthenticationAdapter implements TokenAuthenticationPort {
 
     @Override
     public Authentication authenticate(String token) {
-        // 1. Decodifica y valida la firma (Clerk)
+        // 1. Decode and validate the signature (Clerk)
         Jwt jwt = jwtDecoder.decode(token);
-        
-        // 2. Convierte usando tu lógica de BD (Asigna ROLE_STUDENT, ROLE_DRIVER, etc.)
-        // Esto garantiza que WS y HTTP usen EXACTAMENTE las mismas reglas y roles
+
+        // 2. Converts using your DB logic (Assigns ROLE_STUDENT, ROLE_DRIVER, etc.)
+        // This guarantees that WS and HTTP use EXACTLY the same rules and roles
         return converter.convert(jwt);
     }
 }

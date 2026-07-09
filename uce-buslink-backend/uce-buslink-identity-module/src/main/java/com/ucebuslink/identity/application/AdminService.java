@@ -33,7 +33,7 @@ public class AdminService {
     public DriverCreatedResponse createDriver(CreateDriverRequest request) {
         
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("El correo ya está registrado en el sistema local");
+            throw new IllegalArgumentException("The email is already registered in the local system");
         }
 
         String clerkUserId;
@@ -46,7 +46,7 @@ public class AdminService {
                     request.apellidos()
             );
         } catch (Exception e) {
-            throw new RuntimeException("Error al crear el conductor en Clerk: " + e.getMessage());
+            throw new RuntimeException("Error creating driver in Clerk: " + e.getMessage());
         }
 
         User driver = new User();
@@ -64,20 +64,20 @@ public class AdminService {
         return new DriverCreatedResponse(
                 savedDriver.getId(),
                 savedDriver.getEmail(),
-                "Conductor creado exitosamente en Clerk y BD local"
+                "Driver successfully created in Clerk and local DB"
         );
     }
 
     public Page<UserResponse> getAllDrivers(int page, int size) { 
-        log.info("[APP-IDENTITY] Consultando lista paginada de todos los conductores. Page: {}, Size: {}", page, size);
+        log.info("[APP-IDENTITY] Querying paginated list of all drivers. Page: {}, Size: {}", page, size);
         
         Pageable pageable = PageRequest.of(page, size);
         
         return userRepository.findUsersByRole(Role.DRIVER, pageable)
-                .map(this::toResponse); // Mapeamos de Dominio a DTO
+                .map(this::toResponse); // Map from Domain to DTO
     }
 
-    // MAPEO MANUAL: De Dominio a DTO
+    // MANUAL MAPPING: From Domain to DTO
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId(),

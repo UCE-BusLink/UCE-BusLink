@@ -4,8 +4,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record CreateReservationCommand(
-    @NotNull(message = "El ID del viaje es obligatorio") UUID tripId,
-    @NotNull(message = "El ID del asiento es obligatorio") UUID seatId,
-    @NotNull(message = "El ID de la parada de abordaje es obligatorio") UUID boardingStopId,
-    @NotNull(message = "El ID del usuario es obligatorio") UUID userId // En producción, extraer esto del Token JWT en el controller
+    @NotNull(message = "Trip ID is required") UUID tripId,
+    @NotNull(message = "Seat ID is required") UUID seatId,
+    @NotNull(message = "Boarding stop ID is required") UUID boardingStopId,
+    @NotNull(message = "User ID is required") UUID userId // In production, extract this from the JWT token in the controller
 ) {}

@@ -6,5 +6,5 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableScheduling
 public class SchedulerConfig {
-    // Configuración centralizada para tareas programadas (Cron jobs)
+    // Centralized configuration for scheduled tasks (Cron jobs)
 }

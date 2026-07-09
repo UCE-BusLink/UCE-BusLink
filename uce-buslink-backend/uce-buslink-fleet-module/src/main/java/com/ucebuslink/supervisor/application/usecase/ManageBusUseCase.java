@@ -17,7 +17,7 @@ public interface ManageBusUseCase {
     BusResponse updateBus(UUID id, UpdateBusCommand command);
     BusResponse changeBusStatus(UUID id, ChangeBusStatusCommand command);
 
-    // Cambia los métodos para retornar PageResponse
+    // Changes the methods to return PageResponse
     PageResponse<BusResponse> getAllActiveBuses(int page, int size);
 
     PageResponse<BusResponse> findAll(int page, int size);

@@ -18,7 +18,7 @@ public class ScheduleDetailJpaEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    // Relación de vuelta al Maestro
+    // Back-reference to the parent (Master)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "schedule_id", nullable = false)
     private ScheduleJpaEntity schedule;

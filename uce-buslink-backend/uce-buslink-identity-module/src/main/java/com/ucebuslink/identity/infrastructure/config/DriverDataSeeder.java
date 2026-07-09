@@ -19,25 +19,25 @@ public class DriverDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        System.out.println("Verificando conductores de prueba (Seeder)...");
+        System.out.println("Checking test drivers (Seeder)...");
 
-        // Conductor 1: Carlos
+        // Driver 1: Carlos
         if (!userRepository.existsByEmail("carlos.driver@uce.edu.ec")) {
             try {
                 CreateDriverRequest carlos = new CreateDriverRequest(
                         "Carlos",
                         "Conductor",
                         "carlos.driver@uce.edu.ec",
-                        "DriverUce2026*" // Contraseña fuerte para que Clerk no la rechace
+                        "DriverUce2026*" // Strong password so Clerk does not reject it
                 );
                 adminService.createDriver(carlos);
-                System.out.println("Conductor Carlos creado en Clerk y DB.");
+                System.out.println("Driver Carlos created in Clerk and DB.");
             } catch (Exception e) {
-                System.err.println("Error creando a Carlos: " + e.getMessage());
+                System.err.println("Error creating Carlos: " + e.getMessage());
             }
         }
 
-        // Conductor 2: Luis
+        // Driver 2: Luis
         if (!userRepository.existsByEmail("luis.driver@uce.edu.ec")) {
             try {
                 CreateDriverRequest luis = new CreateDriverRequest(
@@ -47,9 +47,9 @@ public class DriverDataSeeder implements CommandLineRunner {
                         "DriverUce2026*"
                 );
                 adminService.createDriver(luis);
-                System.out.println("Conductor Luis creado en Clerk y DB.");
+                System.out.println("Driver Luis created in Clerk and DB.");
             } catch (Exception e) {
-                System.err.println("Error creando a Luis: " + e.getMessage());
+                System.err.println("Error creating Luis: " + e.getMessage());
             }
         }
     }

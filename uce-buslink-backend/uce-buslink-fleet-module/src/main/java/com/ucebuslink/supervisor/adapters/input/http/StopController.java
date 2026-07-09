@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
+import com.ucebuslink.shared.dto.BatchResult;
 import com.ucebuslink.shared.dto.PageResponse;
 import com.ucebuslink.supervisor.application.dto.stop.ChangeStopStatusCommand;
 import com.ucebuslink.supervisor.application.dto.stop.CreateStopCommand;
@@ -33,7 +34,7 @@ public class StopController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('DRIVER')")
     public ResponseEntity<StopResponse> createStop(@Valid @RequestBody CreateStopCommand command) {
-        log.info("[FLEET] Creating new stop..."); // Si el command tiene un campo nombre, podrías poner command.name()
+        log.info("[FLEET] Creating new stop: {}", command.name());
         StopResponse response = manageStopUseCase.createStop(command);
         log.info("[FLEET] Stop created successfully with ID: {}", response.id());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -67,11 +68,16 @@ public class StopController {
 
     @PostMapping("/batch")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<StopResponse>> createStopsBatch(@Valid @RequestBody List<CreateStopCommand> commands) {
-        log.info("[FLEET] Creating a batch of {} new stops...", commands.size());
-        List<StopResponse> responses = manageStopUseCase.createStopsBatch(commands);
-        log.info("[FLEET] Batch of {} stops created successfully", responses.size());
-        return new ResponseEntity<>(responses, HttpStatus.CREATED);
+    public ResponseEntity<BatchResult<StopResponse>> createStopsBatch(@RequestBody List<CreateStopCommand> commands) {
+        log.info("[FLEET] Received batch request with {} stops", commands.size());
+
+        BatchResult<StopResponse> result = manageStopUseCase.createStopsBatch(commands);
+
+        log.info("[FLEET] Batch stop request processed: {} succeeded, {} failed",
+                result.successCount(), result.failureCount());
+
+        HttpStatus status = result.failureCount() == 0 ? HttpStatus.CREATED : HttpStatus.MULTI_STATUS;
+        return new ResponseEntity<>(result, status);
     }
 
     @PatchMapping("/{id}/status")

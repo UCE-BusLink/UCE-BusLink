@@ -47,7 +47,7 @@ public class NotificationEventHandler {
     @Async
     @EventListener
     public void handleReservationCreatedEvent(ReservationCreatedEvent event) {
-        log.info("[NOTIFICATIONS] Manejando ReservationCreatedEvent para usuario {}", event.userId());
+        log.info("[NOTIFICATIONS] Handling ReservationCreatedEvent for user {}", event.userId());
         
         NotificationPreference prefs = getPreferences(event.userId());
         if (!prefs.isNotifyReservationConfirmed()) return;
@@ -61,7 +61,7 @@ public class NotificationEventHandler {
     @Async
     @EventListener
     public void handleReservationCancelledEvent(ReservationCancelledEvent event) {
-        log.info("[NOTIFICATIONS] Manejando ReservationCancelledEvent para usuario {}", event.userId());
+        log.info("[NOTIFICATIONS] Handling ReservationCancelledEvent for user {}", event.userId());
 
         NotificationPreference prefs = getPreferences(event.userId());
         if (!prefs.isNotifyCancellation()) return;
@@ -77,7 +77,7 @@ public class NotificationEventHandler {
     @Async
     @EventListener
     public void handleBoardingCompletedEvent(BoardingCompletedEvent event) {
-        log.info("[NOTIFICATIONS] Manejando BoardingCompletedEvent para usuario {}", event.userId());
+        log.info("[NOTIFICATIONS] Handling BoardingCompletedEvent for user {}", event.userId());
 
         NotificationPreference prefs = getPreferences(event.userId());
         if (!prefs.isNotifyTrustPoints()) return;
@@ -91,7 +91,7 @@ public class NotificationEventHandler {
     @Async
     @EventListener
     public void handleNoShowEvent(NoShowEvent event) {
-        log.warn("[NOTIFICATIONS] Manejando NoShowEvent para usuario {}", event.userId());
+        log.warn("[NOTIFICATIONS] Handling NoShowEvent for user {}", event.userId());
 
         NotificationPreference prefs = getPreferences(event.userId());
         if (!prefs.isNotifyTrustPoints()) return;
@@ -105,17 +105,17 @@ public class NotificationEventHandler {
     @Async
     @EventListener
     public void handleTripCancelledEvent(TripCancelledEvent event) {
-        log.warn("[NOTIFICATIONS] Manejando TripCancelledEvent para viaje {}", event.tripId());
+        log.warn("[NOTIFICATIONS] Handling TripCancelledEvent for trip {}", event.tripId());
 
         String title = "Viaje Cancelado";
         String message = "El viaje ha sido cancelado debido a un retraso significativo: " + event.reason();
 
-        // 1. Notificar al conductor
+        // 1. Notify the driver
         if (event.driverId() != null) {
             saveAndSendPush(event.driverId(), title, message, "TRIP_CANCELLED");
         }
 
-        // 2. Notificar a los estudiantes
+        // 2. Notify the students
         if (event.studentIds() != null) {
             for (UUID studentId : event.studentIds()) {
                 NotificationPreference prefs = getPreferences(studentId);
@@ -125,14 +125,14 @@ public class NotificationEventHandler {
             }
         }
         
-        // 3. TODO: Notificar a los administradores si es necesario. (Requiere un repositorio de usuarios con rol ADMIN).
-        // Por simplicidad del requerimiento, asumo que los admins ven esto en dashboard.
+        // 3. TODO: Notify administrators if necessary. (Requires a user repository with ADMIN role).
+        // For simplicity of the requirement, I assume admins see this on the dashboard.
     }
 
     @Async
     @EventListener
     public void handleTripReminderEvent(TripReminderEvent event) {
-        log.info("[NOTIFICATIONS] Manejando TripReminderEvent para viaje {}", event.tripId());
+        log.info("[NOTIFICATIONS] Handling TripReminderEvent for trip {}", event.tripId());
 
         String title = "Recordatorio de Viaje";
         String message = event.minutesRemaining() == 0 
@@ -147,7 +147,7 @@ public class NotificationEventHandler {
     @Async
     @EventListener
     public void handleTripDelayedEvent(com.ucebuslink.shared.event.TripDelayedEvent event) {
-        log.warn("[NOTIFICATIONS] Manejando TripDelayedEvent para viaje {}", event.tripId());
+        log.warn("[NOTIFICATIONS] Handling TripDelayedEvent for trip {}", event.tripId());
 
         String title = "Alerta de Demora";
         String message = event.reason();
@@ -156,7 +156,7 @@ public class NotificationEventHandler {
             saveAndSendPush(event.driverId(), title, message, "TRIP_DELAYED");
         }
         
-        // Se podría notificar a los estudiantes si el viaje está en curso, pero por ahora solo al conductor.
+        // Students could be notified if the trip is in progress, but for now only the driver is notified.
     }
 
     private NotificationPreference getPreferences(UUID userId) {
@@ -165,7 +165,7 @@ public class NotificationEventHandler {
     }
 
     private void saveAndSendPush(UUID userId, String title, String message, String type) {
-        // 1. Guardar en DB
+        // 1. Save to DB
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setTitle(title);
@@ -176,7 +176,7 @@ public class NotificationEventHandler {
         
         notificationRepository.save(notification);
 
-        // 2. Intentar enviar Push si tiene device token
+        // 2. Attempt to send Push if it has a device token
         List<DeviceToken> tokens = deviceTokenRepository.findAllByUserId(userId);
         for (DeviceToken token : tokens) {
             fcmAdapter.sendPushNotification(token.getFcmToken(), title, message);

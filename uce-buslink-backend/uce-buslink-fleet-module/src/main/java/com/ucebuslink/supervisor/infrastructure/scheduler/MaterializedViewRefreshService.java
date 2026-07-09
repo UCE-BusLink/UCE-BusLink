@@ -13,17 +13,17 @@ public class MaterializedViewRefreshService {
 
     private final DailyRouteStatsRepository repository;
 
-    // Se ejecuta todos los días a las 02:00 AM
+    // Runs every day at 02:00 AM
     @Scheduled(cron = "0 0 2 * * ?")
     public void refreshDailyRouteStats() {
-        log.info("[ANALYTICS] Iniciando actualización nocturna concurrente de mv_daily_route_stats...");
+        log.info("[ANALYTICS] Starting concurrent nightly refresh of mv_daily_route_stats...");
         long start = System.currentTimeMillis();
-        
+
         try {
             repository.refreshMaterializedView();
-            log.info("[ANALYTICS] Vista materializada actualizada exitosamente en {} ms", (System.currentTimeMillis() - start));
+            log.info("[ANALYTICS] Materialized view successfully refreshed in {} ms", (System.currentTimeMillis() - start));
         } catch (Exception e) {
-            log.error("[ANALYTICS] Fallo al actualizar la vista materializada: {}", e.getMessage(), e);
+            log.error("[ANALYTICS] Failed to refresh the materialized view: {}", e.getMessage(), e);
         }
     }
 }
