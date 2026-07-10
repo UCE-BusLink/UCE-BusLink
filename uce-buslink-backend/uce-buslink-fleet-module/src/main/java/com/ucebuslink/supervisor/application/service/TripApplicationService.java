@@ -11,6 +11,7 @@ import com.ucebuslink.supervisor.domain.model.Schedule;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.model.Trip;
 import com.ucebuslink.shared.constant.*;
+import com.ucebuslink.shared.event.TripBroadcastEvent;
 import com.ucebuslink.shared.event.TripCancelledEvent;
 import com.ucebuslink.shared.event.TripCompletedEvent;
 import com.ucebuslink.shared.event.TripCreatedEvent;
@@ -85,7 +86,8 @@ public class TripApplicationService implements ManageTripUseCase {
             Trip savedTrip = tripRepository.save(trip);
 
             eventPublisher.publishEvent(new TripCreatedEvent(savedTrip.getId(), bus.getSeatCapacity()));
-            
+            eventPublisher.publishEvent(toBroadcastEvent(TripBroadcastEvent.ChangeType.CREATED, savedTrip));
+
             responses.add(new TripResponse(
                     savedTrip.getId(), savedTrip.getRouteId(), savedTrip.getBusId(),
                     savedTrip.getDriverId(), savedTrip.getState(), savedTrip.getDepartureTime(),
@@ -154,8 +156,15 @@ public class TripApplicationService implements ManageTripUseCase {
 
         Trip updatedTrip = tripRepository.save(trip);
         log.info("[FLEET-TRIP] Trip updated successfully. New bus assigned: {}", updatedTrip.getBusId());
-        
+        eventPublisher.publishEvent(toBroadcastEvent(TripBroadcastEvent.ChangeType.UPDATED, updatedTrip));
+
         return mapToResponse(updatedTrip);
+    }
+
+    private TripBroadcastEvent toBroadcastEvent(TripBroadcastEvent.ChangeType changeType, Trip trip) {
+        return new TripBroadcastEvent(
+                changeType, trip.getId(), trip.getRouteId(), trip.getBusId(), trip.getDriverId(),
+                trip.getState(), trip.getDepartureTime(), trip.getEstimatedArrivalTime(), trip.getAvailableSeats());
     }
 
     private TripResponse mapToResponse(Trip trip) {
@@ -238,7 +247,8 @@ public class TripApplicationService implements ManageTripUseCase {
             )
         );
 
-        tripRepository.save(trip);
+        Trip cancelledTrip = tripRepository.save(trip);
+        eventPublisher.publishEvent(toBroadcastEvent(TripBroadcastEvent.ChangeType.CANCELLED, cancelledTrip));
         log.info("[FLEET-TRIP] Trip ID: {} successfully cancelled.", id);
     }
 
@@ -285,6 +295,7 @@ public class TripApplicationService implements ManageTripUseCase {
         }
 
         Trip updatedTrip = tripRepository.save(trip);
+        eventPublisher.publishEvent(toBroadcastEvent(TripBroadcastEvent.ChangeType.STATE_CHANGED, updatedTrip));
         return mapToResponse(updatedTrip);
     }
 

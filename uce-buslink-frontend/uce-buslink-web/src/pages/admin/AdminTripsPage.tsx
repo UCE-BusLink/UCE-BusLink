@@ -12,8 +12,10 @@ import {
 } from '../../services/adminService';
 import { fetchRoutes } from '../../services/routeService';
 import type { ApiTrip, ApiRoute } from '../../types';
+import type { RouteBroadcastMessage, TripBroadcastMessage } from '../../types/realtime';
 import { tripEntitiesFormSchema, createTripFormSchema } from '../../schemas/trip.schema';
 import { getFieldErrors } from '../../schemas/common';
+import { useTrackingConnection } from '../../hooks/useTrackingConnection';
 
 const STATE_STYLES: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 text-blue-700',
@@ -141,6 +143,65 @@ export function AdminTripsPage() {
     run();
     return () => { cancelled = true; };
   }, [getToken, tick]);
+
+  // Real-time updates: reflect routes/trips created, edited or cancelled by
+  // any admin session, and route name/status changes, without refetching.
+  const { client, isConnected } = useTrackingConnection(true);
+
+  useEffect(() => {
+    if (!client || !isConnected) return;
+
+    const routesSub = client.subscribe('/topic/routes', (message) => {
+      if (!message.body) return;
+      const event: RouteBroadcastMessage = JSON.parse(message.body);
+
+      setRoutes((current) => {
+        if (event.changeType === 'DELETED') {
+          return current.filter((r) => r.id !== event.routeId);
+        }
+        const updated: ApiRoute = {
+          id: event.routeId,
+          name: event.name ?? '',
+          description: event.description,
+          isActive: event.isActive ?? true,
+          estimatedDurationMinutes: event.estimatedDurationMinutes,
+          pathPolyline: event.pathPolyline,
+          stops: event.stops,
+        };
+        const exists = current.some((r) => r.id === event.routeId);
+        return exists
+          ? current.map((r) => (r.id === event.routeId ? updated : r))
+          : [...current, updated];
+      });
+    });
+
+    const tripsSub = client.subscribe('/topic/trips', (message) => {
+      if (!message.body) return;
+      const event: TripBroadcastMessage = JSON.parse(message.body);
+
+      setTrips((current) => {
+        const updated: ApiTrip = {
+          id: event.tripId,
+          routeId: event.routeId,
+          busId: event.busId,
+          driverId: event.driverId,
+          state: event.state,
+          departureTime: event.departureTime,
+          estimatedArrivalTime: event.estimatedArrivalTime,
+          availableSeats: event.availableSeats,
+        };
+        const exists = current.some((t) => t.id === event.tripId);
+        return exists
+          ? current.map((t) => (t.id === event.tripId ? updated : t))
+          : [...current, updated];
+      });
+    });
+
+    return () => {
+      routesSub.unsubscribe();
+      tripsSub.unsubscribe();
+    };
+  }, [client, isConnected]);
 
   const refetch = useCallback(() => {
     setLoading(true);

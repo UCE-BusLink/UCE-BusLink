@@ -1,6 +1,7 @@
 package com.ucebuslink.supervisor.application.service;
 
 import com.ucebuslink.shared.dto.PageResponse;
+import com.ucebuslink.shared.event.RouteBroadcastEvent;
 import com.ucebuslink.supervisor.application.dto.route.CreateRouteCommand;
 import com.ucebuslink.supervisor.application.dto.route.RouteResponse;
 import com.ucebuslink.supervisor.application.usecase.ManageRouteUseCase;
@@ -16,6 +17,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +33,13 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     private final RouteRepository routeRepository;
     private final StopRepository stopRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public RouteApplicationService(RouteRepository routeRepository, StopRepository stopRepository) {
+    public RouteApplicationService(RouteRepository routeRepository, StopRepository stopRepository,
+                                    ApplicationEventPublisher eventPublisher) {
         this.routeRepository = routeRepository;
         this.stopRepository = stopRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -71,7 +76,9 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
         Route savedRoute = routeRepository.save(route);
         log.info("Route created successfully with ID: {}", savedRoute.getId());
-        return mapToResponse(savedRoute);
+        RouteResponse response = mapToResponse(savedRoute);
+        eventPublisher.publishEvent(toBroadcastEvent(RouteBroadcastEvent.ChangeType.CREATED, response));
+        return response;
     }
 
     @Override
@@ -118,6 +125,8 @@ public class RouteApplicationService implements ManageRouteUseCase {
         log.info("Attempting to delete route with ID: {}", id);
         routeRepository.deleteById(id);
         log.info("Route {} deleted successfully", id);
+        eventPublisher.publishEvent(new RouteBroadcastEvent(
+                RouteBroadcastEvent.ChangeType.DELETED, id, null, null, null, null, null, null));
     }
 
     @Override
@@ -157,7 +166,23 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
         Route updatedRoute = routeRepository.update(route);
         log.info("Route {} updated successfully", id);
-        return mapToResponse(updatedRoute);
+        RouteResponse response = mapToResponse(updatedRoute);
+        eventPublisher.publishEvent(toBroadcastEvent(RouteBroadcastEvent.ChangeType.UPDATED, response));
+        return response;
+    }
+
+    private RouteBroadcastEvent toBroadcastEvent(RouteBroadcastEvent.ChangeType changeType, RouteResponse response) {
+        List<RouteBroadcastEvent.StopSummary> stopSummaries = response.stops() == null ? null
+                : response.stops().stream()
+                    .map(s -> new RouteBroadcastEvent.StopSummary(
+                            s.stopId(), s.stopName(), s.latitude(), s.longitude(),
+                            s.stopOrder(), s.estimatedMinutesFromStart()))
+                    .collect(Collectors.toList());
+
+        return new RouteBroadcastEvent(
+                changeType, response.id(), response.name(), response.description(),
+                response.isActive(), response.estimatedDurationMinutes(), response.pathPolyline(),
+                stopSummaries);
     }
 
     private RouteResponse mapToResponse(Route route) {
@@ -213,9 +238,11 @@ public class RouteApplicationService implements ManageRouteUseCase {
         
         // We use the update method we fixed earlier to ensure
         // the collections are synchronized correctly
-        Route updatedRoute = routeRepository.update(route); 
-        
+        Route updatedRoute = routeRepository.update(route);
+
         log.info("Route {} status updated successfully", id);
-        return mapToResponse(updatedRoute);
+        RouteResponse response = mapToResponse(updatedRoute);
+        eventPublisher.publishEvent(toBroadcastEvent(RouteBroadcastEvent.ChangeType.STATUS_CHANGED, response));
+        return response;
     }
 }

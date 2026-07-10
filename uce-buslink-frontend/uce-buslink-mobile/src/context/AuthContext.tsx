@@ -7,6 +7,7 @@ import { notificationService } from '../services/notificationService';
 
 interface CurrentUser {
   id: string;
+  internalId: string | null;
   email: string;
   firstName: string;
   lastName: string;
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { getToken } = useAuth();
   const syncedRef = useRef(false);
   const [role, setRole] = useState<string>('STUDENT');
+  const [internalId, setInternalId] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false);
   const [syncComplete, setSyncComplete] = useState(false);
   const syncDone = isLoaded && (!clerkUser || syncComplete);
@@ -69,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!clerkUser) {
       syncedRef.current = false;
       setRole('STUDENT');
+      setInternalId(null);
       setNeedsOnboarding(false);
       setSyncComplete(false);
       return;
@@ -88,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           if (data.role) setRole(data.role);
+          if (data.id) setInternalId(data.id);
           if (data.needsOnboarding !== undefined) setNeedsOnboarding(data.needsOnboarding);
         }
       } catch {
@@ -104,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const user: CurrentUser | null = clerkUser
     ? {
         id: clerkUser.id,
+        internalId,
         email: clerkUser.primaryEmailAddress?.emailAddress ?? '',
         firstName: clerkUser.firstName ?? '',
         lastName: clerkUser.lastName ?? '',

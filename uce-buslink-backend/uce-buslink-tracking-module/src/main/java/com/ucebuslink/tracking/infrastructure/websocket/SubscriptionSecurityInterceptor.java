@@ -34,6 +34,14 @@ public class SubscriptionSecurityInterceptor implements ChannelInterceptor {
             log.debug("[WEBSOCKET-SECURITY] User {} attempting to subscribe to {}",
                     userAuth != null ? userAuth.getName() : "Anonymous", destination);
 
+            if (destination != null && (destination.equals("/topic/routes") || destination.equals("/topic/trips"))) {
+                // Route/trip catalogue changes are relevant to every authenticated role
+                // (student, driver, admin); no per-entity ownership check applies here.
+                if (userAuth == null) {
+                    throw new IllegalArgumentException("Not authenticated.");
+                }
+            }
+
             if (destination != null && destination.startsWith("/topic/trip/")) {
                 
                 if (userAuth == null) {

@@ -11,6 +11,7 @@ import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { OnboardingModal } from '../components/organisms/OnboardingModal';
 import { useProfile } from '../hooks/useProfile';
+import { useRealtimeRoutes } from '../hooks/useRealtimeRoutes';
 import type { RootStackParamList, AuthStackParamList } from './types';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -38,6 +39,7 @@ function AuthNavigator() {
 function AppNavigator() {
   const { user, updateOnboardingStatus } = useCurrentUser();
   const { data: profile, refetch } = useProfile();
+  useRealtimeRoutes();
 
   return (
     <>

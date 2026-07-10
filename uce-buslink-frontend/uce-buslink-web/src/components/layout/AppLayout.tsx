@@ -12,6 +12,7 @@ import { OnboardingModal } from "../organisms/OnboardingModal";
 import { useCurrentUser } from "../../context/AuthContext";
 import { Toaster } from "react-hot-toast";
 import { useAppStore } from "../../store/useAppStore";
+import { useRealtimeRoutes } from "../../hooks/useRealtimeRoutes";
 
 export function AppLayout() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
@@ -21,6 +22,7 @@ export function AppLayout() {
   const queryClient = useQueryClient();
 
   usePushNotifications();
+  useRealtimeRoutes();
 
   const { data: profile, refetch } = useProfile();
 
