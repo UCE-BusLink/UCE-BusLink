@@ -16,12 +16,12 @@
     "lint": "eslint . || true",
     "preview": "vite preview",
     "dist": "npm run build && electron-builder",
-    "dist:copy-portable": "npm run dist && if exist release\\win-unpacked\\UCE* (copy \"release\\win-unpacked\\UCE BusLink Admin.exe\" \"release\\UCE BusLink Admin Portable.exe\" 2>nul || echo Portable generado en win-unpacked)"
+    "dist:qa": "npm run build -- --mode qa && electron-builder --config.productName=\"QA UCE BusLink Admin\" --config.appId=ec.uce.buslink.desktop.qa",
+    "dist:localhost": "npm run build -- --mode localhost && electron-builder --config.productName=\"LocalHost UCE BusLink Admin\" --config.appId=ec.uce.buslink.desktop.localhost",
+    "dist:all": "npm run dist && npm run dist:qa && npm run dist:localhost"
   },
   "dependencies": {
-    "@azure/msal-browser": "^5.16.0",
     "@clerk/clerk-react": "^5.61.8",
-    "@react-oauth/google": "^0.13.5",
     "@stomp/stompjs": "^7.3.0",
     "@tanstack/react-query": "^5.101.2",
     "dayjs": "^1.11.21",
@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@tailwindcss/vite": "^4.3.0",
+    "@tailwindcss/vite": "4.3.1",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
@@ -52,11 +52,15 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
-    "tailwindcss": "^4.3.0",
+    "tailwindcss": "4.3.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12",
+    "vite": "8.0.16",
     "wait-on": "^9.0.1"
+  },
+  "overrides": {
+    "rolldown": "1.0.3",
+    "@tailwindcss/oxide": "4.3.1"
   },
   "build": {
     "appId": "ec.uce.buslink.desktop",
@@ -85,12 +89,7 @@
           ]
         }
       ],
-      "icon": "public/favicon.ico",
-      "certificateFile": null,
-      "certificatePassword": null,
-      "signingHashAlgorithms": [
-        "sha256"
-      ]
+      "icon": "public/favicon.ico"
     },
     "mac": {
       "target": [
@@ -110,15 +109,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "UCE BusLink Admin",
-      "installerIcon": "public/favicon.ico",
-      "uninstallerIcon": "public/favicon.ico",
-      "installerHeader": "public/favicon.ico",
-      "installerSidebar": "public/favicon.ico",
-      "warningsNotifications": [
-        "default"
-      ]
+      "createStartMenuShortcut": true
     }
   }
 }
