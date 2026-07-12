@@ -14,3 +14,6 @@ services:
 
   uce-buslink-frontend:
     image: rodneyandrade/uce-buslink-frontend-web:${FRONTEND_TAG:-latest}
+
+  uce-buslink-storybook:
+    image: rodneyandrade/uce-buslink-storybook:${STORYBOOK_TAG:-prod}
