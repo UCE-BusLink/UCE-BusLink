@@ -101,6 +101,8 @@ services:
     container_name: uce-buslink-frontend
     ports:
       - "80:80"
+      - "8081:80"
+      
     networks:
       - uce-buslink-net
     deploy:
