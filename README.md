@@ -7,62 +7,64 @@
 [![Expo](https://img.shields.io/badge/Expo-Managed-black?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-**Sistema Inteligente de Transporte Universitario Nocturno — Universidad Central del Ecuador**
+**Smart Night Transportation System for the University — Universidad Central del Ecuador**
 
-UCE-BusLink resuelve los problemas críticos del transporte nocturno universitario: elimina la espera sin información y reemplaza el modelo "el primero que llega, se sienta" con un sistema moderno de reservas de asientos, seguimiento GPS en tiempo real y notificaciones automatizadas que garantizan un servicio seguro, predecible y eficiente para toda la comunidad universitaria.
+UCE-BusLink solves the critical problems of university night transportation: it eliminates waiting without any information and replaces the "first come, first served" seating model with a modern system of seat reservations, real-time GPS tracking and automated notifications, guaranteeing a safe, predictable and efficient service for the whole university community.
 
 ---
 
-## Stack Tecnológico
+## Tech Stack
 
-| Capa | Tecnologías Utilizadas |
+| Layer | Technologies |
 |---|---|
-| **Backend** | Spring Boot 3.5.0 · Java 21 · Maven Multi-módulo · JPA/Hibernate |
-| **Frontend Web** | React 19 · TypeScript · Vite · Tailwind CSS |
-| **Frontend Desktop (Admin)** | Electron · React 19 · TypeScript · Vite · Tailwind CSS |
-| **Frontend Mobile (Pasajeros/Conductores)** | React Native · Expo SDK 52 · NativeWind (Tailwind CSS) |
-| **Base de Datos** | PostgreSQL 15 + PostGIS (Extensiones espaciales) |
-| **Caché y Mensajería** | Redis 7.2 |
-| **Autenticación y SSO** | Clerk Auth |
-| **Infraestructura y Contenedores** | Docker · Docker Compose · Nginx (Proxy Reverso) |
+| **Backend** | Spring Boot 3.5.0 · Java 21 · Multi-module Maven · JPA/Hibernate |
+| **Web Frontend** | React 19 · TypeScript · Vite · Tailwind CSS |
+| **Desktop Frontend (Admin)** | Electron · React 19 · TypeScript · Vite · Tailwind CSS |
+| **Mobile Frontend (Passengers/Drivers)** | React Native · Expo SDK 52 · NativeWind (Tailwind CSS) |
+| **Database** | PostgreSQL 15 + PostGIS (spatial extensions) |
+| **Cache & Messaging** | Redis 7.2 |
+| **Authentication & SSO** | Clerk Auth |
+| **Infrastructure & Containers** | Docker · Docker Compose · Nginx (reverse proxy) |
 | **CI/CD** | GitHub Actions · Docker Hub |
-| **Despliegue** | AWS EC2 |
+| **Deployment** | AWS EC2 |
+
+For a deeper breakdown of what each technology is used for and where it lives in the code, see `scratch/TECNOLOGIAS.md` (internal notes, Spanish).
 
 ---
 
-## Arquitectura del Sistema
+## System Architecture
 
-El proyecto sigue una estructura modular y desacoplada para facilitar el desarrollo independiente de sus componentes y asegurar la escalabilidad:
+The project follows a modular, decoupled structure to allow independent development of each component and ensure scalability:
 
 ```mermaid
 graph TD
-    subgraph Frontends [Capa de Presentación]
-        A["App Móvil (React Native/Expo)"] -->|HTTPS / WSS| N["Proxy Nginx (Puerto 80/443)"]
-        B["App Web (React 19/Vite)"] -->|HTTPS| N
-        C["App Desktop (Electron/Admin)"] -->|HTTPS / WSS| N
+    subgraph Frontends [Presentation Layer]
+        A["Mobile App (React Native/Expo)"] -->|HTTPS / WSS| N["Nginx Proxy (Port 80/443)"]
+        B["Web App (React 19/Vite)"] -->|HTTPS| N
+        C["Desktop App (Electron/Admin)"] -->|HTTPS / WSS| N
     end
 
-    subgraph Ingress [Capa de Redirección]
-        N -->|/api/*| M["Backend Modular (uce-buslink-main)"]
-        N -->|/ws/*| T["Módulo de Tracking (WebSockets/STOMP)"]
+    subgraph Ingress [Routing Layer]
+        N -->|/api/*| M["Modular Backend (uce-buslink-main)"]
+        N -->|/ws/*| T["Tracking Module (WebSockets/STOMP)"]
     end
 
-    subgraph Backend [Backend Modular Spring Boot]
-        M --> SK["Shared Kernel (Común)"]
+    subgraph Backend [Modular Spring Boot Backend]
+        M --> SK["Shared Kernel (Common)"]
         M --> IM["Identity Module (Clerk/Roles)"]
-        M --> FM["Fleet Module (Buses/Rutas)"]
-        M --> RM["Reservations Module (Asientos/QR)"]
-        M --> TM["Tracking Module (GPS en vivo)"]
+        M --> FM["Fleet Module (Buses/Routes)"]
+        M --> RM["Reservations Module (Seats/QR)"]
+        M --> TM["Tracking Module (Live GPS)"]
         M --> NM["Notifications Module (FCM)"]
     end
 
-    subgraph External [Servicios Externos]
+    subgraph External [External Services]
         IM -->|OAuth / JWKS| Clerk["Clerk Auth Provider"]
         TM -->|Geocoding| Gmaps["Google Maps API"]
         NM -->|Push Alerts| FCM["Firebase Cloud Messaging"]
     end
 
-    subgraph Storage [Capa de Persistencia]
+    subgraph Storage [Persistence Layer]
         FM & RM & IM --> DB[("PostgreSQL + PostGIS")]
         TM --> Cache[("Redis Cache")]
     end
@@ -70,223 +72,202 @@ graph TD
 
 ---
 
-## Estructura del Repositorio
+## Repository Structure
 
 ```
 UCE-BusLink/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                       # Status checks generales en PRs a qa y main
-│       ├── deploy.yml                   # Build, push y deploy automático a AWS
-│       ├── backend-ci.yml               # Integración continua para el backend
-│       ├── web-ci.yml                   # Integración continua para la web
-│       ├── desktop-ci.yml               # Integración continua para la app de escritorio
-│       ├── mobile-ci.yml                # Integración continua para la app móvil
-│       └── pr-validation.yml            # Validación de integridad de archivos
+│       ├── ci.yml                       # General status checks on PRs to qa and main
+│       ├── deploy.yml                   # Build, push and automatic deploy to AWS
+│       ├── backend-ci.yml               # Continuous integration for the backend
+│       ├── web-ci.yml                   # Continuous integration for the web app
+│       ├── desktop-ci.yml               # Continuous integration for the desktop app
+│       ├── mobile-ci.yml                # Continuous integration for the mobile app
+│       └── pr-validation.yml            # File integrity validation
 │
 ├── docker/
-│   ├── Dockerfile.backend               # Build multi-etapa con usuario no-root
-│   ├── Dockerfile.frontend              # Imagen frontend web servida con Nginx
-│   ├── Dockerfile.storybook             # Imagen para catálogo de componentes
-│   ├── nginx.conf                       # Configuración de rutas API y WebSockets
-│   ├── docker-compose.yml               # Contenedores base: db, redis, app
-│   ├── docker-compose.local.yml         # Configuración para desarrollo local
-│   ├── docker-compose.qa.yml            # Configuración para ambiente de pruebas
-│   └── docker-compose.prod.yml          # Configuración optimizada para producción
+│   ├── Dockerfile.backend               # Multi-stage build with a non-root user
+│   ├── Dockerfile.frontend              # Web frontend image served with Nginx
+│   ├── Dockerfile.storybook             # Image for the component catalog
+│   ├── nginx.conf                       # API and WebSocket routing configuration
+│   ├── docker-compose.yml               # Base containers: db, redis, app
+│   ├── docker-compose.local.yml         # Local development configuration
+│   ├── docker-compose.qa.yml            # QA environment configuration
+│   └── docker-compose.prod.yml          # Production-optimized configuration
 │
-├── uce-buslink-backend/                 # Proyecto Spring Boot multimodular
-│   ├── uce-buslink-shared-kernel/       # Kernel común: DTOs, excepciones y dominio compartido
-│   ├── uce-buslink-identity-module/     # Registro, autenticación y sincronización con Clerk
-│   ├── uce-buslink-fleet-module/        # Control de buses, paradas, choferes y rutas
-│   ├── uce-buslink-reservations-module/ # Gestión de boletos, reservas y verificación QR
-│   ├── uce-buslink-tracking-module/     # WebSocket STOMP para seguimiento GPS en vivo
-│   ├── uce-buslink-notifications-module/ # Integración con Firebase para notificaciones push
-│   └── uce-buslink-main/                # Configuración principal, seguridad y migraciones Flyway
+├── uce-buslink-backend/                 # Multi-module Spring Boot project
+│   ├── uce-buslink-shared-kernel/       # Common kernel: DTOs, exceptions and shared domain
+│   ├── uce-buslink-identity-module/     # Registration, authentication and Clerk sync
+│   ├── uce-buslink-fleet-module/        # Bus, stop, driver and route management
+│   ├── uce-buslink-reservations-module/ # Ticket management, reservations and QR verification
+│   ├── uce-buslink-tracking-module/     # STOMP WebSocket for live GPS tracking
+│   ├── uce-buslink-notifications-module/ # Firebase integration for push notifications
+│   └── uce-buslink-main/                # Main configuration, security and Flyway migrations
 │
-├── uce-buslink-frontend/                # Subproyectos de Frontend
-│   ├── uce-buslink-web/                 # App Web para estudiantes (React 19 + Vite)
-│   ├── uce-buslink-desktop/             # Panel administrativo de escritorio (Electron)
-│   └── uce-buslink-mobile/              # App móvil para estudiantes y conductores (Expo)
+├── uce-buslink-frontend/                # Frontend subprojects
+│   ├── uce-buslink-web/                 # Web app for students (React 19 + Vite)
+│   ├── uce-buslink-desktop/             # Desktop admin panel (Electron)
+│   └── uce-buslink-mobile/              # Mobile app for students and drivers (Expo)
 │
-├── .env.example                         # Plantilla de variables de entorno globales
+├── .env.example                         # Global environment variables template
 ├── .dockerignore
 └── .gitignore
 ```
 
 ---
 
-## Prerrequisitos de Entorno
+## Environment Requirements
 
-* Docker Desktop v24.0 o superior
+* Docker Desktop v24.0 or higher
 * Git
-* Node.js v20+ (Solo para desarrollo local sin Docker)
-* JDK 21 (Solo para desarrollo de backend local sin Docker)
+* Node.js v20+ (only for local development without Docker)
+* JDK 21 (only for local backend development without Docker)
 
 ---
 
-## Guía de Inicio Rápido
+## Quick Start Guide
 
-### Opción A: Levantar Entorno Completo con Docker
-Esta opción levanta la base de datos, Redis, el Backend, y las aplicaciones Web/Storybook automáticamente:
+### Option A: Run the Full Environment with Docker
+This option brings up the database, Redis, the backend, and the Web/Storybook apps automatically:
 
-1. **Clonar el repositorio:**
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/UCE-BusLink/UCE-BusLink.git
    cd UCE-BusLink
    ```
 
-2. **Configurar variables de entorno:**
-   Copia el archivo de plantilla `.env.example` y rellena las claves necesarias:
+2. **Set up environment variables:**
+   Copy the `.env.example` template and fill in the required values:
    ```bash
    cp .env.example .env
    ```
 
-3. **Levantar todos los contenedores:**
+3. **Bring up all containers:**
    ```bash
    docker compose -f docker/docker-compose.yml -f docker/docker-compose.local.yml up -d
    ```
 
-4. **Verificar estado de salud de los servicios:**
+4. **Check the health of the services:**
    ```bash
    docker ps --format "table {{.Names}}\t{{.Status}}"
    ```
 
-* La aplicación Web estará disponible en `http://localhost:3000`
-* La API del Backend estará disponible en `http://localhost:8080`
-* El catálogo Storybook estará disponible en `http://localhost:6006`
+* The web app is available at `http://localhost:3000`
+* The backend API is available at `http://localhost:8080`
+* The Storybook catalog is available at `http://localhost:6006`
 
 ---
 
-### Opción B: Desarrollo Local Individual por Componentes
-Si deseas ejecutar y depurar los servicios directamente en tu entorno local:
+### Option B: Individual Local Development per Component
+If you want to run and debug services directly in your local environment, see each project's own README for details on running it standalone:
 
-#### 1. Base de Datos y Caché (Requeridos en Docker)
+* [`uce-buslink-backend/README.md`](uce-buslink-backend/README.md)
+* [`uce-buslink-frontend/uce-buslink-web/README.md`](uce-buslink-frontend/uce-buslink-web/README.md)
+* [`uce-buslink-frontend/uce-buslink-desktop/README.md`](uce-buslink-frontend/uce-buslink-desktop/README.md)
+* [`uce-buslink-frontend/uce-buslink-mobile/README.md`](uce-buslink-frontend/uce-buslink-mobile/README.md)
+
+At minimum, Postgres and Redis need to be reachable, either via Docker:
+
 ```bash
 docker compose -f docker/docker-compose.yml up -d db redis
 ```
 
-#### 2. Backend (Spring Boot)
-```bash
-cd uce-buslink-backend
-# Ejecutar migraciones Flyway y levantar aplicación
-./mvnw spring-boot:run -pl uce-buslink-main
-```
-
-#### 3. Aplicación Web
-```bash
-cd uce-buslink-frontend/uce-buslink-web
-npm install
-npm run dev
-```
-
-#### 4. Aplicación de Escritorio (Admin / Electron)
-```bash
-cd uce-buslink-frontend/uce-buslink-desktop
-npm install
-npm run dev
-```
-
-#### 5. Aplicación Móvil (Pasajeros/Conductores)
-```bash
-cd uce-buslink-frontend/uce-buslink-mobile
-npm install
-npx expo start
-```
+or by pointing the backend's `.env`/profile at your own instances.
 
 ---
 
-## Variables de Entorno (.env)
+## Environment Variables (.env)
 
-Copia `.env.example` a `.env` en la raíz del proyecto y completa los valores requeridos:
+Copy `.env.example` to `.env` at the repository root and fill in the required values:
 
-### Servidor Backend
-| Variable | Descripción | Valor por Defecto |
+### Backend Server
+| Variable | Description | Default |
 |---|---|---|
-| `APP_NAME` | Nombre de la aplicación Spring | `uce-buslink-backend` |
-| `SERVER_PORT` | Puerto de escucha del backend | `8080` |
-| `DB_URL` | URL JDBC de conexión a PostgreSQL | `jdbc:postgresql://db:5432/uce_buslink` |
-| `DB_USERNAME` | Usuario de la base de datos | `postgres` |
-| `DB_PASSWORD` | Contraseña del usuario Postgres | `postgres` |
-| `JPA_SHOW_SQL` | Loggear sentencias SQL generadas | `false` |
-| `HIBERNATE_DDL_AUTO`| Validación de esquema vs entidades | `validate` |
-| `REDIS_HOST` | Host para conexión a Redis cache | `redis` |
-| `REDIS_PORT` | Puerto para conexión a Redis | `6379` |
-| `REDIS_PASSWORD` | Contraseña de autenticación Redis | (Vacío) |
-| `FLYWAY_ENABLED` | Ejecutar migraciones automáticamente | `true` |
-| `JWT_SECRET` | Llave secreta para firmar tokens JWT | (Llave de 64 caracteres) |
-| `JWT_EXPIRATION_MS` | Duración del token JWT en ms | `900000` |
-| `GOOGLE_CLIENT_ID` | Client ID de Google para autenticación | - |
-| `GOOGLE_MAPS_API_KEY`| API Key de Google Maps para tracking | - |
-| `MICROSOFT_TENANT_ID`| Tenant ID de Microsoft Azure AD | - |
-| `CLERK_SECRET_KEY` | Clave secreta del proveedor Clerk | - |
-| `FIREBASE_CREDENTIALS`| JSON string de credenciales de Firebase FCM | - |
+| `APP_NAME` | Spring application name | `uce-buslink-backend` |
+| `SERVER_PORT` | Backend listening port | `8080` |
+| `DB_URL` | PostgreSQL JDBC connection URL | `jdbc:postgresql://db:5432/uce_buslink` |
+| `DB_USERNAME` | Database user | `postgres` |
+| `DB_PASSWORD` | Postgres user password | `postgres` |
+| `JPA_SHOW_SQL` | Log generated SQL statements | `false` |
+| `HIBERNATE_DDL_AUTO`| Schema-vs-entity validation mode | `validate` |
+| `REDIS_HOST` | Redis cache connection host | `redis` |
+| `REDIS_PORT` | Redis connection port | `6379` |
+| `REDIS_PASSWORD` | Redis auth password | (empty) |
+| `FLYWAY_ENABLED` | Run migrations automatically | `true` |
+| `JWT_SECRET` | Secret key for signing JWTs | (64-character key) |
+| `JWT_EXPIRATION_MS` | JWT token duration in ms | `900000` |
+| `GOOGLE_CLIENT_ID` | Google client ID for authentication | - |
+| `GOOGLE_MAPS_API_KEY`| Google Maps API key for tracking | - |
+| `MICROSOFT_TENANT_ID`| Microsoft Azure AD tenant ID | - |
+| `CLERK_SECRET_KEY` | Clerk provider secret key | - |
+| `FIREBASE_CREDENTIALS`| Firebase FCM credentials JSON string | - |
 
-### Contenedor de Base de Datos
-| Variable | Descripción | Valor por Defecto |
+### Database Container
+| Variable | Description | Default |
 |---|---|---|
-| `POSTGRES_USER` | Usuario administrador de PostgreSQL | `postgres` |
-| `POSTGRES_PASSWORD` | Contraseña del administrador | `postgres` |
-| `POSTGRES_DB` | Nombre de la base de datos inicial | `uce_buslink` |
+| `POSTGRES_USER` | PostgreSQL admin user | `postgres` |
+| `POSTGRES_PASSWORD` | Admin password | `postgres` |
+| `POSTGRES_DB` | Initial database name | `uce_buslink` |
 
-### Frontend y Entorno Docker
-| Variable | Descripción | Valor por Defecto |
+### Frontend & Docker Environment
+| Variable | Description | Default |
 |---|---|---|
-| `VITE_API_URL` | URL destino del proxy para la API | `/api` |
-| `VITE_GOOGLE_CLIENT_ID`| Client ID de Google para la app web | - |
-| `VITE_MICROSOFT_CLIENT_ID`| Client ID de Azure para la app web | - |
-| `VITE_MICROSOFT_TENANT_ID`| Tenant ID de Azure para la app web | - |
-| `VITE_CLERK_PUBLISHABLE_KEY`| Clave pública de Clerk para frontend web | - |
-| `BACKEND_TAG` | Tag de imagen Docker a compilar/desplegar | `latest` |
-| `FRONTEND_TAG` | Tag de imagen Docker frontend web | `latest` |
-| `SPRING_PROFILES_ACTIVE`| Perfil activo de Spring Boot | `dev` |
+| `VITE_API_URL` | Proxy target URL for the API | `/api` |
+| `VITE_GOOGLE_CLIENT_ID`| Google client ID for the web app | - |
+| `VITE_MICROSOFT_CLIENT_ID`| Azure client ID for the web app | - |
+| `VITE_MICROSOFT_TENANT_ID`| Azure tenant ID for the web app | - |
+| `VITE_CLERK_PUBLISHABLE_KEY`| Clerk public key for the web frontend | - |
+| `BACKEND_TAG` | Docker image tag to build/deploy | `latest` |
+| `FRONTEND_TAG` | Web frontend Docker image tag | `latest` |
+| `SPRING_PROFILES_ACTIVE`| Active Spring Boot profile | `dev` |
 
-> [!WARNING]
-> Nunca incluyas el archivo `.env` en commits ni lo subas a repositorios públicos. Este archivo está explitamente ignorado por `.gitignore`.
+`.env` is listed in `.gitignore` and must never be committed.
 
 ---
 
-## Flujo de Ramas y Despliegue
+## Branching and Deployment Flow
 
-Seguimos una metodología estricta de ramificación basada en GitFlow simplificado para asegurar la estabilidad en producción:
+We follow a strict simplified GitFlow methodology to ensure stability in production:
 
 ```
-feature/* ──► dev (Integración) ──► qa (Pruebas) ──► main (Producción)
+feature/* ──► dev (Integration) ──► qa (Testing) ──► main (Production)
 ```
 
-| Rama | Propósito | Despliegue |
+| Branch | Purpose | Deployment |
 |---|---|---|
-| `feature/*` | Nuevas características y corrección de errores | Local |
-| `dev` | Integración continua del equipo de desarrollo | Local |
-| `qa` | Ambiente de control de calidad y pruebas de usuario | AWS EC2 — Automático al hacer merge |
-| `main` | Rama de producción estable | AWS EC2 — Aprobación manual del equipo |
+| `feature/*` | New features and bug fixes | Local |
+| `dev` | Continuous integration for the dev team | Local |
+| `qa` | Quality assurance and user testing environment | AWS EC2 — automatic on merge |
+| `main` | Stable production branch | AWS EC2 — manual team approval |
 
-### Requisitos obligatorios para aprobar Pull Requests (a QA o Main):
-1. **Backend:** Compilación exitosa y pruebas unitarias aprobadas (`mvn clean verify`).
-2. **Frontend:** Sin errores de sintaxis, linters aprobados y empaquetado exitoso (`npm run build`).
-
----
-
-## Automatización de CI/CD (Pipeline)
-
-* **Push a `feature/*`:** Dispara los flujos específicos del componente modificado para validar que compila correctamente y pasa los linters de manera aislada.
-* **Pull Request a `qa` o `main`:** Corre todas las suites de pruebas integradas previniendo errores antes del merge.
-* **Merge a `qa`:** Genera y publica las imágenes en Docker Hub con tags `:qa` y despliega automáticamente en la instancia AWS EC2 de QA.
-* **Merge a `main`:** Construye las imágenes productivas, las publica en Docker Hub (`:latest`, `:prod`, y la versión semántica `:1.1.0`), genera el Tag de Git correspondiente, crea una GitHub Release y solicita aprobación manual para actualizar la instancia productiva de AWS.
+### Mandatory requirements to approve Pull Requests (to QA or Main):
+1. **Backend:** Successful build and passing unit tests (`mvn clean verify`).
+2. **Frontend:** No syntax errors, passing linters and a successful build (`npm run build`).
 
 ---
 
-## Política de Versionamiento
+## CI/CD Automation (Pipeline)
 
-El proyecto utiliza versionado semántico formal coordinado:
-* **Patch (Pequeñas mejoras/Bugfixes):** Incrementar el último dígito (ej. `1.1.0` -> `1.1.1`).
-* **Minor (Nuevas funcionalidades completas):** Incrementar el dígito central (ej. `1.1.0` -> `1.2.0`).
-* **Major (Cambios disruptivos o entregas globales):** Incrementar el primer dígito (ej. `1.1.0` -> `2.0.0`).
+* **Push to `feature/*`:** Triggers the specific workflow for the modified component to validate that it builds correctly and passes linters in isolation.
+* **Pull Request to `qa` or `main`:** Runs the full integrated test suites, preventing errors before merging.
+* **Merge to `qa`:** Builds and publishes images to Docker Hub tagged `:qa` and automatically deploys to the QA AWS EC2 instance.
+* **Merge to `main`:** Builds production images, publishes them to Docker Hub (`:latest`, `:prod`, and the semantic version `:1.1.0`), creates the corresponding Git tag, creates a GitHub Release, and requests manual approval to update the production AWS instance.
 
 ---
 
-## Autores del Proyecto
+## Versioning Policy
 
-| Nombre | Rol | GitHub |
+The project uses coordinated formal semantic versioning:
+* **Patch (small improvements/bugfixes):** Increment the last digit (e.g. `1.1.0` -> `1.1.1`).
+* **Minor (complete new features):** Increment the middle digit (e.g. `1.1.0` -> `1.2.0`).
+* **Major (breaking changes or global deliveries):** Increment the first digit (e.g. `1.1.0` -> `2.0.0`).
+
+---
+
+## Project Authors
+
+| Name | Role | GitHub |
 |---|---|---|
 | **Lenin David Alomoto Cevallos** | Backend Engineer | [@DavidAlomoto](https://github.com/ldalomoto) |
 | **Rodney Jhosue Andrade Chamorro** | DevOps & Cloud Architect | [@rodneyandrade](https://github.com/RodneyAndrade3) |
@@ -295,4 +276,4 @@ El proyecto utiliza versionado semántico formal coordinado:
 
 ---
 
-Universidad Central del Ecuador — Programación Web
+Universidad Central del Ecuador — Web Programming

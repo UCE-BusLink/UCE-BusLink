@@ -73,6 +73,12 @@ release/
 
 On Windows, `electron-builder` produces both an NSIS installer and a portable `.exe` (see the `win.target` list in `package.json`). Mac (`dmg`) and Linux (`AppImage`, `deb`) targets are configured but only get built if you run the packaging step on that platform.
 
+### Running the generated installers
+
+- The **`... Setup <version>.exe`** files are NSIS installers: double-click to run the install wizard (choose install directory, create desktop/start menu shortcuts), then launch the app from the shortcut it creates. Since `nsis.oneClick` is set to `false` in `package.json`, the wizard always asks for confirmation and install location instead of installing silently.
+- The plain **`... Admin <version>.exe`** files (without "Setup" in the name) are portable builds: run them directly, no installation step needed. Useful for quick testing without touching the machine's installed programs.
+- Only one variant should be installed at a time via the NSIS installer if you want a single Start Menu entry; if you need production, QA and local side by side, either install one via NSIS and run the other two as portable `.exe`, or rely on their distinct `appId`s to keep them as separate installed applications.
+
 For the packaged app to reach Clerk, `app://buslink` must be registered as an allowed origin on the corresponding Clerk instance (Clerk Dashboard -> Native applications, or via the API using `allowed_origins`). This applies per environment: the QA build talks to the QA Clerk instance, the production build to the production one, and so on.
 
 ## Differences from the web app

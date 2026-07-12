@@ -1,75 +1,45 @@
-# React + TypeScript + Vite
+# UCE Bus-Link Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web app for UCE Bus-Link students: dashboard, seat reservations, routes, live bus tracking and profile.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20+
+- A reachable backend (see [`uce-buslink-backend/README.md`](../../uce-buslink-backend/README.md) to run it standalone)
 
-## React Compiler
+## Environment configuration
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Copy `.env.example` to `.env` and fill in the values:
 
-## Expanding the ESLint configuration
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Backend proxy target. Use `/api`, the dev server proxies it to `http://localhost:8080` (see `vite.config.ts`) |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `VITE_GOOGLE_CLIENT_ID` | Google client ID, only needed for the Google SSO button |
+| `VITE_MICROSOFT_CLIENT_ID` / `VITE_MICROSOFT_TENANT_ID` | Only needed for the Microsoft SSO button |
+| `VITE_FIREBASE_*` | Firebase web config, only needed for push notifications |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+`predev` runs `build:wasm` automatically, compiling `wasm/geo.ts` (AssemblyScript) into `src/wasm/geo.wasm` before Vite starts. The dev server proxies `/api` to `http://localhost:8080`, so a locally running backend is picked up without any extra configuration.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Building for production
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
 ```
 
-<!-- ci trigger -->
+Runs `build:wasm`, then `tsc -b` and `vite build`. Output goes to `dist/`.
+
+## Storybook
+
+```bash
+npm run storybook
+```
+
+Isolated component catalog on port 6006. Not part of the production build.
