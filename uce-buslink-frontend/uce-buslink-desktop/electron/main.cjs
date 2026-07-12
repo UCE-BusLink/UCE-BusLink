@@ -130,8 +130,6 @@ app.on('second-instance', () => {
 })
 
 app.whenReady().then(async () => {
-  // Engañamos al backend para que piense que la petición (y el websocket) vienen de Vite
-  // Esto evita que el filtro CORS estricto de Spring Security bloquee el handshake (403)
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     if (details.url.includes('programacionwebuce.net')) {
       details.requestHeaders['Origin'] = 'http://localhost:5173'
