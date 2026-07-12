@@ -295,4 +295,4 @@ El proyecto utiliza versionado semántico formal coordinado:
 
 ---
 
-Universidad Central del Ecuador — Carrera de Computación — Programación Web
+Universidad Central del Ecuador — Programación Web
