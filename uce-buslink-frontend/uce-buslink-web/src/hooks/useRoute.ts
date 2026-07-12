@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import { fetchRouteById } from '../services/routeService';
 import type { ApiRoute } from '../types';
@@ -12,38 +12,25 @@ interface UseRouteResult {
 
 export function useRoute(id: string | undefined): UseRouteResult {
   const { getToken } = useAuth();
-  const [route, setRoute] = useState<ApiRoute | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      if (!id) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
-      try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token) throw new Error('No auth token');
-        const data = await fetchRouteById(token, id);
-        if (!cancelled) setRoute(data);
-      } catch (err) {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : 'Error al cargar la ruta';
-        if (message.startsWith('404')) setNotFound(true);
-        else setError(message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const { data: route = null, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['route', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No auth token');
+      return await fetchRouteById(token, id);
+    },
+    enabled: !!id,
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.startsWith('404')) return false;
+      return failureCount < 3;
     }
+  });
 
-    load();
-    return () => { cancelled = true; };
-  }, [getToken, id]);
+  const errorMessage = queryError instanceof Error ? queryError.message : null;
+  const notFound = !id || (errorMessage?.startsWith('404') ?? false);
+  const error = notFound ? null : errorMessage;
 
   return { route, loading, error, notFound };
 }

@@ -95,6 +95,7 @@ export function LeafletMap({
   }, []);
 
   useEffect(() => {
+    let isActive = true;
     const map = mapInstance.current;
     if (!map) return;
 
@@ -127,10 +128,41 @@ export function LeafletMap({
       const poly = L.polyline(pts, { color: '#f59e0b', weight: 4, dashArray: '6 10' }).addTo(map);
       layersRef.current.push(poly);
       map.fitBounds(poly.getBounds(), { padding: [20, 20] });
+    } else if (valid.length > 1) {
+      // Intentar obtener el trazado exacto desde OSRM
+      const coordinates = valid.map((s) => `${s.longitude},${s.latitude}`).join(';');
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=polyline`;
+
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!isActive || !mapInstance.current) return;
+
+          if (data.code === 'Ok' && data.routes && data.routes[0]) {
+            const pts = decodePolyline(data.routes[0].geometry);
+            const poly = L.polyline(pts, { color: '#f59e0b', weight: 4, dashArray: '6 10' }).addTo(map);
+            layersRef.current.push(poly);
+            map.fitBounds(poly.getBounds(), { padding: [20, 20] });
+          } else {
+            throw new Error('OSRM fallback failed');
+          }
+        })
+        .catch(() => {
+          if (!isActive || !mapInstance.current) return;
+          // Fallback final: dibujar línea recta
+          const pts = valid.map((s) => [s.latitude, s.longitude] as [number, number]);
+          const poly = L.polyline(pts, { color: '#9ca3af', weight: 4, dashArray: '8 8' }).addTo(map);
+          layersRef.current.push(poly);
+          map.fitBounds(poly.getBounds(), { padding: [30, 30] });
+        });
     } else {
       const bounds = L.latLngBounds(valid.map((s) => [s.latitude, s.longitude] as [number, number]));
       map.fitBounds(bounds, { padding: [30, 30] });
     }
+
+    return () => {
+      isActive = false;
+    };
   }, [selectedRoute, selectedStopId, onStopSelect]);
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import { User, RefreshCw, Plus, X, Eye, EyeOff, Check, Search, ChevronLeft, Chev
 import { useAuth } from '@clerk/clerk-react';
 import { fetchDrivers, createDriver, fetchTrips, type ApiDriver, type ApiTrip } from '../../services/adminService';
 import { useRoutes } from '../../hooks/useRoutes';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { driverFormSchema } from '../../schemas/driver.schema';
 import { getFieldErrors } from '../../schemas/common';
@@ -24,10 +25,10 @@ export function AdminDriversPage() {
   const { getToken } = useAuth();
   const { routes } = useRoutes();
 
-  const [drivers, setDrivers] = useState<ApiDriver[]>([]);
-  const [trips, setTrips] = useState<ApiTrip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // const [drivers, setDrivers] = useState<ApiDriver[]>([]);
+  // const [trips, setTrips] = useState<ApiTrip[]>([]);
+  // const [loading, setLoading] = useState(true);
+  // const [error, setError] = useState<string | null>(null);
   const [trigger, setTrigger] = useState(0);
 
   // Search & Pagination
@@ -43,36 +44,67 @@ export function AdminDriversPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token) throw new Error('Sin token');
+  const queryClient = useQueryClient();
 
-        const [driversData, tripsData] = await Promise.all([
-          fetchDrivers(token),
-          fetchTrips(token).catch(() => []) // Fallback a vacío si falla
-        ]);
-
-        if (!cancelled) {
-          setDrivers(driversData);
-          setTrips(tripsData);
-          setError(null);
-        }
-      } catch {
-        if (!cancelled) setError('No se pudieron cargar los datos de choferes.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const { data: drivers = [], isLoading: loadingDrivers, error: errorDrivers, refetch: refetchDrivers } = useQuery({
+    queryKey: ['admin-drivers'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await fetchDrivers(token);
     }
-    load();
-    return () => { cancelled = true; };
-  }, [getToken, trigger]);
+  });
+
+  const { data: trips = [], isLoading: loadingTrips, refetch: refetchTrips } = useQuery({
+    queryKey: ['admin-trips'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await fetchTrips(token).catch(() => []);
+    }
+  });
+
+  const loading = loadingDrivers || loadingTrips;
+  const error = errorDrivers instanceof Error ? errorDrivers.message : (errorDrivers ? 'Error' : null);
+
+  const createMutation = useMutation({
+    mutationKey: ['createDriver'],
+    mutationFn: async (payload: any) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      await createDriver(token, payload);
+      return payload;
+    },
+    onMutate: async (newDriver) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-drivers'] });
+      const previousDrivers = queryClient.getQueryData<ApiDriver[]>(['admin-drivers']);
+      queryClient.setQueryData<ApiDriver[]>(['admin-drivers'], (old = []) => [
+        ...old,
+        {
+          id: `temp-${Date.now()}`,
+          firstName: newDriver.nombres,
+          lastName: newDriver.apellidos,
+          email: newDriver.email,
+          documentNumber: newDriver.cedula,
+          phone: newDriver.telefono
+        } as ApiDriver
+      ]);
+      return { previousDrivers };
+    },
+    onError: (err, newDriver, context) => {
+      if (context?.previousDrivers) {
+        queryClient.setQueryData(['admin-drivers'], context.previousDrivers);
+      }
+      setSaveError('No se pudo crear el chofer. Verifica los datos e intenta de nuevo.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-drivers'] });
+    },
+  });
 
   // Derived filtered & paginated data
   const filteredDrivers = useMemo(() => {
-    return drivers.filter(d => {
+    return drivers.filter((d: any) => {
       const fullName = `${d.firstName} ${d.lastName}`.toLowerCase();
       const email = d.email.toLowerCase();
       const s = search.toLowerCase();
@@ -120,7 +152,7 @@ export function AdminDriversPage() {
 
         let counter = 1;
         let finalEmail = baseEmail;
-        while (drivers.some(d => d.email === finalEmail)) {
+        while (drivers.some((d: any) => d.email === finalEmail)) {
           finalEmail = `${nombreLimpio.toLowerCase()}_${apellidoLimpio.toLowerCase()}_driver${counter}@uce.buslink.com`;
           counter++;
         }
@@ -156,29 +188,29 @@ export function AdminDriversPage() {
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
     setSaving(true);
-    await createDriver(token, {
+    createMutation.mutate({
       nombres: result.data.nombres,
       apellidos: result.data.apellidos,
       email: result.data.email,
       password: result.data.password,
       cedula: result.data.cedula,
       telefono: result.data.telefono,
-    })
-      .then(() => {
+    }, {
+      onSuccess: () => {
         closeForm();
-        setLoading(true);
-        setTrigger((t) => t + 1);
-      })
-      .catch(() => setSaveError('No se pudo crear el chofer. Verifica los datos e intenta de nuevo.'))
-      .finally(() => setSaving(false));
+      },
+      onSettled: () => {
+        setSaving(false);
+      }
+    });
   }
 
   // Helper to get ALL active assignments
   function getDriverAssignments(driverId: string) {
-    const activeTrips = trips.filter(t => t.driverId === driverId && (t.state === 'SCHEDULED' || t.state === 'IN_PROGRESS'));
+    const activeTrips = trips.filter((t: any) => t.driverId === driverId && (t.state === 'SCHEDULED' || t.state === 'IN_PROGRESS'));
     if (activeTrips.length === 0) return [];
 
-    return activeTrips.map(trip => {
+    return activeTrips.map((trip: any) => {
       const route = routes.find(r => r.id === trip.routeId);
       return {
         trip,
@@ -197,7 +229,7 @@ export function AdminDriversPage() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => { setLoading(true); setTrigger((t) => t + 1); }}
+            onClick={() => { refetchDrivers(); refetchTrips(); }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <RefreshCw size={15} />
@@ -252,7 +284,7 @@ export function AdminDriversPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {currentDrivers.map((driver) => {
+                  {currentDrivers.map((driver: any) => {
                     const assignments = getDriverAssignments(driver.id);
                     const hasAssignments = assignments.length > 0;
                     const primaryAssignment = hasAssignments ? assignments[0] : null;
@@ -316,7 +348,7 @@ export function AdminDriversPage() {
                                 </h4>
                                 {hasAssignments ? (
                                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    {assignments.map((asg) => (
+                                    {assignments.map((asg: any) => (
                                       <div key={asg.trip.id} className="p-3 border border-gray-100 rounded-lg bg-gray-50 flex flex-col gap-2">
                                         <div className="flex items-center justify-between">
                                           <span className="text-xs font-bold text-navy-800 flex items-center gap-1">
