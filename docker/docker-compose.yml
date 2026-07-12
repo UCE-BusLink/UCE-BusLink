@@ -119,6 +119,24 @@ services:
       start_period: 10s
     restart: always
 
+  uce-buslink-storybook:
+    image: rodneyandrade/uce-buslink-storybook:${STORYBOOK_TAG:-latest}
+    container_name: uce-buslink-storybook
+    networks:
+      - uce-buslink-net
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: always
+
   uce-buslink-dozzle:
     image: amir20/dozzle:latest
     container_name: uce-buslink-dozzle
