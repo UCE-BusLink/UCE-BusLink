@@ -4,6 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Identificador unico por build: invalida la cache de React Query persistida
+  // en IndexedDB cuando se despliega una version nueva (persistOptions.buster).
+  define: {
+    __BUILD_ID__: JSON.stringify(Date.now().toString(36)),
+  },
   plugins: [
     tailwindcss(),
     react(),

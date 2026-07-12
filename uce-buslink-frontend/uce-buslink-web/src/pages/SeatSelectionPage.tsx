@@ -135,6 +135,23 @@ export function SeatSelectionPage() {
     );
   }
 
+  if (trip.state === 'COMPLETED' || trip.state === 'CANCELLED') {
+    return (
+      <div className="text-center py-20">
+        <p className="text-lg font-bold text-navy-900 mb-2">
+          {trip.state === 'COMPLETED' ? 'Este viaje ya finalizó' : 'Este viaje fue cancelado'}
+        </p>
+        <p className="text-sm text-gray-500 mb-6">Ya no es posible reservar asientos para este viaje.</p>
+        <button
+          onClick={() => navigate(`/routes/${routeId}`)}
+          className="text-sm text-navy-900 font-semibold hover:underline"
+        >
+          Volver al detalle de ruta
+        </button>
+      </div>
+    );
+  }
+
   const tripTime = formatTime(trip.departureTime);
   const selectionLabel = selectedSeat ? `Asiento ${selectedSeat.number}` : null;
   

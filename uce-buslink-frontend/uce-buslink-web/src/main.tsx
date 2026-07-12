@@ -36,7 +36,7 @@ createRoot(document.getElementById('root')!).render(
     <ClerkProvider publishableKey={clerkPubKey}>
       <PersistQueryClientProvider 
         client={queryClient}
-        persistOptions={{ persister: createIDBPersister() }}
+        persistOptions={{ persister: createIDBPersister(), buster: __BUILD_ID__ }}
       >
         <AuthProvider>
           <App />

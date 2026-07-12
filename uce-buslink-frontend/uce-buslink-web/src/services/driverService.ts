@@ -24,6 +24,12 @@ export async function changeTripState(
   });
 }
 
+export async function cancelTrip(token: string, tripId: string): Promise<void> {
+  await apiFetch<void>(`/api/v1/supervisor/trips/${tripId}`, token, {
+    method: 'DELETE',
+  });
+}
+
 export async function scanReservation(token: string, reservationId: string): Promise<void> {
   await apiFetch<void>(`/api/v1/reservations/${reservationId}/scan`, token, {
     method: 'PATCH',

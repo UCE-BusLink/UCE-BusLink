@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: clerkUser, isLoaded } = useUser()
     const { getToken } = useAuth()
-    const syncedRef = useRef(false)
+    const syncedUserIdRef = useRef<string | null>(null)
     const [role, setRole] = useState<string>(() => localStorage.getItem('buslink_role') || 'STUDENT')
     const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(() => localStorage.getItem('buslink_onboarding') === 'true')
     const [syncComplete, setSyncComplete] = useState(false)
@@ -40,31 +40,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!isLoaded) return
-        if (!clerkUser) return
-        if (syncedRef.current) return
-        syncedRef.current = true
+
+        if (!clerkUser) {
+            syncedUserIdRef.current = null
+            return
+        }
+
+        // Re-sincroniza si cambia la cuenta (logout + login de otra cuenta en la
+        // misma pestaña), en vez de confiar en el rol cacheado de la sesión anterior.
+        if (syncedUserIdRef.current === clerkUser.id) return
+        syncedUserIdRef.current = clerkUser.id
+        setSyncComplete(false)
 
         async function syncToBackend() {
             try {
                 const token = await getToken({ template: "uce-buslink" })
-                if (!token) return
+                if (!token) throw new Error('No se pudo obtener el token de Clerk')
                 const res = await fetch(
                     `${import.meta.env.VITE_API_URL}/api/v1/auth/sync`,
                     { method: "POST", headers: { Authorization: `Bearer ${token}` } }
                 )
-                if (res.ok) {
-                    const data = await res.json()
-                    if (data.role) {
-                        setRole(data.role)
-                        localStorage.setItem('buslink_role', data.role)
-                    }
-                    if (data.needsOnboarding !== undefined) {
-                        setNeedsOnboarding(data.needsOnboarding)
-                        localStorage.setItem('buslink_onboarding', data.needsOnboarding.toString())
-                    }
-                }
+                if (!res.ok) throw new Error(`Sync falló con status ${res.status}`)
+                const data = await res.json()
+                const nextRole = data.role ?? 'STUDENT'
+                const nextOnboarding = data.needsOnboarding ?? false
+                setRole(nextRole)
+                setNeedsOnboarding(nextOnboarding)
+                localStorage.setItem('buslink_role', nextRole)
+                localStorage.setItem('buslink_onboarding', nextOnboarding.toString())
             } catch {
-                // silencioso
+                // La cuenta no se pudo validar contra el backend: no confiar en
+                // un rol cacheado de una sesión anterior en este navegador.
+                setRole('STUDENT')
+                setNeedsOnboarding(false)
+                localStorage.removeItem('buslink_role')
+                localStorage.removeItem('buslink_onboarding')
             } finally {
                 setSyncComplete(true)
             }

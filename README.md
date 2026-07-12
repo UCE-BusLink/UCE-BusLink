@@ -41,9 +41,11 @@ UCE-BusLink/
 ├── docker/
 │   ├── Dockerfile.backend               # Multi-stage build, usuario no-root
 │   ├── Dockerfile.frontend              # Multi-stage build con Nginx (app web)
+│   ├── Dockerfile.storybook             # Multi-stage build con Nginx (catálogo de componentes)
 │   ├── nginx.conf                       # Configuración Nginx con proxy /api/ y WebSocket
+│   ├── nginx.storybook.conf             # Configuración Nginx estática para Storybook
 │   ├── docker-compose.yml               # Servicios base: db, redis, backend, frontend
-│   ├── docker-compose.local.yml         # Overrides para desarrollo local
+│   ├── docker-compose.local.yml         # Overrides para desarrollo local (incluye storybook)
 │   ├── docker-compose.qa.yml            # Overrides para el ambiente QA
 │   └── docker-compose.prod.yml          # Overrides para producción
 │
@@ -93,7 +95,7 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.local.yml u
 docker ps --format "table {{.Names}}\t{{.Status}}"
 ```
 
-La aplicación web queda disponible en `http://localhost:3000` y el backend en `http://localhost:8080`.
+La aplicación web queda disponible en `http://localhost:3000`, el backend en `http://localhost:8080` y el catálogo de componentes (Storybook) en `http://localhost:6006`.
 
 ---
 

@@ -9,6 +9,7 @@ export function useCreateReservation() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
+    retry: false,
     mutationFn: async ({ tripId, seatId, boardingStopId }: { tripId: string, seatId: string, boardingStopId: string }) => {
       const token = await getToken({ template: 'uce-buslink' });
       if (!token) throw new Error('No auth token');
@@ -40,23 +41,13 @@ export function useCreateReservation() {
   });
 
   return {
-    confirm: async (tripId: string, seatId: string, boardingStopId: string) => {
+    // Espera la respuesta real del backend: el QR de la reserva codifica el id
+    // que el endpoint /reservations/{id}/scan valida, asi que un id local
+    // inventado produce "Codigo QR invalido" al escanearlo el conductor.
+    confirm: async (tripId: string, seatId: string, boardingStopId: string): Promise<ApiReservation | null> => {
       try {
-        // En un escenario offline-first puro podríamos devolver un objeto local,
-        // pero useMutation.mutateAsync esperará al backend o devolverá el promise diferido.
-        // Simulamos la reserva exitosa de inmediato para la UI:
-        mutation.mutate({ tripId, seatId, boardingStopId });
-
-        // Retornamos un objeto falso optimista para que la UI no se bloquee
-        return {
-          id: `local-res-${Date.now()}`,
-          tripId,
-          seatId,
-          boardingStopId,
-          status: 'ACTIVE',
-          qrCode: `local-qr-${Date.now()}`
-        } as ApiReservation;
-      } catch (err) {
+        return await mutation.mutateAsync({ tripId, seatId, boardingStopId });
+      } catch {
         return null;
       }
     },

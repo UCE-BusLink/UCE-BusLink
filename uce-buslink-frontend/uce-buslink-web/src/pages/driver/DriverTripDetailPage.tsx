@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, QrCode, Play, Square, Radio, MapPin, User, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowLeft, QrCode, Play, Square, Radio, MapPin, User, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useDriverTrip } from '../../hooks/useDriverTrip';
 import { useRoute } from '../../hooks/useRoute';
@@ -9,7 +9,7 @@ import { useDriverLocationPublisher } from '../../hooks/useDriverLocationPublish
 import { useTripSimulation } from '../../hooks/useTripSimulation';
 import { TripSummaryCard, QrScannerModal, LeafletMap } from '../../components/molecules';
 import { Spinner } from '../../components/atoms';
-import { scanReservation, adminCancelReservation, changeTripState, fetchTripPassengers } from '../../services/driverService';
+import { scanReservation, adminCancelReservation, changeTripState, cancelTrip, fetchTripPassengers } from '../../services/driverService';
 import type { DriverPassengerResponse } from '../../types';
 
 type ScannerMode = 'board' | 'cancel' | null;
@@ -140,6 +140,22 @@ export function DriverTripDetailPage() {
     }
   }, [tripId, getToken, setTrip]);
 
+  const handleCancelTrip = useCallback(async () => {
+    if (!tripId) return;
+    if (!window.confirm('¿Cancelar este viaje? Se notificará a los estudiantes con reserva.')) return;
+    setUpdatingState(true);
+    setStateError(null);
+    try {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No token');
+      await cancelTrip(token, tripId);
+      navigate('/driver');
+    } catch (err) {
+      setStateError(err instanceof Error ? err.message : 'No se pudo cancelar el viaje.');
+      setUpdatingState(false);
+    }
+  }, [tripId, getToken, navigate]);
+
   const canStartTrip = trip ? (() => {
     const departure = new Date(trip.departureTime);
     const tenMinsBefore = new Date(departure.getTime() - 10 * 60000);
@@ -235,6 +251,15 @@ export function DriverTripDetailPage() {
                     Disponible 10 minutos antes de la hora de salida.
                   </p>
                 )}
+
+                <button
+                  onClick={handleCancelTrip}
+                  disabled={updatingState}
+                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-red-50 text-red-600 border-2 border-red-200 text-base font-bold rounded-2xl hover:bg-red-100 hover:border-red-300 hover:shadow transition-all disabled:opacity-50 active:scale-[0.98]"
+                >
+                  <XCircle size={20} />
+                  {updatingState ? 'Procesando...' : 'CANCELAR VIAJE'}
+                </button>
               </div>
             )}
 
