@@ -4,16 +4,26 @@ import { ClerkProvider } from '@clerk/clerk-react'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { registerSW } from 'virtual:pwa-register'
+
+registerSW({ immediate: true })
+import { QueryClient } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createIDBPersister } from './services/queryPersister'
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 15, // 15 minutes
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours (keep offline data longer)
       refetchOnWindowFocus: false,
       retry: 2,
+      networkMode: 'offlineFirst',
     },
+    mutations: {
+      networkMode: 'offlineFirst',
+      retry: 3,
+    }
   },
 });
 
@@ -24,11 +34,14 @@ const clerkPubKey =
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ClerkProvider publishableKey={clerkPubKey}>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider 
+        client={queryClient}
+        persistOptions={{ persister: createIDBPersister() }}
+      >
         <AuthProvider>
           <App />
         </AuthProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ClerkProvider>
   </StrictMode>,
 )

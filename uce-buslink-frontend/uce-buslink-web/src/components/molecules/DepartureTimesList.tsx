@@ -86,36 +86,44 @@ function DepartureTimeItem({ trip, onSelect }: { trip: ApiTrip; onSelect?: (trip
             ) : bus ? (
               <span>Unidad {bus.internalCode} • {bus.plateNumber}</span>
             ) : (
-              <span className="text-gray-400 italic">Unidad asignada</span>
+              <span className="text-gray-400 italic">Unidad por asignar</span>
             )}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0">
-        <div className="flex flex-col items-end gap-1">
-          <span className="flex items-center gap-1 text-xs font-medium text-gray-500">
-            <Armchair size={14} className={hasSpace ? "text-emerald-500" : "text-gray-400"} />
-            <span className={hasSpace ? "text-navy-900 font-bold" : ""}>
-              {trip.availableSeats}
-            </span>
-            <span>cupos</span>
+      {trip.state === 'TEMPLATE' ? (
+        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0">
+          <span className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 text-xs font-semibold border border-gray-200">
+            Plantilla Base
           </span>
         </div>
+      ) : (
+        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0">
+          <div className="flex flex-col items-end gap-1">
+            <span className="flex items-center gap-1 text-xs font-medium text-gray-500">
+              <Armchair size={14} className={hasSpace ? "text-emerald-500" : "text-gray-400"} />
+              <span className={hasSpace ? "text-navy-900 font-bold" : ""}>
+                {trip.availableSeats}
+              </span>
+              <span>cupos</span>
+            </span>
+          </div>
 
-        {onSelect && (
-          <button
-            onClick={() => hasSpace && onSelect(trip)}
-            disabled={!hasSpace}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${hasSpace
-                ? 'bg-navy-900 text-white hover:bg-navy-800 hover:shadow-md active:scale-95'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-              }`}
-          >
-            {hasSpace ? 'Reservar' : 'Agotado'}
-          </button>
-        )}
-      </div>
+          {onSelect && (
+            <button
+              onClick={() => hasSpace && onSelect(trip)}
+              disabled={!hasSpace}
+              className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${hasSpace
+                  ? 'bg-navy-900 text-white hover:bg-navy-800 hover:shadow-md active:scale-95'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                }`}
+            >
+              {hasSpace ? 'Reservar' : 'Agotado'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

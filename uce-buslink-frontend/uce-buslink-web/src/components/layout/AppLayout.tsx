@@ -7,6 +7,7 @@ import { Navigate, Outlet } from "react-router";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
+import { useAdminEvents } from "../../hooks/useAdminEvents";
 
 import { OnboardingModal } from "../organisms/OnboardingModal";
 import { useCurrentUser } from "../../context/AuthContext";
@@ -21,6 +22,7 @@ export function AppLayout() {
   const queryClient = useQueryClient();
 
   usePushNotifications();
+  useAdminEvents();
 
   const { data: profile, refetch } = useProfile();
 

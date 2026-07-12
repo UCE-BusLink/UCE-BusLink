@@ -28,13 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: clerkUser, isLoaded } = useUser()
     const { getToken } = useAuth()
     const syncedRef = useRef(false)
-    const [role, setRole] = useState<string>('STUDENT')
-    const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(false)
+    const [role, setRole] = useState<string>(() => localStorage.getItem('buslink_role') || 'STUDENT')
+    const [needsOnboarding, setNeedsOnboarding] = useState<boolean>(() => localStorage.getItem('buslink_onboarding') === 'true')
     const [syncComplete, setSyncComplete] = useState(false)
     const syncDone = isLoaded && (!clerkUser || syncComplete)
 
     const updateOnboardingStatus = (status: boolean) => {
         setNeedsOnboarding(status)
+        localStorage.setItem('buslink_onboarding', status.toString())
     }
 
     useEffect(() => {
@@ -53,8 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 )
                 if (res.ok) {
                     const data = await res.json()
-                    if (data.role) setRole(data.role)
-                    if (data.needsOnboarding !== undefined) setNeedsOnboarding(data.needsOnboarding)
+                    if (data.role) {
+                        setRole(data.role)
+                        localStorage.setItem('buslink_role', data.role)
+                    }
+                    if (data.needsOnboarding !== undefined) {
+                        setNeedsOnboarding(data.needsOnboarding)
+                        localStorage.setItem('buslink_onboarding', data.needsOnboarding.toString())
+                    }
                 }
             } catch {
                 // silencioso
