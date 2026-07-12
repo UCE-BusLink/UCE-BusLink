@@ -51,25 +51,25 @@ public class ReservationApplicationService {
         ReservationToFleetPort.TripData tripData = fleetPort.getTripWithLock(command.tripId());
         if (tripData == null) {
             log.error("[RESERVATIONS] ERROR: Trip {} does not exist.", command.tripId());
-            throw new TripNotFoundException("Trip with ID " + command.tripId() + " does not exist");
+            throw new TripNotFoundException("El viaje seleccionado ya no existe");
         }
 
         // 3. Verify trip state
         log.trace("[RESERVATIONS] TRACE: Current trip state: {}", tripData.state());
         if (!tripData.state().equals("SCHEDULED") && !tripData.state().equals("ONGOING")) {
             log.warn("[RESERVATIONS] WARN: Reservation attempt on a finished/cancelled trip {}", command.tripId());
-            throw new TripAlreadyStartedException("Cannot reserve for a trip that has already started");
+            throw new TripAlreadyStartedException("Este viaje ya finalizo o fue cancelado; ya no admite reservas");
         }
 
         // Extra: verify Trust Score
         int trustScore = identityPort.getStudentTrustScore(command.userId());
         if (trustScore < 50) { // Example of a minimum required score
-            throw new InsufficientTrustScoreException("Your trust score is too low to reserve at this moment", trustScore, 50);
+            throw new InsufficientTrustScoreException("Tu puntaje de confianza es muy bajo para reservar en este momento", trustScore, 50);
         }
 
         if (reservationRepository.existsByTripAndUser(command.tripId(), command.userId())) {
             log.warn("[RESERVATIONS] WARN: User {} already has a reservation on trip {}", command.userId(), command.tripId());
-            throw new DuplicateReservationException("You have already reserved a seat for this trip");
+            throw new DuplicateReservationException("Ya tienes una reserva para este viaje");
         }
 
         // 4. Count available seats
@@ -77,7 +77,7 @@ public class ReservationApplicationService {
         long availableCount = tripSeats.stream().filter(s -> s.getState() == SeatState.AVAILABLE).count();
         if (availableCount == 0) {
             log.warn("[RESERVATIONS] WARN: No seats available on trip {}", command.tripId());
-            throw new NoAvailableSeatsException("All seats for this trip are reserved");
+            throw new NoAvailableSeatsException("Todos los asientos de este viaje ya estan reservados");
         }
 
         Seat selectedSeat = null;
@@ -85,10 +85,10 @@ public class ReservationApplicationService {
         // 5 & 6. Assign the preferred seat or the first available one
         if (command.seatId() != null) {
             selectedSeat = seatRepository.findById(command.seatId())
-                    .orElseThrow(() -> new SeatNoLongerAvailableException("The seat you selected was just reserved by another user"));
+                    .orElseThrow(() -> new SeatNoLongerAvailableException("El asiento que seleccionaste acaba de ser reservado por otro usuario"));
             
             if (selectedSeat.getState() != SeatState.AVAILABLE) {
-                throw new SeatNoLongerAvailableException("The seat you selected was just reserved by another user");
+                throw new SeatNoLongerAvailableException("El asiento que seleccionaste acaba de ser reservado por otro usuario");
             }
         } else {
             selectedSeat = tripSeats.stream()
@@ -166,7 +166,7 @@ public class ReservationApplicationService {
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found or does not belong to the user."));
 
         if (reservation.getStatus() != ReservationStatus.ACTIVE) {
-            throw new IllegalStateException("Only reservations in ACTIVE status can be cancelled.");
+            throw new IllegalStateException("Solo se pueden cancelar reservas activas");
         }
 
         // 2. Physically release the seat
@@ -213,7 +213,7 @@ public class ReservationApplicationService {
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found."));
 
         if (reservation.getStatus() != ReservationStatus.ACTIVE) {
-            throw new IllegalStateException("Only reservations in ACTIVE status can be cancelled.");
+            throw new IllegalStateException("Solo se pueden cancelar reservas activas");
         }
 
         Seat seat = seatRepository.findById(reservation.getSeatId())

@@ -44,7 +44,12 @@ export function usePushNotifications() {
       const swParams = new URLSearchParams(
         firebaseConfig as unknown as Record<string, string>,
       )
-      await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${swParams}`)
+      // Scope propio y distinto al del service worker de la PWA (que vive en "/"):
+      // si comparten scope, el navegador trata el registro de este SW como una
+      // "actualizacion externa" de aquel, y vite-plugin-pwa fuerza un reload en bucle.
+      await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${swParams}`, {
+        scope: '/firebase-cloud-messaging-push-scope',
+      })
       const registration = await navigator.serviceWorker.ready
 
       const fcmToken = await getToken(messaging, {

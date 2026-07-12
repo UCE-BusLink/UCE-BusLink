@@ -82,7 +82,7 @@ public class TripController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DRIVER')")
     public ResponseEntity<Void> cancelTrip(@PathVariable java.util.UUID id) {
         log.debug("[REST-FLEET] DELETE request to logically cancel trip ID: {}", id);
         manageTripUseCase.cancelTrip(id);

@@ -11,6 +11,7 @@ import com.ucebuslink.supervisor.domain.model.Schedule;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.model.Trip;
 import com.ucebuslink.shared.constant.*;
+import com.ucebuslink.shared.event.AdminEntityChangedEvent;
 import com.ucebuslink.shared.event.TripCancelledEvent;
 import com.ucebuslink.shared.event.TripCompletedEvent;
 import com.ucebuslink.shared.event.TripCreatedEvent;
@@ -67,7 +68,8 @@ public class TripApplicationService implements ManageTripUseCase {
         // Iterate over each date and time sent from the frontend calendar
         for (java.time.LocalDateTime departure : command.departures()) {
 
-            validateDepartureAgainstSchedule(command.routeId(), departure);
+            // Se desactiva la validación estricta para permitir viajes manuales/offline
+            // validateDepartureAgainstSchedule(command.routeId(), departure);
 
             // TODO: Add validation to check that the Bus/Driver doesn't have another overlapping trip at this same time.
 
@@ -85,6 +87,7 @@ public class TripApplicationService implements ManageTripUseCase {
             Trip savedTrip = tripRepository.save(trip);
 
             eventPublisher.publishEvent(new TripCreatedEvent(savedTrip.getId(), bus.getSeatCapacity()));
+            eventPublisher.publishEvent(new AdminEntityChangedEvent("TRIP", "CREATED", savedTrip.getId()));
             
             responses.add(new TripResponse(
                     savedTrip.getId(), savedTrip.getRouteId(), savedTrip.getBusId(),
@@ -134,7 +137,8 @@ public class TripApplicationService implements ManageTripUseCase {
             throw new IllegalStateException("Only trips in SCHEDULED state can be edited.");
         }
 
-        validateDepartureAgainstSchedule(command.routeId(), command.departureTime());
+        // Se desactiva la validación estricta para permitir edición de viajes manuales/offline
+        // validateDepartureAgainstSchedule(command.routeId(), command.departureTime());
 
         Bus bus = busRepository.findById(command.busId())
                 .orElseThrow(() -> new IllegalArgumentException("The specified bus does not exist."));
@@ -154,6 +158,7 @@ public class TripApplicationService implements ManageTripUseCase {
 
         Trip updatedTrip = tripRepository.save(trip);
         log.info("[FLEET-TRIP] Trip updated successfully. New bus assigned: {}", updatedTrip.getBusId());
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("TRIP", "UPDATED", updatedTrip.getId()));
         
         return mapToResponse(updatedTrip);
     }
@@ -240,6 +245,7 @@ public class TripApplicationService implements ManageTripUseCase {
 
         tripRepository.save(trip);
         log.info("[FLEET-TRIP] Trip ID: {} successfully cancelled.", id);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("TRIP", "DELETED", id));
     }
 
     @Override
@@ -285,6 +291,7 @@ public class TripApplicationService implements ManageTripUseCase {
         }
 
         Trip updatedTrip = tripRepository.save(trip);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("TRIP", "UPDATED", updatedTrip.getId()));
         return mapToResponse(updatedTrip);
     }
 
