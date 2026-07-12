@@ -64,8 +64,9 @@ export function SignUpPage() {
                 formFieldInput:
                   'rounded-xl border-gray-200 focus:border-navy-800 focus:ring-0',
 
-                socialButtonsBlockButton:
-                  'rounded-full border-gray-200 hover:bg-gray-50',
+                socialButtons: 'hidden',
+                socialButtonsBlockButton: 'hidden',
+                dividerRow: 'hidden',
 
                 footerActionLink:
                   'text-navy-900 font-semibold hover:text-navy-700',

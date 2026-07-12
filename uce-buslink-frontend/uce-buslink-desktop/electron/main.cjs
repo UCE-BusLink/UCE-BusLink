@@ -67,11 +67,21 @@ function startLocalServer() {
       })
     })
 
-    server.listen(0, '127.0.0.1', () => {
+    const FIXED_PORT = 5173
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        server.listen(0, '127.0.0.1')
+      }
+    })
+
+    server.on('listening', () => {
       const port = server.address().port
       localServerUrl = `http://localhost:${port}`
       resolve()
     })
+
+    server.listen(FIXED_PORT, '127.0.0.1')
   })
 }
 
@@ -106,6 +116,18 @@ function createWindow() {
 }
 
 const { globalShortcut, session } = require('electron')
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+}
+
+app.on('second-instance', () => {
+  const win = BrowserWindow.getAllWindows()[0]
+  if (win) {
+    if (win.isMinimized()) win.restore()
+    win.focus()
+  }
+})
 
 app.whenReady().then(async () => {
   // Engañamos al backend para que piense que la petición (y el websocket) vienen de Vite
