@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarOff, Clock, ShieldCheck, Ticket } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
+import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { useActiveReservations } from '../hooks/useActiveReservations';
 import { useReservationHistory } from '../hooks/useReservationHistory';
 import { ActiveReservationCard, QrModal, ReservationHistoryCard } from '../components/molecules';
@@ -12,6 +14,7 @@ import type { ActiveReservationItem } from '../types';
 export function TripsPage() {
   const navigate = useNavigate();
   const { getToken } = useAuth();
+  const queryClient = useQueryClient();
   const { items, loading, error, refetch } = useActiveReservations();
 
   const { items: historyItems, loading: historyLoading, page, setPage, totalPages, refetch: refetchHistory } = useReservationHistory(5);
@@ -23,10 +26,23 @@ export function TripsPage() {
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
     setCancellingId(item.reservation.id);
-    await cancelReservation(token, item.reservation.id, 'Cancelado por el estudiante')
-      .then(() => { refetch(); refetchHistory(); })
-      .catch(() => undefined)
-      .finally(() => setCancellingId(null));
+
+    const previous = queryClient.getQueriesData<ActiveReservationItem[]>({ queryKey: ['active-reservations'] });
+    queryClient.setQueriesData<ActiveReservationItem[]>(
+      { queryKey: ['active-reservations'] },
+      (old) => old?.filter((i) => i.reservation.id !== item.reservation.id)
+    );
+
+    try {
+      await cancelReservation(token, item.reservation.id, 'Cancelado por el estudiante');
+      toast.success('Reserva cancelada.');
+      refetchHistory();
+    } catch {
+      previous.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    } finally {
+      setCancellingId(null);
+      refetch();
+    }
   }
 
   return (

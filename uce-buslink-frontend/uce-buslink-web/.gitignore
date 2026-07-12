@@ -27,3 +27,6 @@ src/wasm/*.wasm
 *.sln
 *.sw?
 
+# Storybook
+*storybook.log
+storybook-static

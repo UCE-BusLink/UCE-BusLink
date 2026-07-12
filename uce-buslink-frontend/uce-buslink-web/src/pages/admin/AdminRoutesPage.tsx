@@ -12,6 +12,8 @@ import {
 } from '../../services/adminService';
 import { routeInfoFormSchema, routeStopsListSchema, scheduleGroupSchema, scheduleGroupsListSchema } from '../../schemas/route.schema';
 import { getFieldErrors } from '../../schemas/common';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { ApiRoute } from '../../types';
 
 // Importaciones de Leaflet para el mapeo interactivo
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
@@ -105,6 +107,7 @@ export function AdminRoutesPage() {
   const navigate = useNavigate();
   const { getToken } = useAuth();
   const { routes, loading, error, refetch } = useRoutes();
+  const queryClient = useQueryClient();
 
   // Estados generales de control
   const [search, setSearch] = useState('');
@@ -242,7 +245,34 @@ export function AdminRoutesPage() {
       const token = await getToken({ template: 'uce-buslink' });
       if (!token) throw new Error('No autorizado');
 
-      const stopsToCreate: BatchStop[] = newStops
+      const waypoints = newStops.map((s) => ({ stopId: s.id || 'temp' }));
+      
+      let polyline = '';
+      try {
+        const previewResult = await previewRoute(token, waypoints);
+        polyline = previewResult.polyline || previewResult.encodedPolyline || '';
+      } catch (e) {
+        // Fallback offline o si falla
+        console.warn('Preview falló, se usará polyline vacía', e);
+      }
+      
+      setRoutePolylineRaw(polyline);
+      setCurrentStep(3);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setSaveError(`Error al procesar la ruta: ${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const createFullRouteMutation = useMutation({
+    mutationKey: ['createFullRoute'],
+    mutationFn: async (payload: { info: any, stops: OrderedStop[], groups: ScheduleGroup[], polyline: string }) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No autorizado');
+
+      const stopsToCreate = payload.stops
         .filter((s) => !s.id)
         .map((s) => ({ name: s.name, latitude: s.latitude, longitude: s.longitude }));
 
@@ -250,28 +280,21 @@ export function AdminRoutesPage() {
       if (stopsToCreate.length) {
         const batchResult = await createBatchStops(token, stopsToCreate);
         if (batchResult.failureCount > 0) {
-          const reasons = batchResult.failed.map((f) => `parada #${f.index + 1}: ${f.reason}`).join('; ');
-          throw new Error(`No se pudieron crear ${batchResult.failureCount} parada(s) (${reasons}).`);
+          throw new Error(`No se pudieron crear ${batchResult.failureCount} parada(s).`);
         }
         createdStops = batchResult.succeeded;
       }
 
       let createdIndex = 0;
-      const orderedStops = newStops.map((s) =>
+      const orderedStops = payload.stops.map((s) =>
         s.id ? s : { ...s, id: createdStops[createdIndex++].id }
       );
 
-      const waypoints = orderedStops.map((s) => ({ stopId: s.id as string }));
-
-      const previewResult = await previewRoute(token, waypoints);
-      const polyline = previewResult.polyline || previewResult.encodedPolyline || '';
-      setRoutePolylineRaw(polyline);
-
       const routePayload = {
-        name: infoResult.data.name,
-        description: infoResult.data.description,
-        estimatedDurationMinutes: infoResult.data.estimatedDurationMinutes,
-        pathPolyline: polyline,
+        name: payload.info.name,
+        description: payload.info.description,
+        estimatedDurationMinutes: payload.info.estimatedDurationMinutes,
+        pathPolyline: payload.polyline,
         stops: orderedStops.map((s, index) => ({
           stopId: s.id as string,
           stopOrder: index + 1,
@@ -282,33 +305,10 @@ export function AdminRoutesPage() {
 
       const savedRoute = await createRoute(token, routePayload);
       if (!savedRoute || !savedRoute.id) throw new Error('No se recibió el ID de la ruta creada');
-      
-      setCreatedRouteId(savedRoute.id);
-      setCurrentStep(3);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
-      setSaveError(`Error al procesar las paradas y la ruta: ${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleFinalizeSchedule() {
-    const result = scheduleGroupsListSchema.safeParse(scheduleGroups);
-    if (!result.success) {
-      setSaveError(result.error.issues[0]?.message ?? 'Revisa los bloques de horarios.');
-      return;
-    }
-    setSaveError(null);
-
-    setSaving(true);
-    try {
-      const token = await getToken({ template: 'uce-buslink' });
-      if (!token || !createdRouteId) return;
 
       const schedulePayload = {
-        routeId: createdRouteId,
-        details: scheduleGroups.map(group => ({
+        routeId: savedRoute.id,
+        details: payload.groups.map(group => ({
           type: "FIXED",
           daysOfWeek: group.daysOfWeek,
           fixedDepartureTimes: group.fixedDepartureTimes,
@@ -319,14 +319,52 @@ export function AdminRoutesPage() {
       };
 
       await createSchedule(token, schedulePayload);
-      closeForm();
-      refetch();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
-      setSaveError(`No se pudieron almacenar los bloques de horarios: ${msg}`);
-    } finally {
-      setSaving(false);
+      return { ...routePayload, id: savedRoute.id };
+    },
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: ['routes'] });
+      const previousRoutes = queryClient.getQueryData<ApiRoute[]>(['routes']);
+      
+      const optimisticRoute = {
+        id: `temp-${Date.now()}`,
+        name: payload.info.name,
+        description: payload.info.description,
+        estimatedDurationMinutes: parseInt(payload.info.estimatedDurationMinutes) || 30,
+        isActive: true,
+        stops: payload.stops as any[]
+      } as ApiRoute;
+
+      queryClient.setQueryData<ApiRoute[]>(['routes'], (old = []) => [...old, optimisticRoute]);
+      return { previousRoutes };
+    },
+    onError: (err, payload, context) => {
+      if (context?.previousRoutes) {
+        queryClient.setQueryData(['routes'], context.previousRoutes);
+      }
+      setSaveError(err instanceof Error ? err.message : 'Error al guardar la ruta.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['routes'] });
     }
+  });
+
+  async function handleFinalizeSchedule() {
+    const result = scheduleGroupsListSchema.safeParse(scheduleGroups);
+    if (!result.success) {
+      setSaveError(result.error.issues[0]?.message ?? 'Revisa los bloques de horarios.');
+      return;
+    }
+    setSaveError(null);
+
+    // Disparamos la mutación (optimista) y cerramos el formulario de inmediato
+    // para no bloquear la UI si el cliente está offline y la mutación se pausa.
+    createFullRouteMutation.mutate({
+      info: routeInfoFormSchema.parse(form),
+      stops: newStops,
+      groups: scheduleGroups,
+      polyline: routePolylineRaw
+    });
+    closeForm();
   }
 
   const filtered = routes.filter(
@@ -532,10 +570,10 @@ export function AdminRoutesPage() {
                 )}
                 
                 {previewRouteMap.stops?.map((stop: any, idx: number) => (
-                  <Marker key={stop.id} position={[stop.latitude, stop.longitude]}>
+                  <Marker key={stop.stopId || stop.id || idx} position={[stop.latitude, stop.longitude]}>
                     <Popup>
                       <div className="text-sm font-bold text-navy-900">
-                        {idx + 1}. {stop.name}
+                        {idx + 1}. {stop.name || stop.stopName}
                       </div>
                     </Popup>
                   </Marker>

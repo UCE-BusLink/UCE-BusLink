@@ -86,7 +86,8 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:9000",
                 "https://ucebuslinkqa.programacionwebuce.net",
-                "https://ucebuslinkprod.programacionwebuce.net"
+                "https://ucebuslinkprod.programacionwebuce.net",
+                "http://localhost:4173"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));

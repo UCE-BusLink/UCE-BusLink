@@ -11,9 +11,15 @@ export const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-const app = initializeApp(firebaseConfig)
+let app: any = null;
+if (firebaseConfig.projectId) {
+  app = initializeApp(firebaseConfig);
+} else {
+  console.warn('[FIREBASE] Missing VITE_FIREBASE_PROJECT_ID in environment. Push notifications are disabled.');
+}
 
 export async function getMessagingIfSupported(): Promise<Messaging | null> {
+  if (!app) return null;
   const supported = await isSupported().catch(() => false)
   return supported ? getMessaging(app) : null
 }
