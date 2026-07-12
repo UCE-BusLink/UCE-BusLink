@@ -15,7 +15,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint . || true",
     "preview": "vite preview",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "dist:copy-portable": "npm run dist && if exist release\\win-unpacked\\UCE* (copy \"release\\win-unpacked\\UCE BusLink Admin.exe\" \"release\\UCE BusLink Admin Portable.exe\" 2>nul || echo Portable generado en win-unpacked)"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.16.0",
@@ -61,7 +62,8 @@
     "appId": "ec.uce.buslink.desktop",
     "productName": "UCE BusLink Admin",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "public"
     },
     "files": [
       "dist/**/*",
@@ -70,10 +72,25 @@
     ],
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "icon": "public/favicon.ico"
+      "icon": "public/favicon.ico",
+      "certificateFile": null,
+      "certificatePassword": null,
+      "signingHashAlgorithms": [
+        "sha256"
+      ]
     },
     "mac": {
       "target": [
@@ -91,7 +108,17 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "UCE BusLink Admin",
+      "installerIcon": "public/favicon.ico",
+      "uninstallerIcon": "public/favicon.ico",
+      "installerHeader": "public/favicon.ico",
+      "installerSidebar": "public/favicon.ico",
+      "warningsNotifications": [
+        "default"
+      ]
     }
   }
 }
