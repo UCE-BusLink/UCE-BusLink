@@ -9,6 +9,8 @@ import com.ucebuslink.supervisor.domain.model.RouteStop;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
 import com.ucebuslink.supervisor.domain.repository.StopRepository;
+import com.ucebuslink.shared.event.AdminEntityChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +33,12 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     private final RouteRepository routeRepository;
     private final StopRepository stopRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public RouteApplicationService(RouteRepository routeRepository, StopRepository stopRepository) {
+    public RouteApplicationService(RouteRepository routeRepository, StopRepository stopRepository, ApplicationEventPublisher eventPublisher) {
         this.routeRepository = routeRepository;
         this.stopRepository = stopRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -71,6 +75,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
         Route savedRoute = routeRepository.save(route);
         log.info("Route created successfully with ID: {}", savedRoute.getId());
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("ROUTE", "CREATED", savedRoute.getId()));
         return mapToResponse(savedRoute);
     }
 
@@ -118,6 +123,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
         log.info("Attempting to delete route with ID: {}", id);
         routeRepository.deleteById(id);
         log.info("Route {} deleted successfully", id);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("ROUTE", "DELETED", id));
     }
 
     @Override
@@ -157,6 +163,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
         Route updatedRoute = routeRepository.update(route);
         log.info("Route {} updated successfully", id);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("ROUTE", "UPDATED", updatedRoute.getId()));
         return mapToResponse(updatedRoute);
     }
 
@@ -216,6 +223,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
         Route updatedRoute = routeRepository.update(route); 
         
         log.info("Route {} status updated successfully", id);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("ROUTE", "UPDATED", updatedRoute.getId()));
         return mapToResponse(updatedRoute);
     }
 }

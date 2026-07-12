@@ -9,6 +9,8 @@ import com.ucebuslink.supervisor.application.usecase.ManageBusUseCase;
 import com.ucebuslink.supervisor.domain.model.Bus;
 import com.ucebuslink.supervisor.domain.model.BusStatus;
 import com.ucebuslink.supervisor.domain.repository.BusRepository;
+import com.ucebuslink.shared.event.AdminEntityChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +22,11 @@ import java.util.stream.Collectors;
 public class BusApplicationService implements ManageBusUseCase {
 
     private final BusRepository busRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public BusApplicationService(BusRepository busRepository) {
+    public BusApplicationService(BusRepository busRepository, ApplicationEventPublisher eventPublisher) {
         this.busRepository = busRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -37,6 +41,7 @@ public class BusApplicationService implements ManageBusUseCase {
         bus.setOperationalStatus(BusStatus.OPERATIONAL);
 
         Bus savedBus = busRepository.save(bus);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("BUS", "CREATED", savedBus.getId()));
         return mapToResponse(savedBus);
     }
     
@@ -71,9 +76,9 @@ public class BusApplicationService implements ManageBusUseCase {
     }
 
     @Override
-    @Transactional
     public void deleteBus(UUID id) {
         busRepository.deleteById(id);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("BUS", "DELETED", id));
     }
 
     private BusResponse mapToResponse(Bus bus) {
@@ -101,7 +106,9 @@ public class BusApplicationService implements ManageBusUseCase {
         bus.setModel(command.model());
         // bus.setManufacturingYear(command.manufacturingYear()); // If the setter was added in the previous user story
 
-        return mapToResponse(busRepository.save(bus));
+        Bus savedBus = busRepository.save(bus);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("BUS", "UPDATED", savedBus.getId()));
+        return mapToResponse(savedBus);
     }
 
     @Override
@@ -111,7 +118,9 @@ public class BusApplicationService implements ManageBusUseCase {
                 .orElseThrow(() -> new RuntimeException("Bus not found with id: " + id));
 
         bus.setOperationalStatus(command.status());
-        return mapToResponse(busRepository.save(bus));
+        Bus savedBus = busRepository.save(bus);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("BUS", "UPDATED", savedBus.getId()));
+        return mapToResponse(savedBus);
     }
 
     @Override
