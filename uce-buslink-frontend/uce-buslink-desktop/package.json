@@ -1,7 +1,7 @@
 {
   "name": "uce-buslink-desktop",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "UCE Bus-Link — Aplicación de escritorio para administradores",
   "homepage": "https://github.com/UCE-BusLink/UCE-BusLink",
   "type": "module",

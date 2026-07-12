@@ -209,7 +209,7 @@ La versión del proyecto vive en `uce-buslink-backend/pom.xml`. El equipo la act
 |---|---|
 | Fix o mejora pequeña | Patch: `0.1.0` → `0.1.1` |
 | Feature nueva completa | Minor: `0.1.x` → `0.2.0` |
-| Entrega final / sistema completo | Major: `0.x.x` → `1.0.0` |
+| Entrega final / sistema completo | Major: `0.x.x` → `1.1.0` |
 
 Al mergear a `main`, el pipeline crea automáticamente el git tag `vX.Y.Z` y el GitHub Release correspondiente. Las imágenes Docker se publican con tres tags: `:X.Y.Z`, `:prod` y `:latest`.
 
