@@ -288,10 +288,10 @@ El proyecto utiliza versionado semántico formal coordinado:
 
 | Nombre | Rol | GitHub |
 |---|---|---|
-| **Lenin David Alomoto Cevallos** | Backend Engineer | [@DavidAlomoto](https://github.com/DavidAlomoto) |
-| **Rodney Jhosue Andrade Chamorro** | DevOps & Cloud Architect | [@rodneyandrade](https://github.com/rodneyandrade) |
-| **Kennet Steveen Rodriguez Lopez** | Frontend Engineer | [@KennetRodriguez](https://github.com/KennetRodriguez) |
-| **Melany Vanessa Vela Loachamin** | Scrum Master | [@MelanyVela](https://github.com/MelanyVela) |
+| **Lenin David Alomoto Cevallos** | Backend Engineer | [@DavidAlomoto](https://github.com/ldalomoto) |
+| **Rodney Jhosue Andrade Chamorro** | DevOps & Cloud Architect | [@rodneyandrade](https://github.com/RodneyAndrade3) |
+| **Kennet Steveen Rodriguez Lopez** | Frontend Engineer | [@KennetRodriguez](https://github.com/Kennetrl) |
+| **Melany Vanessa Vela Loachamin** | Scrum Master | [@MelanyVela](https://github.com/Vanessa-Vela) |
 
 ---
 
