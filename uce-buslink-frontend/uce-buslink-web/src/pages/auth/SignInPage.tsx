@@ -1,9 +1,13 @@
 import { SignIn } from '@clerk/clerk-react'
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import heroImg from '../../assets/brand/FacePage.webp';
 import brandLogo from '../../assets/brand/Logo.png';
+import { AccountNotFoundError } from '../../components/molecules/AccountNotFoundError';
 
 export function SignInPage() {
+  const [searchParams] = useSearchParams();
+  const error = searchParams.get('error');
+
   return (
     <div className="min-h-screen flex">
       {/* LEFT SIDE */}
@@ -34,6 +38,12 @@ export function SignInPage() {
             />
           </div>
 
+          {/* ERROR MESSAGE */}
+          {error === 'account_not_found' && (
+            <div className="mb-6">
+              <AccountNotFoundError />
+            </div>
+          )}
 
           {/* CLERK */}
           <SignIn
