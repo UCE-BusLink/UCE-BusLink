@@ -16,7 +16,7 @@ import { useAppStore } from "../../store/useAppStore";
 
 export function AppLayout() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
-  const { user, updateOnboardingStatus } = useCurrentUser();
+  const { user, syncError, updateOnboardingStatus } = useCurrentUser();
   const isSidebarOpen = useAppStore((state) => state.isSidebarOpen);
   const closeSidebar = useAppStore((state) => state.closeSidebar);
   const queryClient = useQueryClient();
@@ -42,6 +42,10 @@ export function AppLayout() {
   }, [isLoaded, isSignedIn, getToken, queryClient]);
 
   if (!isLoaded) return null;
+
+  // Cuenta no encontrada en la BD: el signOut del AuthContext redirige al login,
+  // mientras tanto no renderizar el dashboard.
+  if (syncError) return null;
 
   if (!isSignedIn) return <Navigate to="/login" replace />;
 

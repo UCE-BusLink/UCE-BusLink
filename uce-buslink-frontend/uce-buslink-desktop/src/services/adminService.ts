@@ -244,7 +244,6 @@ export async function createSchedule(token: string, schedule: SchedulePayload) {
   });
 }
 
-// Agrega estas interfaces junto a las demás
 export interface RouteDailyReport {
   total_reservations: number;
   route_id: string;
@@ -260,7 +259,6 @@ export interface RouteDailyReport {
   total_incidents: number;
 }
 
-// Agrega esta función para consumir el endpoint de reportes diarios
 export async function fetchDailyRouteReports(token: string, page = 0, size = 5): Promise<PageResponse<RouteDailyReport>> {
   return apiFetch<PageResponse<RouteDailyReport>>(
     `/api/v1/supervisor/reports/routes/daily?page=${page}&size=${size}`,

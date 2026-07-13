@@ -5,6 +5,7 @@ import com.ucebuslink.identity.domain.repository.UserRepository;
 import com.ucebuslink.shared.constant.Role;
 import com.ucebuslink.shared.constant.UserStatus;
 import com.ucebuslink.shared.dto.CurrentUserResponse;
+import com.ucebuslink.shared.exception.UserNotFoundException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,13 +34,13 @@ public class SyncUserUseCase {
         User user = userRepository
                 .findByClerkUserId(clerkUserId)
                 .or(() -> relinkExistingUserByEmail(clerkUserId, email))
-                .orElseGet(() -> createUser(
+                .orElseGet(() -> registerStudent(
                         clerkUserId,
                         email,
                         firstName,
                         lastName));
 
-        boolean needsOnboarding = user.getPhone() == null || user.getPhone().isEmpty() || 
+        boolean needsOnboarding = user.getPhone() == null || user.getPhone().isEmpty() ||
                                   user.getDocumentNumber() == null || user.getDocumentNumber().isEmpty();
 
         return new CurrentUserResponse(
@@ -63,17 +64,18 @@ public class SyncUserUseCase {
         });
     }
 
-    private User createUser(
+    // Self-registration is only for UCE students. Any other email (e.g. a driver that
+    // exists in Clerk but was never provisioned in this environment's DB) is rejected
+    // instead of being silently created as a STUDENT.
+    private User registerStudent(
             String clerkUserId,
             String email,
             String firstName,
             String lastName) {
 
-        // Only UCE students allowed
         if (!email.endsWith("@uce.edu.ec")) {
-            log.warn("[AUTH] Rejected user creation. Email {} does not belong to the UCE domain.", email);
-            throw new IllegalArgumentException(
-                    "Solo se permiten correos institucionales UCE");
+            log.warn("[AUTH] No local account found for email {} and self-registration is students-only.", email);
+            throw new UserNotFoundException("No existe una cuenta registrada para el correo " + email);
         }
 
         log.info("[AUTH] Creating new STUDENT user in database for email: {}", email);
@@ -88,7 +90,7 @@ public class SyncUserUseCase {
 
         User savedUser = userRepository.save(user);
         log.info("[AUTH] User created successfully with internal ID: {}", savedUser.getId());
-        
+
         return savedUser;
     }
 }
