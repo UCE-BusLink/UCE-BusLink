@@ -13,17 +13,22 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GpsBatchProcessorService {
 
+    // Hard ceiling so a delayed flush (e.g. scheduler backlog) can't grow this
+    // queue without bound and exhaust the container's memory. Comfortably above
+    // normal traffic between two 30s flushes; only ever hit while genuinely backlogged.
+    private static final int MAX_BUFFER_SIZE = 5000;
+
     private final GpsLocationHistoryRepository historyRepository; // Injects the Port (Interface)
 
-    // Thread-safe queue holding the pure Domain Model
-    private final Queue<GpsLocationHistory> buffer = new ConcurrentLinkedQueue<>();
+    // Thread-safe, capacity-bounded queue holding the pure Domain Model
+    private final Queue<GpsLocationHistory> buffer = new LinkedBlockingQueue<>(MAX_BUFFER_SIZE);
 
     @Async
     @EventListener
@@ -35,7 +40,10 @@ public class GpsBatchProcessorService {
                 event.accuracy(),
                 event.velocity()
         );
-        buffer.add(location);
+        if (!buffer.offer(location)) {
+            log.warn("[TRACKING-HISTORY] GPS buffer full ({} points); dropping location for trip {}",
+                    MAX_BUFFER_SIZE, event.tripId());
+        }
     }
 
     @Scheduled(fixedRate = 30000)
