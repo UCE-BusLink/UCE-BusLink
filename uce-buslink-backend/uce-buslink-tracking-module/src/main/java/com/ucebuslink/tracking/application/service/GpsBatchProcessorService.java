@@ -13,17 +13,22 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GpsBatchProcessorService {
 
-    private final GpsLocationHistoryRepository historyRepository; // Inyecta el Puerto (Interface)
-    
-    // Cola thread-safe almacenando el Modelo de Dominio Puro
-    private final Queue<GpsLocationHistory> buffer = new ConcurrentLinkedQueue<>();
+    // Hard ceiling so a delayed flush (e.g. scheduler backlog) can't grow this
+    // queue without bound and exhaust the container's memory. Comfortably above
+    // normal traffic between two 30s flushes; only ever hit while genuinely backlogged.
+    private static final int MAX_BUFFER_SIZE = 5000;
+
+    private final GpsLocationHistoryRepository historyRepository; // Injects the Port (Interface)
+
+    // Thread-safe, capacity-bounded queue holding the pure Domain Model
+    private final Queue<GpsLocationHistory> buffer = new LinkedBlockingQueue<>(MAX_BUFFER_SIZE);
 
     @Async
     @EventListener
@@ -35,7 +40,10 @@ public class GpsBatchProcessorService {
                 event.accuracy(),
                 event.velocity()
         );
-        buffer.add(location);
+        if (!buffer.offer(location)) {
+            log.warn("[TRACKING-HISTORY] GPS buffer full ({} points); dropping location for trip {}",
+                    MAX_BUFFER_SIZE, event.tripId());
+        }
     }
 
     @Scheduled(fixedRate = 30000)
@@ -50,9 +58,9 @@ public class GpsBatchProcessorService {
 
         try {
             historyRepository.saveAll(batchToSave);
-            log.debug("[TRACKING-HISTORY] Flush exitoso: {} puntos guardados en BD.", batchToSave.size());
+            log.debug("[TRACKING-HISTORY] Flush successful: {} points saved to DB.", batchToSave.size());
         } catch (Exception e) {
-            log.error("[TRACKING-HISTORY] Error guardando lote GPS en BD.", e);
+            log.error("[TRACKING-HISTORY] Error saving GPS batch to DB.", e);
         }
     }
 }

@@ -19,7 +19,7 @@ public class NotificationEventListener {
     private final NotificationDispatcherService dispatcher;
 
     // ==========================================
-    // RESERVAS
+    // RESERVATIONS
     // ==========================================
 
     @Async
@@ -47,7 +47,7 @@ public class NotificationEventListener {
     }
 
     // ==========================================
-    // FLOTA Y TRACKING (VIAJES)
+    // FLEET AND TRACKING (TRIPS)
     // ==========================================
 
     @Async
@@ -93,7 +93,7 @@ public class NotificationEventListener {
     @Async
     @EventListener
     public void handleTripCancelledByAdmin(TripCancelledEvent event) {
-        // ESTO ES UNA EMERGENCIA - Omitimos las preferencias y forzamos el envío
+        // THIS IS AN EMERGENCY - We skip the preferences and force the send
         for (UUID studentId : event.studentIds()) {
             dispatcher.dispatch(
                 studentId,
@@ -106,7 +106,7 @@ public class NotificationEventListener {
     }
 
     // ==========================================
-    // ABORDAJE (QR SCANNED)
+    // BOARDING (QR SCANNED)
     // ==========================================
 
     @Async

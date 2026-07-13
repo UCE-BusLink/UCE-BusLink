@@ -9,6 +9,8 @@ import com.ucebuslink.supervisor.domain.model.RouteStop;
 import com.ucebuslink.supervisor.domain.model.Stop;
 import com.ucebuslink.supervisor.domain.repository.RouteRepository;
 import com.ucebuslink.supervisor.domain.repository.StopRepository;
+import com.ucebuslink.shared.event.AdminEntityChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +33,12 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
     private final RouteRepository routeRepository;
     private final StopRepository stopRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public RouteApplicationService(RouteRepository routeRepository, StopRepository stopRepository) {
+    public RouteApplicationService(RouteRepository routeRepository, StopRepository stopRepository, ApplicationEventPublisher eventPublisher) {
         this.routeRepository = routeRepository;
         this.stopRepository = stopRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -71,6 +75,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
         Route savedRoute = routeRepository.save(route);
         log.info("Route created successfully with ID: {}", savedRoute.getId());
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("ROUTE", "CREATED", savedRoute.getId()));
         return mapToResponse(savedRoute);
     }
 
@@ -118,6 +123,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
         log.info("Attempting to delete route with ID: {}", id);
         routeRepository.deleteById(id);
         log.info("Route {} deleted successfully", id);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("ROUTE", "DELETED", id));
     }
 
     @Override
@@ -150,13 +156,14 @@ public class RouteApplicationService implements ManageRouteUseCase {
                 return new RouteStop(stop, stopCommand.stopOrder(), stopCommand.estimatedMinutesFromStart(), LocalDateTime.now());
             }).collect(Collectors.toList());
             
-            // CORRECCIÓN PARA HIBERNATE: Limpiar y rellenar en lugar de setear una lista nueva
+            // HIBERNATE FIX: Clear and refill instead of setting a new list
             route.getRouteStops().clear();
             route.getRouteStops().addAll(updatedStops);
         }
 
         Route updatedRoute = routeRepository.update(route);
         log.info("Route {} updated successfully", id);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("ROUTE", "UPDATED", updatedRoute.getId()));
         return mapToResponse(updatedRoute);
     }
 
@@ -164,11 +171,11 @@ public class RouteApplicationService implements ManageRouteUseCase {
         
         List<RouteResponse.RouteStopDetailResponse> stopDetails = null;
 
-        // Verificamos que la ruta tenga paradas para evitar NullPointerExceptions
+        // Verify that the route has stops to avoid NullPointerExceptions
         if (route.getRouteStops() != null) {
             stopDetails = route.getRouteStops().stream()
                 .map(routeStop -> {
-                    // Extraemos la parada asociada a esta relación
+                    // Extract the stop associated with this relationship
                     Stop stop = routeStop.getStop();
                     
                     return new RouteResponse.RouteStopDetailResponse(
@@ -190,7 +197,7 @@ public class RouteApplicationService implements ManageRouteUseCase {
                 route.getIsActive(),
                 route.getEstimatedDurationMinutes(),
                 route.getPathPolyline(),
-                stopDetails // <-- Pasamos la lista construida aquí
+                stopDetails // <-- We pass the built list here
         );
     }
 
@@ -211,11 +218,12 @@ public class RouteApplicationService implements ManageRouteUseCase {
 
         route.setIsActive(isActive);
         
-        // Usamos el método update que corregimos anteriormente para asegurar 
-        // que las colecciones se sincronicen correctamente
+        // We use the update method we fixed earlier to ensure
+        // the collections are synchronized correctly
         Route updatedRoute = routeRepository.update(route); 
         
         log.info("Route {} status updated successfully", id);
+        eventPublisher.publishEvent(new AdminEntityChangedEvent("ROUTE", "UPDATED", updatedRoute.getId()));
         return mapToResponse(updatedRoute);
     }
 }

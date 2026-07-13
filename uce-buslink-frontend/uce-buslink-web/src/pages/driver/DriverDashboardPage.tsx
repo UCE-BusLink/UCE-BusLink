@@ -79,7 +79,7 @@ export function DriverDashboardPage() {
             <FilterButton state="CANCELLED" label="Cancelados" />
           </div>
           <button
-            onClick={refetch}
+            onClick={() => refetch()}
             className="flex items-center justify-center p-2.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors shadow-sm shrink-0"
             title="Recargar viajes"
           >
@@ -96,7 +96,7 @@ export function DriverDashboardPage() {
         <div className="bg-white rounded-2xl border border-red-100 p-8 text-center shadow-sm">
           <p className="text-red-500 font-medium">{error}</p>
           <button
-            onClick={refetch}
+            onClick={() => refetch()}
             className="mt-4 px-6 py-2 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors"
           >
             Intentar de nuevo

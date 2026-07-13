@@ -17,16 +17,16 @@ public class TrustScoreRecoveryJob {
 
     private final TrustScoreRepository trustScoreRepository;
 
-    // Ejecutar todos los días a la medianoche
+    // Run every day at midnight
     @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void recoverTrustScores() {
-        log.info("[TRUST_SCORE_CRON] Iniciando proceso de recuperación diaria de Trust Score.");
+        log.info("[TRUST_SCORE_CRON] Starting daily Trust Score recovery process.");
         
         List<TrustScore> scoresToRecover = trustScoreRepository.findByScoreLessThan(100);
         
         if (scoresToRecover.isEmpty()) {
-            log.info("[TRUST_SCORE_CRON] No hay usuarios con score menor a 100 para recuperar.");
+            log.info("[TRUST_SCORE_CRON] No users with score below 100 to recover.");
             return;
         }
 
@@ -37,6 +37,6 @@ public class TrustScoreRecoveryJob {
             count++;
         }
 
-        log.info("[TRUST_SCORE_CRON] Proceso finalizado. Se sumó +1 a {} usuarios.", count);
+        log.info("[TRUST_SCORE_CRON] Process finished. +1 added to {} users.", count);
     }
 }

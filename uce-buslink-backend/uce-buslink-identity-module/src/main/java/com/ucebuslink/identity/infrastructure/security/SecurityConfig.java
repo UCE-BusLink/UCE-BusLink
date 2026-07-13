@@ -46,28 +46,28 @@ public class SecurityConfig {
                 .authenticationEntryPoint((request, response, authException) ->
                     response.sendError(
                         HttpServletResponse.SC_UNAUTHORIZED,
-                        "Token inválido, expirado o ausente"
+                        "Invalid, expired, or missing token"
                     ))
                 .accessDeniedHandler((request, response, accessDeniedException) ->
                     response.sendError(
                         HttpServletResponse.SC_FORBIDDEN,
-                        "Rol no autorizado para esta acción"
+                        "Role not authorized for this action"
                     ))
             )
 
             .authorizeHttpRequests(auth -> auth
-                // Endpoints verdaderamente públicos
+                // Truly public endpoints
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
 
-                // 🔥 IMPORTANTE: permitir handshake WebSocket
+                // 🔥 IMPORTANT: allow WebSocket handshake
                 .requestMatchers("/ws/**").permitAll()
 
-                // EXIGIMOS token de Clerk para los endpoints de Auth
+                // We REQUIRE a Clerk token for the Auth endpoints
                 .requestMatchers("/api/v1/auth/sync").authenticated()
                 .requestMatchers("/api/v1/auth/me").authenticated()
-                
-                // @PreAuthorize en sus controladores
+
+                // @PreAuthorize in their controllers
                 .anyRequest().authenticated()
             );
 
@@ -86,7 +86,8 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://localhost:9000",
                 "https://ucebuslinkqa.programacionwebuce.net",
-                "https://ucebuslinkprod.programacionwebuce.net"
+                "https://ucebuslinkprod.programacionwebuce.net",
+                "http://localhost:4173"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));

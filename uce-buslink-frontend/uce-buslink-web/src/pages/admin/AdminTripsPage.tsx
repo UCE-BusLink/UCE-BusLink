@@ -11,7 +11,10 @@ import {
   type ApiDriver,
 } from '../../services/adminService';
 import { fetchRoutes } from '../../services/routeService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ApiTrip, ApiRoute } from '../../types';
+import { tripEntitiesFormSchema, createTripFormSchema } from '../../schemas/trip.schema';
+import { getFieldErrors } from '../../schemas/common';
 
 const STATE_STYLES: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 text-blue-700',
@@ -49,13 +52,14 @@ function toLocalIso(date: Date) {
 
 export function AdminTripsPage() {
   const { getToken } = useAuth();
-  const [trips, setTrips] = useState<ApiTrip[]>([]);
-  const [routes, setRoutes] = useState<ApiRoute[]>([]);
-  const [buses, setBuses] = useState<ApiBus[]>([]);
-  const [drivers, setDrivers] = useState<ApiDriver[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [driversFailed, setDriversFailed] = useState(false);
+  // Variables originales pero ahora manejadas por react-query (se mantienen para no romper el diff o referencias).
+  // const [trips, setTrips] = useState<ApiTrip[]>([]);
+  // const [routes, setRoutes] = useState<ApiRoute[]>([]);
+  // const [buses, setBuses] = useState<ApiBus[]>([]);
+  // const [drivers, setDrivers] = useState<ApiDriver[]>([]);
+  // const [loading, setLoading] = useState(true);
+  // const [error, setError] = useState<string | null>(null);
+  // const [driversFailed, setDriversFailed] = useState(false);
   const [tick, setTick] = useState(0);
 
   // Filtros
@@ -68,6 +72,7 @@ export function AdminTripsPage() {
   const [saving, setSaving] = useState(false);
   const [fetchingSchedules, setFetchingSchedules] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Paso 1: Entidades
   const [routeId, setRouteId] = useState('');
@@ -81,6 +86,7 @@ export function AdminTripsPage() {
   // scheduleBlocks guarda los horarios que el usuario ha seleccionado. Ej: { '2026-06-25': ['06:00'] }
   const [scheduleBlocks, setScheduleBlocks] = useState<Record<string, string[]>>({});
   const [selectedDateIso, setSelectedDateIso] = useState<string>('');
+  const [tempTripTime, setTempTripTime] = useState('');
 
   // Generar los próximos 7 días de la semana
   const upcomingDays = useMemo(() => {
@@ -105,52 +111,114 @@ export function AdminTripsPage() {
     }
   }, [showForm, upcomingDays, selectedDateIso]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      setError(null);
-      setDriversFailed(false);
-      try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token || cancelled) return;
-        const [tripsResult, routesResult, busesResult, driversResult] = await Promise.allSettled([
-          fetchTrips(token),
-          fetchRoutes(token, 0, 100),
-          fetchBuses(token, 0, 100),
-          fetchDrivers(token),
-        ]);
-        if (cancelled) return;
+  const queryClient = useQueryClient();
 
-        if (tripsResult.status === 'fulfilled') setTrips(tripsResult.value);
-        else setError('No se pudieron cargar los viajes.');
-
-        if (routesResult.status === 'fulfilled') setRoutes(routesResult.value.content);
-        if (busesResult.status === 'fulfilled') setBuses(busesResult.value.content);
-
-        if (driversResult.status === 'fulfilled') setDrivers(driversResult.value);
-        else setDriversFailed(true);
-      } catch {
-        if (!cancelled) setError('No se pudieron cargar los viajes.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const { data: trips = [], isLoading: loadingTrips, error: errorTrips, refetch: refetchTrips } = useQuery({
+    queryKey: ['admin-trips'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await fetchTrips(token);
     }
-    run();
-    return () => { cancelled = true; };
-  }, [getToken, tick]);
+  });
+
+  const { data: routesData, isLoading: loadingRoutes } = useQuery({
+    queryKey: ['admin-routes'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await fetchRoutes(token, 0, 100);
+    }
+  });
+  const routes = Array.isArray(routesData) ? routesData : (routesData?.content || []);
+
+  const { data: busesData, isLoading: loadingBuses } = useQuery({
+    queryKey: ['admin-buses'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await fetchBuses(token, 0, 100);
+    }
+  });
+  const buses = Array.isArray(busesData) ? busesData : (busesData?.content || []);
+
+  const { data: drivers = [], isLoading: loadingDrivers, isError: driversFailed } = useQuery({
+    queryKey: ['admin-drivers'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await fetchDrivers(token);
+    }
+  });
+
+  const loading = loadingTrips || loadingRoutes || loadingBuses || loadingDrivers;
+  const error = errorTrips instanceof Error ? errorTrips.message : (errorTrips ? 'Error' : null);
+
+  const createMutation = useMutation({
+    mutationKey: ['createTrip'],
+    mutationFn: async (payload: any) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      await createTrip(token, payload);
+      return payload;
+    },
+    onMutate: async (newTripPayload) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-trips'] });
+      const previousTrips = queryClient.getQueryData<ApiTrip[]>(['admin-trips']);
+
+      const optimisticTrips = newTripPayload.departures.map((dep: string, index: number) => ({
+        id: `temp-${Date.now()}-${index}`,
+        routeId: newTripPayload.routeId,
+        busId: newTripPayload.busId,
+        driverId: newTripPayload.driverId,
+        departureTime: dep,
+        state: 'SCHEDULED'
+      } as ApiTrip));
+
+      queryClient.setQueryData<ApiTrip[]>(['admin-trips'], (old = []) => [
+        ...old,
+        ...optimisticTrips
+      ]);
+
+      const tripsByRouteKey = ['trips-by-route', newTripPayload.routeId];
+      await queryClient.cancelQueries({ queryKey: tripsByRouteKey });
+      const previousTripsByRoute = queryClient.getQueryData<ApiTrip[]>(tripsByRouteKey);
+
+      queryClient.setQueryData<ApiTrip[]>(tripsByRouteKey, (old = []) => [
+        ...old,
+        ...optimisticTrips
+      ]);
+
+      return { previousTrips, previousTripsByRoute, tripsByRouteKey };
+    },
+    onError: (err, newTrip, context: any) => {
+      if (context?.previousTrips) {
+        queryClient.setQueryData(['admin-trips'], context.previousTrips);
+      }
+      if (context?.previousTripsByRoute && context?.tripsByRouteKey) {
+        queryClient.setQueryData(context.tripsByRouteKey, context.previousTripsByRoute);
+      }
+      setSaveError(err instanceof Error ? err.message : 'No se pudo crear el viaje. Verifica los datos e intenta de nuevo.');
+    },
+    onSettled: (data, error, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-trips'] });
+      if (variables?.routeId) {
+        queryClient.invalidateQueries({ queryKey: ['trips-by-route', variables.routeId] });
+      }
+    },
+  });
 
   const refetch = useCallback(() => {
-    setLoading(true);
-    setTick((t) => t + 1);
-  }, []);
+    refetchTrips();
+  }, [refetchTrips]);
 
   if (driversFailed) {
     return <div className="p-8 text-center text-red-400 text-sm">No se pudieron cargar los conductores. Recarga la página.</div>;
   }
 
-  const routeNames = new Map(routes.map((r) => [r.id, r.name]));
-  const busLabels = new Map(buses.map((b) => [b.id, `${b.internalCode} · ${b.plateNumber}`]));
-  const driverNames = new Map(drivers.map((d) => [d.id, `${d.firstName} ${d.lastName}`]));
+  const routeNames = new Map<string, string>(routes.map((r: any) => [r.id, r.name]));
+  const busLabels = new Map<string, string>(buses.map((b: any) => [b.id, `${b.internalCode} · ${b.plateNumber}`]));
+  const driverNames = new Map<string, string>(drivers.map((d: any) => [d.id, `${d.firstName} ${d.lastName}`]));
 
   function closeForm() {
     setShowForm(false);
@@ -161,15 +229,20 @@ export function AdminTripsPage() {
     setScheduleBlocks({});
     setRouteTimesByDayEnum({});
     setSelectedDateIso('');
+    setTempTripTime('');
     setSaveError(null);
+    setFieldErrors({});
   }
 
   // --- TRANSICIÓN AL PASO 2 Y PETICIÓN DE HORARIOS ---
   async function handleNextToStep2() {
-    if (!routeId || !busId || !driverId) {
+    const result = tripEntitiesFormSchema.safeParse({ routeId, busId, driverId });
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
       setSaveError('Por favor, selecciona la ruta, el bus y el conductor para continuar.');
       return;
     }
+    setFieldErrors({});
     setSaveError(null);
     setFetchingSchedules(true);
 
@@ -205,8 +278,9 @@ export function AdminTripsPage() {
       setRouteTimesByDayEnum(timesMap);
       setCurrentStep(2);
     } catch (err) {
-      console.error(err);
-      setSaveError('No se pudieron obtener los horarios predefinidos para esta ruta.');
+      console.warn('Modo offline o ruta temporal: procediendo sin horarios predefinidos', err);
+      setRouteTimesByDayEnum({});
+      setCurrentStep(2);
     } finally {
       setFetchingSchedules(false);
     }
@@ -254,27 +328,29 @@ export function AdminTripsPage() {
     setSaveError(null);
 
     // Formatear los bloques a ISO Strings
-    const validDepartures: string[] = [];
+    const departures: string[] = [];
     Object.entries(scheduleBlocks).forEach(([dateIso, times]) => {
       times.forEach(t => {
         const fullTime = t.length <= 5 ? `${t}:00` : t;
-        validDepartures.push(`${dateIso}T${fullTime}`);
+        departures.push(`${dateIso}T${fullTime}`);
       });
     });
 
-    if (validDepartures.length === 0) {
-      setSaveError('Debes seleccionar al menos un horario de salida en alguno de los días.');
+    const result = createTripFormSchema.safeParse({ routeId, busId, driverId, departures });
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
+      setSaveError(getFieldErrors(result.error).departures ?? 'Revisa los horarios seleccionados.');
       return;
     }
+    setFieldErrors({});
 
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
 
-    setSaving(true);
-    await createTrip(token, { routeId, busId, driverId, departures: validDepartures })
-      .then(() => { closeForm(); refetch(); })
-      .catch((err) => setSaveError(err instanceof Error ? err.message : 'No se pudo crear el viaje. Verifica los datos e intenta de nuevo.'))
-      .finally(() => setSaving(false));
+    // Disparamos la mutación (optimista) y cerramos el formulario de inmediato
+    // para no bloquear la UI si el cliente está offline y la mutación se pausa.
+    createMutation.mutate(result.data);
+    closeForm();
   }
 
   // Ayudante para obtener el enum ('MONDAY') del día seleccionado actualmente
@@ -282,7 +358,7 @@ export function AdminTripsPage() {
   const availableTimesForCurrentDay = routeTimesByDayEnum[currentSelectedDayEnum] || [];
 
   const filteredTrips = useMemo(() => {
-    return trips.filter(trip => {
+    return trips.filter((trip: any) => {
       if (routeFilter && trip.routeId !== routeFilter) return false;
       if (statusFilter && trip.state !== statusFilter) return false;
       return true;
@@ -327,7 +403,7 @@ export function AdminTripsPage() {
             className="w-full sm:max-w-xs px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20 bg-white"
           >
             <option value="">Todas las rutas</option>
-            {routes.map((r) => (
+            {routes.map((r: any) => (
               <option key={r.id} value={r.id}>{r.name}</option>
             ))}
           </select>
@@ -376,7 +452,7 @@ export function AdminTripsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredTrips.map((trip) => (
+              {filteredTrips.map((trip: any) => (
                 <tr key={trip.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-4 text-sm font-semibold text-navy-900">
                     {routeNames.get(trip.routeId) ?? '—'}
@@ -455,10 +531,11 @@ export function AdminTripsPage() {
                       className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20 bg-gray-50 hover:bg-white transition-colors"
                     >
                       <option value="">Seleccionar ruta</option>
-                      {routes.map((r) => (
+                      {routes.map((r: any) => (
                         <option key={r.id} value={r.id}>{r.name}</option>
                       ))}
                     </select>
+                    {fieldErrors.routeId && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.routeId}</p>}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -472,10 +549,11 @@ export function AdminTripsPage() {
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20 bg-gray-50 hover:bg-white transition-colors"
                       >
                         <option value="">Seleccionar bus</option>
-                        {buses.map((b) => (
+                        {buses.map((b: any) => (
                           <option key={b.id} value={b.id}>{b.internalCode} · {b.plateNumber}</option>
                         ))}
                       </select>
+                      {fieldErrors.busId && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.busId}</p>}
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
@@ -483,14 +561,15 @@ export function AdminTripsPage() {
                       </label>
                       <select
                         value={driverId}
-                        onChange={(e) => setDriverId(e.target.value)}
+                        onChange={(e: any) => setDriverId(e.target.value)}
                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20 bg-gray-50 hover:bg-white transition-colors"
                       >
                         <option value="">Seleccionar conductor</option>
-                        {drivers.map((d) => (
+                        {drivers.map((d: any) => (
                           <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
                         ))}
                       </select>
+                      {fieldErrors.driverId && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.driverId}</p>}
                     </div>
                   </div>
                 </div>
@@ -543,17 +622,44 @@ export function AdminTripsPage() {
                     </h4>
 
                     <p className="text-[11px] text-gray-500 mb-4">
-                      Estos son los horarios fijos configurados previamente en esta ruta. Haz clic para asignar.
+                      Puedes seleccionar un horario fijo de la ruta o añadir uno manual si estás operando sin conexión.
                     </p>
+
+                    <div className="flex gap-2 mb-4">
+                      <input
+                        type="time"
+                        value={tempTripTime}
+                        onChange={(e) => setTempTripTime(e.target.value)}
+                        className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-navy-900/20 bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tempTripTime) {
+                            const formattedTime = tempTripTime.length <= 5 ? `${tempTripTime.padStart(5, '0')}:00` : tempTripTime;
+                            if (!(scheduleBlocks[selectedDateIso] || []).includes(formattedTime)) {
+                              toggleTimeSelection(selectedDateIso, formattedTime);
+                            }
+                            setTempTripTime('');
+                          }
+                        }}
+                        className="px-4 py-1.5 bg-navy-100 text-navy-900 font-bold rounded-xl hover:bg-navy-200 text-xs transition-colors"
+                      >
+                        Añadir Manual
+                      </button>
+                    </div>
 
                     {/* Lista de chips clickeables */}
                     <div className="flex flex-wrap gap-2 min-h-[40px]">
-                      {availableTimesForCurrentDay.length === 0 ? (
+                      {availableTimesForCurrentDay.length === 0 && (scheduleBlocks[selectedDateIso] || []).length === 0 ? (
                         <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-lg text-xs w-full border border-amber-100">
-                          <AlertCircle size={14} /> La ruta seleccionada no tiene horarios fijos para este día.
+                          <AlertCircle size={14} /> La ruta no retornó horarios fijos. Ingresa la hora manualmente arriba.
                         </div>
                       ) : (
-                        availableTimesForCurrentDay.map(time => {
+                        Array.from(new Set([
+                          ...availableTimesForCurrentDay,
+                          ...(scheduleBlocks[selectedDateIso] || [])
+                        ])).sort().map(time => {
                           const isSelected = (scheduleBlocks[selectedDateIso] || []).includes(time);
                           return (
                             <button

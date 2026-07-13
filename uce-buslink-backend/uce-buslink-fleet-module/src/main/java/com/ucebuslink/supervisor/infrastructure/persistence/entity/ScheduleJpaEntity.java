@@ -41,7 +41,7 @@ public class ScheduleJpaEntity {
     private LocalDateTime updatedAt;
 
     /**
-     * Mantiene sincronizada la relación bidireccional.
+     * Keeps the bidirectional relationship synchronized.
      */
     public void addDetail(ScheduleDetailJpaEntity detail) {
         details.add(detail);
@@ -49,7 +49,7 @@ public class ScheduleJpaEntity {
     }
 
     /**
-     * Elimina un detalle y rompe la relación.
+     * Removes a detail and breaks the relationship.
      */
     public void removeDetail(ScheduleDetailJpaEntity detail) {
         details.remove(detail);
@@ -57,7 +57,7 @@ public class ScheduleJpaEntity {
     }
 
     /**
-     * Reemplaza completamente la colección de detalles.
+     * Completely replaces the details collection.
      */
     public void setDetails(List<ScheduleDetailJpaEntity> details) {
         this.details.clear();

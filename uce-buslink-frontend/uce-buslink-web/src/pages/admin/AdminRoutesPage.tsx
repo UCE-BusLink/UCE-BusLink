@@ -10,18 +10,27 @@ import {
   createRoute, createBatchStops, previewRoute, createSchedule, fetchStops,
   type BatchStop, type ApiStop
 } from '../../services/adminService';
+import { routeInfoFormSchema, routeStopsListSchema, scheduleGroupSchema, scheduleGroupsListSchema } from '../../schemas/route.schema';
+import { getFieldErrors } from '../../schemas/common';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { ApiRoute } from '../../types';
 
 // Importaciones de Leaflet para el mapeo interactivo
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-// Solución para corregir los íconos rotos por defecto de Leaflet en entornos modernos de bundling (Vite/Webpack)
+// Solución para corregir los íconos rotos por defecto de Leaflet en entornos modernos de bundling (Vite/Webpack):
+// se empaquetan los assets con Vite en vez de depender de un CDN externo en tiempo de ejecución.
 //@ts-expect-error
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
 });
 
 const DAYS_OF_WEEK = [
@@ -98,6 +107,7 @@ export function AdminRoutesPage() {
   const navigate = useNavigate();
   const { getToken } = useAuth();
   const { routes, loading, error, refetch } = useRoutes();
+  const queryClient = useQueryClient();
 
   // Estados generales de control
   const [search, setSearch] = useState('');
@@ -110,6 +120,7 @@ export function AdminRoutesPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Estado Paso 1: Información Básica
   const [form, setForm] = useState(EMPTY_FORM);
@@ -180,6 +191,7 @@ export function AdminRoutesPage() {
     setCreatedRouteId(null);
     setRoutePolylineRaw('');
     setSaveError(null);
+    setFieldErrors({});
   }
 
   function handleAddTempStop() {
@@ -198,54 +210,91 @@ export function AdminRoutesPage() {
 
   // Lógica para añadir un bloque de horarios al grupo principal
   function handleAddScheduleGroup() {
-    if (currentGroupDays.length === 0 || currentGroupTimes.length === 0) {
-      setSaveError('Por favor selecciona al menos un día y un horario para agregar el bloque de operación.');
+    const result = scheduleGroupSchema.safeParse({
+      daysOfWeek: currentGroupDays,
+      fixedDepartureTimes: [...currentGroupTimes].sort(),
+    });
+    if (!result.success) {
+      setSaveError(Object.values(getFieldErrors(result.error))[0] ?? 'Revisa el bloque de horarios.');
       return;
     }
     setSaveError(null);
-    setScheduleGroups([...scheduleGroups, {
-      daysOfWeek: currentGroupDays,
-      fixedDepartureTimes: [...currentGroupTimes].sort()
-    }]);
+    setScheduleGroups([...scheduleGroups, result.data]);
     setCurrentGroupDays([]);
     setCurrentGroupTimes([]);
   }
 
   // --- TRANSICIONES Y LLAMADAS A LA API ---
   async function handleNextFromStep2() {
-    if (newStops.length < 2) {
-      setSaveError('Añade al menos 2 paradas para trazar una ruta.');
+    const stopsResult = routeStopsListSchema.safeParse(newStops);
+    const infoResult = routeInfoFormSchema.safeParse(form);
+    if (!stopsResult.success || !infoResult.success) {
+      setFieldErrors(infoResult.success ? {} : getFieldErrors(infoResult.error));
+      setSaveError(
+        !stopsResult.success
+          ? stopsResult.error.issues[0]?.message
+          : 'Revisa la información básica de la ruta.'
+      );
       return;
     }
+    setFieldErrors({});
     setSaveError(null);
     setSaving(true);
-    
+
     try {
       const token = await getToken({ template: 'uce-buslink' });
       if (!token) throw new Error('No autorizado');
 
-      const stopsToCreate: BatchStop[] = newStops
+      const waypoints = newStops.map((s) => ({ stopId: s.id || 'temp' }));
+      
+      let polyline = '';
+      try {
+        const previewResult = await previewRoute(token, waypoints);
+        polyline = previewResult.polyline || previewResult.encodedPolyline || '';
+      } catch (e) {
+        // Fallback offline o si falla
+        console.warn('Preview falló, se usará polyline vacía', e);
+      }
+      
+      setRoutePolylineRaw(polyline);
+      setCurrentStep(3);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      setSaveError(`Error al procesar la ruta: ${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const createFullRouteMutation = useMutation({
+    mutationKey: ['createFullRoute'],
+    mutationFn: async (payload: { info: any, stops: OrderedStop[], groups: ScheduleGroup[], polyline: string }) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No autorizado');
+
+      const stopsToCreate = payload.stops
         .filter((s) => !s.id)
         .map((s) => ({ name: s.name, latitude: s.latitude, longitude: s.longitude }));
 
-      const createdStops = stopsToCreate.length ? await createBatchStops(token, stopsToCreate) : [];
+      let createdStops: ApiStop[] = [];
+      if (stopsToCreate.length) {
+        const batchResult = await createBatchStops(token, stopsToCreate);
+        if (batchResult.failureCount > 0) {
+          throw new Error(`No se pudieron crear ${batchResult.failureCount} parada(s).`);
+        }
+        createdStops = batchResult.succeeded;
+      }
 
       let createdIndex = 0;
-      const orderedStops = newStops.map((s) =>
-        s.id ? s : { ...s, id: createdStops[createdIndex++].id as string }
+      const orderedStops = payload.stops.map((s) =>
+        s.id ? s : { ...s, id: createdStops[createdIndex++].id }
       );
 
-      const waypoints = orderedStops.map((s) => ({ stopId: s.id as string }));
-
-      const previewResult = await previewRoute(token, waypoints);
-      const polyline = previewResult.polyline || previewResult.encodedPolyline || '';
-      setRoutePolylineRaw(polyline);
-
       const routePayload = {
-        name: form.name,
-        description: form.description,
-        estimatedDurationMinutes: Number(form.estimatedDurationMinutes),
-        pathPolyline: polyline,
+        name: payload.info.name,
+        description: payload.info.description,
+        estimatedDurationMinutes: payload.info.estimatedDurationMinutes,
+        pathPolyline: payload.polyline,
         stops: orderedStops.map((s, index) => ({
           stopId: s.id as string,
           stopOrder: index + 1,
@@ -256,31 +305,10 @@ export function AdminRoutesPage() {
 
       const savedRoute = await createRoute(token, routePayload);
       if (!savedRoute || !savedRoute.id) throw new Error('No se recibió el ID de la ruta creada');
-      
-      setCreatedRouteId(savedRoute.id);
-      setCurrentStep(3);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
-      setSaveError(`Error al procesar las paradas y la ruta: ${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleFinalizeSchedule() {
-    if (scheduleGroups.length === 0) {
-      setSaveError('Debes estructurar al menos un bloque de horarios antes de finalizar.');
-      return;
-    }
-    
-    setSaving(true);
-    try {
-      const token = await getToken({ template: 'uce-buslink' });
-      if (!token || !createdRouteId) return;
 
       const schedulePayload = {
-        routeId: createdRouteId,
-        details: scheduleGroups.map(group => ({
+        routeId: savedRoute.id,
+        details: payload.groups.map(group => ({
           type: "FIXED",
           daysOfWeek: group.daysOfWeek,
           fixedDepartureTimes: group.fixedDepartureTimes,
@@ -291,14 +319,52 @@ export function AdminRoutesPage() {
       };
 
       await createSchedule(token, schedulePayload);
-      closeForm();
-      refetch();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
-      setSaveError(`No se pudieron almacenar los bloques de horarios: ${msg}`);
-    } finally {
-      setSaving(false);
+      return { ...routePayload, id: savedRoute.id };
+    },
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: ['routes'] });
+      const previousRoutes = queryClient.getQueryData<ApiRoute[]>(['routes']);
+      
+      const optimisticRoute = {
+        id: `temp-${Date.now()}`,
+        name: payload.info.name,
+        description: payload.info.description,
+        estimatedDurationMinutes: parseInt(payload.info.estimatedDurationMinutes) || 30,
+        isActive: true,
+        stops: payload.stops as any[]
+      } as ApiRoute;
+
+      queryClient.setQueryData<ApiRoute[]>(['routes'], (old = []) => [...old, optimisticRoute]);
+      return { previousRoutes };
+    },
+    onError: (err, payload, context) => {
+      if (context?.previousRoutes) {
+        queryClient.setQueryData(['routes'], context.previousRoutes);
+      }
+      setSaveError(err instanceof Error ? err.message : 'Error al guardar la ruta.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['routes'] });
     }
+  });
+
+  async function handleFinalizeSchedule() {
+    const result = scheduleGroupsListSchema.safeParse(scheduleGroups);
+    if (!result.success) {
+      setSaveError(result.error.issues[0]?.message ?? 'Revisa los bloques de horarios.');
+      return;
+    }
+    setSaveError(null);
+
+    // Disparamos la mutación (optimista) y cerramos el formulario de inmediato
+    // para no bloquear la UI si el cliente está offline y la mutación se pausa.
+    createFullRouteMutation.mutate({
+      info: routeInfoFormSchema.parse(form),
+      stops: newStops,
+      groups: scheduleGroups,
+      polyline: routePolylineRaw
+    });
+    closeForm();
   }
 
   const filtered = routes.filter(
@@ -504,10 +570,10 @@ export function AdminRoutesPage() {
                 )}
                 
                 {previewRouteMap.stops?.map((stop: any, idx: number) => (
-                  <Marker key={stop.id} position={[stop.latitude, stop.longitude]}>
+                  <Marker key={stop.stopId || stop.id || idx} position={[stop.latitude, stop.longitude]}>
                     <Popup>
                       <div className="text-sm font-bold text-navy-900">
-                        {idx + 1}. {stop.name}
+                        {idx + 1}. {stop.name || stop.stopName}
                       </div>
                     </Popup>
                   </Marker>
@@ -570,6 +636,7 @@ export function AdminRoutesPage() {
                       placeholder="Ej. Ruta Troncal Sur - Campus Central"
                       className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-900/20 outline-none"
                     />
+                    {fieldErrors.name && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.name}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Descripción</label>
@@ -580,6 +647,7 @@ export function AdminRoutesPage() {
                       placeholder="Indique detalles sobre recorridos o facultades cubiertas..."
                       className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-900/20 resize-none outline-none"
                     />
+                    {fieldErrors.description && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.description}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Duración estimada (minutos)</label>
@@ -591,6 +659,9 @@ export function AdminRoutesPage() {
                       placeholder="Ej. 35"
                       className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-900/20 outline-none"
                     />
+                    {fieldErrors.estimatedDurationMinutes && (
+                      <p className="text-[11px] text-red-500 mt-1">{fieldErrors.estimatedDurationMinutes}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -910,8 +981,15 @@ export function AdminRoutesPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (form.name && form.estimatedDurationMinutes) setCurrentStep(2);
-                      else setSaveError('Completa los campos obligatorios antes de proceder.');
+                      const result = routeInfoFormSchema.safeParse(form);
+                      if (!result.success) {
+                        setFieldErrors(getFieldErrors(result.error));
+                        setSaveError('Completa los campos obligatorios antes de proceder.');
+                        return;
+                      }
+                      setFieldErrors({});
+                      setSaveError(null);
+                      setCurrentStep(2);
                     }}
                     className="flex items-center gap-1.5 px-5 py-2 bg-navy-900 text-white text-sm font-semibold rounded-xl hover:bg-navy-800 transition-colors"
                   >

@@ -19,10 +19,10 @@ public class ReservationCancelledEventListener {
     @EventListener
     @Transactional
     public void handleReservationCancelled(ReservationCancelledEvent event) {
-        log.info("[FLEET-LISTENER] Sumando +1 asiento al Viaje ID: {} por cancelación de reserva", event.tripId());
-        
+        log.info("[FLEET-LISTENER] Adding +1 seat to Trip ID: {} due to reservation cancellation", event.tripId());
+
         Trip trip = tripRepository.findById(event.tripId())
-                .orElseThrow(() -> new IllegalArgumentException("Viaje no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
 
         trip.setAvailableSeats(trip.getAvailableSeats() + 1);
         tripRepository.save(trip);

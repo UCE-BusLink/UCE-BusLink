@@ -1,36 +1,47 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, RefreshCw, CheckCircle, XCircle, Plus, X, Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import {
   fetchStops, createStop, updateStop, deleteStop, toggleStopStatus, type ApiStop,
 } from '../../services/adminService';
 import { useRoutes } from '../../hooks/useRoutes';
+import { stopFormSchema } from '../../schemas/stop.schema';
+import { getFieldErrors } from '../../schemas/common';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-//@ts-expect-error
+//@ts-expect-error leaflet icon fix
 delete L.Icon.Default.prototype._getIconUrl;
 
 const DefaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 });
 
+// Recolorea el mismo ícono empaquetado en vez de depender de un marcador rojo servido desde un CDN externo.
 const SelectedIcon = L.icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
+  className: 'marker-selected-red',
 });
 
 L.Icon.Default.mergeOptions({
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
 });
 
 const MAP_CENTER: [number, number] = [-0.1989, -78.5065];
@@ -54,22 +65,18 @@ export function AdminStopsPage() {
   const { getToken } = useAuth();
   const { routes } = useRoutes();
 
-  const [stops, setStops] = useState<ApiStop[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
+  const queryClient = useQueryClient();
+
   // Filtros
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  
+
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   // Interacción mapa
   const [activeStop, setActiveStop] = useState<ApiStop | null>(null);
-
-  const [trigger, setTrigger] = useState(0);
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ApiStop | null>(null);
@@ -78,27 +85,22 @@ export function AdminStopsPage() {
   const [formLng, setFormLng] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token) throw new Error('Sin token');
-        const data = await fetchStops(token);
-        setStops(data);
-        setError(null);
-      } catch {
-        setError('No se pudieron cargar las paradas');
-      } finally {
-        setLoading(false);
-      }
+  const { data: stops = [], isLoading: loading, error: queryError, refetch: refetchStops } = useQuery({
+    queryKey: ['admin-stops'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      const result = await fetchStops(token);
+      return Array.isArray(result) ? result : [];
     }
-    load();
-  }, [getToken, trigger]);
+  });
+
+  const error = queryError instanceof Error ? queryError.message : null;
 
   function refresh() {
-    setLoading(true);
-    setTrigger((t) => t + 1);
+    refetchStops();
   }
 
   function openCreate() {
@@ -107,6 +109,7 @@ export function AdminStopsPage() {
     setFormLat('');
     setFormLng('');
     setFormError(null);
+    setFieldErrors({});
     setShowModal(true);
   }
 
@@ -116,6 +119,7 @@ export function AdminStopsPage() {
     setFormLat(String(stop.latitude));
     setFormLng(String(stop.longitude));
     setFormError(null);
+    setFieldErrors({});
     setShowModal(true);
   }
 
@@ -123,59 +127,149 @@ export function AdminStopsPage() {
     setShowModal(false);
     setEditing(null);
     setFormError(null);
+    setFieldErrors({});
   }
+
+  const createMutation = useMutation({
+    mutationKey: ['createStop'],
+    mutationFn: async (data: Omit<ApiStop, 'id' | 'isActive'>) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await createStop(token, data);
+    },
+    onMutate: async (newStop) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-stops'] });
+      const previousStops = queryClient.getQueryData<ApiStop[]>(['admin-stops']);
+      queryClient.setQueryData<ApiStop[]>(['admin-stops'], (old: ApiStop[] | undefined) => [
+        ...(old || []),
+        {
+          id: `temp-${Date.now()}`,
+          name: newStop.name,
+          latitude: newStop.latitude,
+          longitude: newStop.longitude,
+          isActive: true
+        }
+      ]);
+      return { previousStops };
+    },
+    onError: (err, newStop, context) => {
+      if (context?.previousStops) {
+        queryClient.setQueryData(['admin-stops'], context.previousStops);
+      }
+      setFormError('Error al guardar la parada. Se revertirá cuando haya conexión si fue un error permanente.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-stops'] });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationKey: ['updateStop'],
+    mutationFn: async ({ id, data }: { id: string, data: Omit<ApiStop, 'id' | 'isActive'> }) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await updateStop(token, id, data);
+    },
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-stops'] });
+      const previousStops = queryClient.getQueryData<ApiStop[]>(['admin-stops']);
+      queryClient.setQueryData<ApiStop[]>(['admin-stops'], (old: ApiStop[] | undefined) =>
+        (old || []).map(stop => stop.id === id ? { ...stop, name: data.name, latitude: data.latitude, longitude: data.longitude } : stop)
+      );
+      return { previousStops };
+    },
+    onError: (err, newStop, context) => {
+      if (context?.previousStops) {
+        queryClient.setQueryData(['admin-stops'], context.previousStops);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-stops'] });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationKey: ['deleteStop'],
+    mutationFn: async (id: string) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await deleteStop(token, id);
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-stops'] });
+      const previousStops = queryClient.getQueryData<ApiStop[]>(['admin-stops']);
+      queryClient.setQueryData<ApiStop[]>(['admin-stops'], (old: ApiStop[] | undefined) =>
+        (old || []).filter(stop => stop.id !== id)
+      );
+      return { previousStops };
+    },
+    onError: (err, newStop, context) => {
+      if (context?.previousStops) {
+        queryClient.setQueryData(['admin-stops'], context.previousStops);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-stops'] });
+    }
+  });
+
+  const toggleMutation = useMutation({
+    mutationKey: ['toggleStopStatus'],
+    mutationFn: async ({ id, isActive }: { id: string, isActive: boolean }) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await toggleStopStatus(token, id, isActive);
+    },
+    onMutate: async ({ id, isActive }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-stops'] });
+      const previousStops = queryClient.getQueryData<ApiStop[]>(['admin-stops']);
+      queryClient.setQueryData<ApiStop[]>(['admin-stops'], (old: ApiStop[] | undefined) =>
+        (old || []).map(stop => stop.id === id ? { ...stop, isActive } : stop)
+      );
+      return { previousStops };
+    },
+    onError: (err, newStop, context) => {
+      if (context?.previousStops) {
+        queryClient.setQueryData(['admin-stops'], context.previousStops);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-stops'] });
+    }
+  });
 
   async function handleSave() {
-    if (!formName || !formLat || !formLng) {
-      setFormError('Completa todos los campos.');
+    setFormError(null);
+    const result = stopFormSchema.safeParse({ name: formName, latitude: formLat, longitude: formLng });
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
       return;
     }
-    setSaving(true);
-    setFormError(null);
-    try {
-      const token = await getToken({ template: 'uce-buslink' });
-      if (!token) throw new Error('No autorizado');
-      const payload = { name: formName, latitude: parseFloat(formLat), longitude: parseFloat(formLng) };
-      if (editing) {
-        await updateStop(token, editing.id, payload);
-      } else {
-        await createStop(token, payload);
-      }
-      closeModal();
-      refresh();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setSaving(false);
+    setFieldErrors({});
+
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, data: result.data }, {
+        onSuccess: () => closeModal()
+      });
+    } else {
+      createMutation.mutate(result.data, {
+        onSuccess: () => closeModal()
+      });
     }
   }
 
-  async function handleDelete(stop: ApiStop) {
+  function handleDelete(stop: ApiStop) {
     if (!window.confirm(`¿Eliminar la parada "${stop.name}"?`)) return;
-    try {
-      const token = await getToken({ template: 'uce-buslink' });
-      if (!token) return;
-      await deleteStop(token, stop.id);
-      refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar');
-    }
+    deleteMutation.mutate(stop.id);
   }
 
-  async function handleToggle(stop: ApiStop) {
-    try {
-      const token = await getToken({ template: 'uce-buslink' });
-      if (!token) return;
-      await toggleStopStatus(token, stop.id, !stop.isActive);
-      refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cambiar estado');
-    }
+  function handleToggle(stop: ApiStop) {
+    toggleMutation.mutate({ id: stop.id, isActive: !stop.isActive });
   }
 
   // Filtrado
   const filtered = useMemo(() => {
-    return stops.filter((s) => {
+    return stops.filter((s: any) => {
       if (statusFilter === 'ACTIVE' && !s.isActive) return false;
       if (statusFilter === 'INACTIVE' && s.isActive) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -191,6 +285,7 @@ export function AdminStopsPage() {
   }, [filtered, currentPage]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
   }, [search, statusFilter]);
 
@@ -223,7 +318,7 @@ export function AdminStopsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-        
+
         {/* COLUMNA IZQUIERDA: LISTA Y FILTROS */}
         <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
           <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row gap-3">
@@ -268,9 +363,9 @@ export function AdminStopsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {currentItems.map((stop) => (
-                      <tr 
-                        key={stop.id} 
+                    {currentItems.map((stop: any) => (
+                      <tr
+                        key={stop.id}
                         onClick={() => setActiveStop(stop)}
                         className={`transition-colors cursor-pointer ${activeStop?.id === stop.id ? 'bg-navy-50/50' : 'hover:bg-gray-50'}`}
                       >
@@ -362,15 +457,15 @@ export function AdminStopsPage() {
               attribution='&copy; OpenStreetMap'
             />
             <FlyToStop stop={activeStop} />
-            
-            {stops.filter(s => s.isActive).map(stop => {
+
+            {stops.filter((s: any) => s.isActive).map((stop: any) => {
               // Buscar rutas asociadas a esta parada
               const relatedRoutes = routes.filter(r => r.stops?.some(rs => rs.stopId === stop.id));
               const isSelected = activeStop?.id === stop.id;
 
               return (
-                <Marker 
-                  key={stop.id} 
+                <Marker
+                  key={stop.id}
                   position={[stop.latitude, stop.longitude]}
                   icon={isSelected ? SelectedIcon : DefaultIcon}
                   eventHandlers={{
@@ -383,7 +478,7 @@ export function AdminStopsPage() {
                       <div className="text-[11px] text-gray-500 mb-2 border-b border-gray-100 pb-2">
                         {stop.latitude.toFixed(5)}, {stop.longitude.toFixed(5)}
                       </div>
-                      
+
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Rutas que pasan por aquí:</p>
                       {relatedRoutes.length === 0 ? (
                         <p className="text-xs italic text-gray-400">Ninguna ruta asignada.</p>
@@ -433,6 +528,7 @@ export function AdminStopsPage() {
                     placeholder="Ej. Puerta Principal UCE"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.name && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.name}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -446,6 +542,7 @@ export function AdminStopsPage() {
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
                       placeholder="Clic en mapa"
                     />
+                    {fieldErrors.latitude && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.latitude}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -458,6 +555,7 @@ export function AdminStopsPage() {
                       className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-600"
                       placeholder="Clic en mapa"
                     />
+                    {fieldErrors.longitude && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.longitude}</p>}
                   </div>
                 </div>
                 {formError && (

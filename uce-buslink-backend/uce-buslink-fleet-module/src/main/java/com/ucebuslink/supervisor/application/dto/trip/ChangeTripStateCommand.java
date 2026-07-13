@@ -4,6 +4,6 @@ import com.ucebuslink.shared.constant.*;
 import jakarta.validation.constraints.NotNull;
 
 public record ChangeTripStateCommand(
-    @NotNull(message = "El nuevo estado es obligatorio") 
+    @NotNull(message = "The new state is required")
     TripState newState
 ) {}

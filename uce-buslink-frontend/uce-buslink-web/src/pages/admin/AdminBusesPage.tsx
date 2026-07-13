@@ -5,7 +5,10 @@ import {
   fetchBuses, createBus, updateBus, deleteBus, changeBusStatus, fetchTrips, type ApiBus, type ApiTrip
 } from '../../services/adminService';
 import { useRoutes } from '../../hooks/useRoutes';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { busFormSchema } from '../../schemas/bus.schema';
+import { getFieldErrors } from '../../schemas/common';
 
 const EMPTY_FORM = {
   plateNumber: '',
@@ -26,11 +29,11 @@ export function AdminBusesPage() {
   const { getToken } = useAuth();
   const { routes } = useRoutes();
 
-  const [buses, setBuses] = useState<ApiBus[]>([]);
-  const [trips, setTrips] = useState<ApiTrip[]>([]);
+  // const [buses, setBuses] = useState<ApiBus[]>([]);
+  // const [trips, setTrips] = useState<ApiTrip[]>([]);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // const [loading, setLoading] = useState(true);
+  // const [error, setError] = useState<string | null>(null);
   const [trigger, setTrigger] = useState(0);
 
   const [showForm, setShowForm] = useState(false);
@@ -38,6 +41,7 @@ export function AdminBusesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Filters & Pagination
   const [search, setSearch] = useState('');
@@ -45,43 +49,152 @@ export function AdminBusesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchData() {
-      try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token) throw new Error('Sin token');
+  const queryClient = useQueryClient();
 
-        const [pageData, tripsData] = await Promise.all([
-          fetchBuses(token, 0, 500), // Fetch large amount to filter locally
-          fetchTrips(token).catch(() => [])
-        ]);
-
-        if (!cancelled) {
-          setBuses(pageData.content);
-          setTrips(tripsData);
-          setError(null);
-        }
-      } catch {
-        if (!cancelled) setError('No se pudieron cargar los datos de los buses.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const { data: busesData, isLoading: loadingBuses, error: errorBuses, refetch: refetchBuses } = useQuery({
+    queryKey: ['admin-buses'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await fetchBuses(token, 0, 500);
     }
-    fetchData();
-    return () => { cancelled = true; };
-  }, [getToken, trigger]);
+  });
+  const buses = Array.isArray(busesData) ? busesData : (busesData?.content || []);
+
+  const { data: trips = [], isLoading: loadingTrips, refetch: refetchTrips } = useQuery({
+    queryKey: ['admin-trips'],
+    queryFn: async () => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await fetchTrips(token).catch(() => []);
+    }
+  });
+
+  const loading = loadingBuses || loadingTrips;
+  const error = errorBuses instanceof Error ? errorBuses.message : (errorBuses ? 'Error' : null);
+
+  const createMutation = useMutation({
+    mutationKey: ['createBus'],
+    mutationFn: async (payload: any) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await createBus(token, payload);
+    },
+    onMutate: async (newBus) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-buses'] });
+      const previousData = queryClient.getQueryData(['admin-buses']);
+      queryClient.setQueryData(['admin-buses'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          content: [...old.content, { id: `temp-${Date.now()}`, ...newBus }]
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, newBus, context) => {
+      if (context?.previousData) queryClient.setQueryData(['admin-buses'], context.previousData);
+      setSaveError(err instanceof Error ? err.message : 'Error al crear bus');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-buses'] });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationKey: ['updateBus'],
+    mutationFn: async (payload: { id: string; data: any }) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      return await updateBus(token, payload.id, payload.data);
+    },
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-buses'] });
+      const previousData = queryClient.getQueryData(['admin-buses']);
+      queryClient.setQueryData(['admin-buses'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          content: old.content.map((b: ApiBus) => b.id === id ? { ...b, ...data } : b)
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousData) queryClient.setQueryData(['admin-buses'], context.previousData);
+      setSaveError(err instanceof Error ? err.message : 'Error al actualizar bus');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-buses'] });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationKey: ['deleteBus'],
+    mutationFn: async (id: string) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      await deleteBus(token, id);
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-buses'] });
+      const previousData = queryClient.getQueryData(['admin-buses']);
+      queryClient.setQueryData(['admin-buses'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          content: old.content.filter((b: ApiBus) => b.id !== id)
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, _variables, context) => {
+      if (context?.previousData) queryClient.setQueryData(['admin-buses'], context.previousData);
+      setSaveError(err instanceof Error ? err.message : 'Error al eliminar');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-buses'] });
+    }
+  });
+
+  const statusMutation = useMutation({
+    mutationKey: ['changeBusStatus'],
+    mutationFn: async (payload: { id: string; status: string }) => {
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('Sin token');
+      await changeBusStatus(token, payload.id, payload.status);
+    },
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-buses'] });
+      const previousData = queryClient.getQueryData(['admin-buses']);
+      queryClient.setQueryData(['admin-buses'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          content: old.content.map((b: ApiBus) => b.id === id ? { ...b, operationalStatus: status } : b)
+        };
+      });
+      return { previousData };
+    },
+    onError: (err, _variables, context) => {
+      if (context?.previousData) queryClient.setQueryData(['admin-buses'], context.previousData);
+      setSaveError(err instanceof Error ? err.message : 'Error al cambiar estado');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-buses'] });
+    }
+  });
 
   function refresh() {
-    setLoading(true);
-    setError(null);
-    setTrigger((t) => t + 1);
+    refetchBuses();
+    refetchTrips();
   }
 
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setSaveError(null);
+    setFieldErrors({});
     setShowForm(true);
   }
 
@@ -96,6 +209,7 @@ export function AdminBusesPage() {
       operationalStatus: bus.operationalStatus,
     });
     setSaveError(null);
+    setFieldErrors({});
     setShowForm(true);
   }
 
@@ -104,53 +218,53 @@ export function AdminBusesPage() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setSaveError(null);
+    setFieldErrors({});
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaveError(null);
+
+    const result = busFormSchema.safeParse(form);
+    if (!result.success) {
+      setFieldErrors(getFieldErrors(result.error));
+      return;
+    }
+    setFieldErrors({});
+
     const token = await getToken({ template: 'uce-buslink' });
     if (!token) return;
+
     setSaving(true);
-    try {
-      const data = {
-        plateNumber: form.plateNumber.trim(),
-        internalCode: form.internalCode.trim(),
-        seatCapacity: Number(form.seatCapacity),
-        manufacturer: form.manufacturer.trim(),
-        model: form.model.trim(),
-      };
-      if (editing) {
-        await updateBus(token, editing.id, data);
-        if (form.operationalStatus !== editing.operationalStatus) {
-          await changeBusStatus(token, editing.id, form.operationalStatus);
-        }
-      } else {
-        await createBus(token, { ...data, operationalStatus: form.operationalStatus });
-      }
-      closeForm();
-      refresh();
-    } catch {
-      setSaveError('No se pudo guardar el bus. Verifica los datos e intenta de nuevo.');
-    } finally {
-      setSaving(false);
+    const payload = {
+      ...result.data,
+      seatCapacity: result.data.seatCapacity
+    };
+
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, data: payload }, {
+        onSuccess: () => {
+          closeForm();
+        },
+        onSettled: () => setSaving(false)
+      });
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: () => {
+          closeForm();
+        },
+        onSettled: () => setSaving(false)
+      });
     }
   }
 
-  async function handleDelete(bus: ApiBus) {
-    if (!window.confirm(`¿Eliminar el bus "${bus.plateNumber}"?`)) return;
-    try {
-      const token = await getToken({ template: 'uce-buslink' });
-      if (!token) return;
-      await deleteBus(token, bus.id);
-      refresh();
-    } catch {
-      setError('No se pudo eliminar el bus.');
-    }
+  async function handleDelete(id: string) {
+    if (!confirm('¿Seguro que deseas eliminar este bus? Esta acción no se puede deshacer.')) return;
+    deleteMutation.mutate(id);
   }
 
   const filteredBuses = useMemo(() => {
-    return buses.filter((bus) => {
+    return buses.filter((bus: any) => {
       const matchStatus = statusFilter === 'ALL' || bus.operationalStatus === statusFilter;
       const term = search.toLowerCase();
       const matchSearch = bus.plateNumber.toLowerCase().includes(term) || bus.internalCode.toLowerCase().includes(term);
@@ -170,10 +284,10 @@ export function AdminBusesPage() {
 
   // Helper to get ALL active assignments
   function getBusAssignments(busId: string) {
-    const activeTrips = trips.filter(t => t.busId === busId && (t.state === 'SCHEDULED' || t.state === 'IN_PROGRESS'));
+    const activeTrips = trips.filter((t: any) => t.busId === busId && (t.state === 'SCHEDULED' || t.state === 'IN_PROGRESS'));
     if (activeTrips.length === 0) return [];
-    
-    return activeTrips.map(trip => {
+
+    return activeTrips.map((trip: any) => {
       const route = routes.find(r => r.id === trip.routeId);
       return {
         trip,
@@ -258,7 +372,7 @@ export function AdminBusesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {currentBuses.map((bus) => {
+                  {currentBuses.map((bus: any) => {
                     const assignments = getBusAssignments(bus.id);
                     const hasAssignments = assignments.length > 0;
                     const primaryAssignment = hasAssignments ? assignments[0] : null;
@@ -316,10 +430,10 @@ export function AdminBusesPage() {
                               {assignments.length > 0 && (
                                 <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-72 bg-white border border-gray-200 shadow-xl rounded-xl z-50 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <h4 className="text-xs font-bold text-navy-900 uppercase tracking-wide mb-2 flex items-center gap-2 border-b border-gray-100 pb-2">
-                                    <Truck size={14}/> Itinerario del Bus ({assignments.length})
+                                    <Truck size={14} /> Itinerario del Bus ({assignments.length})
                                   </h4>
                                   <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
-                                    {assignments.map(asg => (
+                                    {assignments.map((asg: any) => (
                                       <div key={asg.trip.id} className="bg-gray-50 border border-gray-100 rounded p-2 text-xs">
                                         <div className="flex justify-between font-bold text-navy-800 mb-1">
                                           <span>{asg.route?.name || 'Ruta Desconocida'}</span>
@@ -328,7 +442,7 @@ export function AdminBusesPage() {
                                           </span>
                                         </div>
                                         <div className="text-gray-500 flex items-center gap-1">
-                                          <Clock size={11}/> Salida: {asg.timeFormatted} | Chofer: {asg.trip.driverId.substring(0,6)}...
+                                          <Clock size={11} /> Salida: {asg.timeFormatted} | Chofer: {asg.trip.driverId.substring(0, 6)}...
                                         </div>
                                       </div>
                                     ))}
@@ -354,7 +468,7 @@ export function AdminBusesPage() {
                               <Edit2 size={16} />
                             </button>
                             <button
-                              onClick={() => handleDelete(bus)}
+                              onClick={() => handleDelete(bus.id)}
                               className="text-red-400 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50"
                               title="Eliminar"
                             >
@@ -422,6 +536,7 @@ export function AdminBusesPage() {
                     placeholder="PXX-0001"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.plateNumber && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.plateNumber}</p>}
                 </div>
                 <div>
                   <label htmlFor="bus-code" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -437,6 +552,7 @@ export function AdminBusesPage() {
                     placeholder="BUS-001"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.internalCode && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.internalCode}</p>}
                 </div>
               </div>
 
@@ -455,6 +571,7 @@ export function AdminBusesPage() {
                     placeholder="Volkswagen"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.manufacturer && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.manufacturer}</p>}
                 </div>
                 <div>
                   <label htmlFor="bus-model" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -470,6 +587,7 @@ export function AdminBusesPage() {
                     placeholder="Volksbus"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.model && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.model}</p>}
                 </div>
               </div>
 
@@ -489,6 +607,7 @@ export function AdminBusesPage() {
                     placeholder="30"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-900/20"
                   />
+                  {fieldErrors.seatCapacity && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.seatCapacity}</p>}
                 </div>
                 <div>
                   <label htmlFor="bus-status" className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -505,6 +624,7 @@ export function AdminBusesPage() {
                     <option value="MAINTENANCE">Mantenimiento</option>
                     <option value="OUT_OF_SERVICE">Fuera de servicio</option>
                   </select>
+                  {fieldErrors.operationalStatus && <p className="text-[11px] text-red-500 mt-1">{fieldErrors.operationalStatus}</p>}
                 </div>
               </div>
 

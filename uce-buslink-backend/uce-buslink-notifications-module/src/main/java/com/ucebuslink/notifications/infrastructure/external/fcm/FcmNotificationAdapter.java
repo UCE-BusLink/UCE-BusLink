@@ -36,10 +36,10 @@ public class FcmNotificationAdapter {
             }
 
             String response = FirebaseMessaging.getInstance().sendAsync(builder.build()).get();
-            log.info("[FCM] Notificación enviada con éxito. Respuesta de Google: {}", response);
+            log.info("[FCM] Notification sent successfully. Response from Google: {}", response);
 
         } catch (Exception e) {
-            log.error("[FCM] Fallo al enviar notificación push al token: {}. Razón: {}", fcmToken, e.getMessage());
+            log.error("[FCM] Failed to send push notification to token: {}. Reason: {}", fcmToken, e.getMessage());
         }
     }
 }

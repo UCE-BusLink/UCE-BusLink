@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.adapters.input.http;
 
+import com.ucebuslink.shared.dto.BatchResult;
 import com.ucebuslink.supervisor.application.dto.schedule.CreateScheduleCommand;
 import com.ucebuslink.supervisor.application.dto.schedule.ScheduleResponse;
 import com.ucebuslink.supervisor.application.dto.schedule.UpdateScheduleCommand;
@@ -59,12 +60,15 @@ public class ScheduleController {
 
     @PostMapping("/batch")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<ScheduleResponse>> createSchedulesBatch(@Valid @RequestBody List<CreateScheduleCommand> commands) {
-        log.info("[FLEET] Delegating batch creation of {} schedules to use case...", commands.size());
-        
-        // La iteración y transacción ahora ocurren de forma segura en el servicio
-        List<ScheduleResponse> responses = manageScheduleUseCase.createBatch(commands);
-                
-        return new ResponseEntity<>(responses, HttpStatus.CREATED);
+    public ResponseEntity<BatchResult<ScheduleResponse>> createSchedulesBatch(@RequestBody List<CreateScheduleCommand> commands) {
+        log.info("[FLEET] Received batch request with {} schedules", commands.size());
+
+        BatchResult<ScheduleResponse> result = manageScheduleUseCase.createBatch(commands);
+
+        log.info("[FLEET] Batch schedule request processed: {} succeeded, {} failed",
+                result.successCount(), result.failureCount());
+
+        HttpStatus status = result.failureCount() == 0 ? HttpStatus.CREATED : HttpStatus.MULTI_STATUS;
+        return new ResponseEntity<>(result, status);
     }
 }

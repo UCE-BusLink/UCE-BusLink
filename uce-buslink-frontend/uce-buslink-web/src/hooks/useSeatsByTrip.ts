@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import { fetchSeatsByTrip } from '../services/seatService';
 import type { ApiSeat } from '../types';
@@ -11,35 +11,19 @@ interface UseSeatsByTripResult {
 
 export function useSeatsByTrip(tripId: string | undefined): UseSeatsByTripResult {
   const { getToken } = useAuth();
-  const [apiSeats, setApiSeats] = useState<ApiSeat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const { data: apiSeats = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['seats-by-trip', tripId],
+    queryFn: async () => {
+      if (!tripId) return [];
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) throw new Error('No auth token');
+      return await fetchSeatsByTrip(token, tripId);
+    },
+    enabled: !!tripId,
+  });
 
-    async function load() {
-      if (!tripId) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError(null);
-      try {
-        const token = await getToken({ template: 'uce-buslink' });
-        if (!token) throw new Error('No auth token');
-        const data = await fetchSeatsByTrip(token, tripId);
-        if (!cancelled) setApiSeats(data);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Error al cargar asientos');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => { cancelled = true; };
-  }, [getToken, tripId]);
+  const error = queryError instanceof Error ? queryError.message : (queryError ? 'Error al cargar asientos' : null);
 
   return { apiSeats, loading, error };
 }

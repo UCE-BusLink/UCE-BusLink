@@ -21,20 +21,20 @@ public class TrustScoreEventHandler {
     @EventListener
     @Transactional
     public void handleBoardingCompletedEvent(BoardingCompletedEvent event) {
-        log.info("[TRUST_SCORE] Manejando BoardingCompletedEvent para usuario {}", event.userId());
+        log.info("[TRUST_SCORE] Handling BoardingCompletedEvent for user {}", event.userId());
         TrustScore trustScore = trustScoreRepository.findByUserId(event.userId())
                 .orElseGet(() -> TrustScore.createDefault(event.userId()));
 
         trustScore.increaseScore(2);
         trustScore.setCompletedReservations(trustScore.getCompletedReservations() + 1);
         trustScoreRepository.save(trustScore);
-        log.debug("[TRUST_SCORE] Nuevo score de {}: {}", event.userId(), trustScore.getScore());
+        log.debug("[TRUST_SCORE] New score for {}: {}", event.userId(), trustScore.getScore());
     }
 
     @EventListener
     @Transactional
     public void handleReservationCancelledEvent(ReservationCancelledEvent event) {
-        log.info("[TRUST_SCORE] Manejando ReservationCancelledEvent para usuario {}. Late: {}", event.userId(), event.isLateCancellation());
+        log.info("[TRUST_SCORE] Handling ReservationCancelledEvent for user {}. Late: {}", event.userId(), event.isLateCancellation());
         TrustScore trustScore = trustScoreRepository.findByUserId(event.userId())
                 .orElseGet(() -> TrustScore.createDefault(event.userId()));
 
@@ -42,7 +42,7 @@ public class TrustScoreEventHandler {
         
         if (event.isLateCancellation()) {
             trustScore.decreaseScore(5);
-            log.warn("[TRUST_SCORE] Penalización -5 aplicada a {} por cancelación tardía.", event.userId());
+            log.warn("[TRUST_SCORE] Penalty -5 applied to {} for late cancellation.", event.userId());
         }
 
         trustScoreRepository.save(trustScore);
@@ -51,7 +51,7 @@ public class TrustScoreEventHandler {
     @EventListener
     @Transactional
     public void handleNoShowEvent(NoShowEvent event) {
-        log.warn("[TRUST_SCORE] Manejando NoShowEvent para usuario {}", event.userId());
+        log.warn("[TRUST_SCORE] Handling NoShowEvent for user {}", event.userId());
         TrustScore trustScore = trustScoreRepository.findByUserId(event.userId())
                 .orElseGet(() -> TrustScore.createDefault(event.userId()));
 
@@ -59,6 +59,6 @@ public class TrustScoreEventHandler {
         trustScore.decreaseScore(10);
         
         trustScoreRepository.save(trustScore);
-        log.error("[TRUST_SCORE] Penalización CRÍTICA -10 aplicada a {} por NO_SHOW. Nuevo score: {}", event.userId(), trustScore.getScore());
+        log.error("[TRUST_SCORE] CRITICAL penalty -10 applied to {} for NO_SHOW. New score: {}", event.userId(), trustScore.getScore());
     }
 }

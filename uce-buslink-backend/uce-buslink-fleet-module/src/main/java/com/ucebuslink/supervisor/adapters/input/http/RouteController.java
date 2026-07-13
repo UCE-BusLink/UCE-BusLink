@@ -41,9 +41,9 @@ public class RouteController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RouteResponse> createRoute(@Valid @RequestBody CreateRouteCommand command) {
-        log.info("[ROUTE] Registrando nueva ruta: {}", command.name());
+        log.info("[ROUTE] Registering new route: {}", command.name());
         RouteResponse response = manageRouteUseCase.createRoute(command);
-        log.info("[ROUTE] Ruta {} creada con ID: {}", command.name(), response.id());
+        log.info("[ROUTE] Route {} created with ID: {}", command.name(), response.id());
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -53,30 +53,30 @@ public class RouteController {
             @RequestParam(defaultValue = "true") boolean activa,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        log.debug("[ROUTE] Listando rutas (Activa: {}, Página: {}, Tamaño: {})", activa, page, size);
+        log.debug("[ROUTE] Listing routes (Active: {}, Page: {}, Size: {})", activa, page, size);
         return ResponseEntity.ok(manageRouteUseCase.getRoutes(activa, page, size));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<RouteResponse> getRouteById(@PathVariable(name = "id") UUID id) {
-        log.debug("[ROUTE] Consultando detalle de la ruta ID: {}", id);
+        log.debug("[ROUTE] Querying route detail ID: {}", id);
         return ResponseEntity.ok(manageRouteUseCase.getRouteById(id));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteRoute(@PathVariable(name = "id") UUID id) {
-        log.info("[ROUTE] Eliminando ruta con ID: {}", id);
+        log.info("[ROUTE] Deleting route with ID: {}", id);
         manageRouteUseCase.deleteRoute(id);
-        log.info("[ROUTE] Ruta con ID {} eliminada con éxito", id);
+        log.info("[ROUTE] Route with ID {} successfully deleted", id);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RouteResponse> updateRoute(@PathVariable UUID id, @Valid @RequestBody CreateRouteCommand command) {
-        log.info("[ROUTE] Actualizando ruta con ID: {}", id);
+        log.info("[ROUTE] Updating route with ID: {}", id);
         return ResponseEntity.ok(manageRouteUseCase.updateRoute(id, command));
     }
 
@@ -87,22 +87,22 @@ public class RouteController {
         
         List<GoogleMapsRoutingService.LatLngPoints> pointsForGoogle = request.waypoints().stream()
             .map(wp -> {
-                // Si el administrador envió un ID de parada, buscamos sus coordenadas en la BD
+                // If the administrator sent a stop ID, we look up its coordinates in the DB
                 if (wp.stopId() != null) {
                     Stop stop = stopRepository.findById(wp.stopId())
-                        .orElseThrow(() -> new RuntimeException("Parada no encontrada: " + wp.stopId()));
+                        .orElseThrow(() -> new RuntimeException("Stop not found: " + wp.stopId()));
                     return new GoogleMapsRoutingService.LatLngPoints(stop.getLatitude(), stop.getLongitude());
-                } 
-                // Si no hay ID, significa que es un clic libre en el mapa para forzar al bus a ir por una calle
+                }
+                // If there is no ID, it means it's a free click on the map to force the bus to go through a street
                 else if (wp.customLatitude() != null && wp.customLongitude() != null) {
                     return new GoogleMapsRoutingService.LatLngPoints(wp.customLatitude(), wp.customLongitude());
                 }
-                
-                throw new IllegalArgumentException("Cada waypoint debe tener un stopId o coordenadas personalizadas");
+
+                throw new IllegalArgumentException("Each waypoint must have either a stopId or custom coordinates");
             })
             .collect(Collectors.toList());
 
-        // Llamamos a tu servicio de Google Maps que ya calcula los tramos de las calles
+        // Call the Google Maps service that already calculates the street segments
         GoogleMapsRoutingService.RoutingResult result = googleMapsService.calculateRoute(pointsForGoogle);
 
         return ResponseEntity.ok(result);
@@ -113,7 +113,7 @@ public class RouteController {
     public ResponseEntity<RouteResponse> changeRouteStatus(
             @PathVariable UUID id, 
             @Valid @RequestBody ChangeRouteStatusCommand command) {
-        log.info("[ROUTE] Cambiando estado de la ruta ID: {} a activa={}", id, command.isActive());
+        log.info("[ROUTE] Changing status of route ID: {} to active={}", id, command.isActive());
         return ResponseEntity.ok(manageRouteUseCase.changeRouteStatus(id, command.isActive()));
     }
 }

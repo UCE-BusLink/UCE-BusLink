@@ -2,18 +2,24 @@ import { initializeApp } from 'firebase/app'
 import { getMessaging, isSupported } from 'firebase/messaging'
 import type { Messaging } from 'firebase/messaging'
 
-const firebaseConfig = {
-  apiKey: 'AIzaSyAF7aa6E8zfX1HSbj3cRiYIFRmH0U1YsVE',
-  authDomain: 'uce-buslink.firebaseapp.com',
-  projectId: 'uce-buslink',
-  storageBucket: 'uce-buslink.firebasestorage.app',
-  messagingSenderId: '679640129459',
-  appId: '1:679640129459:web:5cc1097c19b5fe910635c6',
+export const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-const app = initializeApp(firebaseConfig)
+let app: any = null;
+if (firebaseConfig.projectId) {
+  app = initializeApp(firebaseConfig);
+} else {
+  console.warn('[FIREBASE] Missing VITE_FIREBASE_PROJECT_ID in environment. Push notifications are disabled.');
+}
 
 export async function getMessagingIfSupported(): Promise<Messaging | null> {
+  if (!app) return null;
   const supported = await isSupported().catch(() => false)
   return supported ? getMessaging(app) : null
 }

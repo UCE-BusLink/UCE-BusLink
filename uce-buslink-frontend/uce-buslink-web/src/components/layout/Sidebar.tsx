@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Bus, Home, Clock, Map, User, LogOut, LayoutDashboard, Truck, MapPin, Settings, Users, CalendarClock } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
 import { useCurrentUser } from '../../context/AuthContext';
+import { useAppStore } from '../../store/useAppStore';
 import brandIcon from '../../assets/brand/Icon.png';
 
 interface NavItem {
@@ -35,13 +36,11 @@ const DRIVER_NAV: NavItem[] = [
   { to: '/profile', icon: User, label: 'Perfil' },
 ];
 
-interface SidebarProps {
-  onMobileClose?: () => void;
-}
-
-export function Sidebar({ onMobileClose }: SidebarProps) {
+export function Sidebar() {
   const { signOut } = useAuth();
   const { user } = useCurrentUser();
+  const closeSidebar = useAppStore((state) => state.closeSidebar);
+  const unreadNotificationsCount = useAppStore((state) => state.unreadNotificationsCount);
   const isAdmin = user?.role === 'ADMIN';
   const isDriver = user?.role === 'DRIVER';
   const navItems = isAdmin ? ADMIN_NAV : isDriver ? DRIVER_NAV : STUDENT_NAV;
@@ -57,6 +56,11 @@ export function Sidebar({ onMobileClose }: SidebarProps) {
             <p className="text-white font-bold text-sm leading-tight">UCE Bus-Link</p>
             <p className="text-gray-400 text-xs">{isAdmin ? 'Administración' : isDriver ? 'Conductor' : 'Night Transport'}</p>
           </div>
+          {unreadNotificationsCount > 0 && (
+            <span className="ml-auto min-w-[20px] h-5 px-1.5 flex items-center justify-center text-[11px] font-semibold text-navy-900 bg-amber-400 rounded-full">
+              {unreadNotificationsCount}
+            </span>
+          )}
         </div>
       </div>
 
@@ -66,7 +70,7 @@ export function Sidebar({ onMobileClose }: SidebarProps) {
             key={to}
             to={to}
             end={to === '/dashboard' || to === '/admin'}
-            onClick={onMobileClose}
+            onClick={closeSidebar}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-sm transition-colors ${
                 isActive

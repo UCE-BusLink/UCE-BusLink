@@ -6,10 +6,10 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record UpdateScheduleCommand(
-    @NotEmpty(message = "Debe enviar al menos un detalle de horario")
+    @NotEmpty(message = "At least one schedule detail must be provided")
     @Valid
     List<ScheduleDetailCommand> details,
-    
-    @NotNull(message = "El estado activo es obligatorio")
+
+    @NotNull(message = "Active status is required")
     Boolean active
 ) {}

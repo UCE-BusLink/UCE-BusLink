@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
 
-    // 🔥 Desacoplamiento total: Usamos el contrato del Shared Kernel
+    // 🔥 Full decoupling: We use the Shared Kernel contract
     private final TokenAuthenticationPort tokenAuthenticationPort;
 
     @Override
@@ -27,34 +27,34 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-            log.debug("[WEBSOCKET-SECURITY] Intento de conexión STOMP interceptado.");
+            log.debug("[WEBSOCKET-SECURITY] STOMP connection attempt intercepted.");
 
             List<String> authorizationHeaders = accessor.getNativeHeader("Authorization");
             
             if (authorizationHeaders == null || authorizationHeaders.isEmpty()) {
-                log.warn("[WEBSOCKET-SECURITY] Conexión rechazada: Header Authorization ausente.");
-                throw new IllegalArgumentException("Header Authorization es obligatorio para conectar al WebSocket.");
+                log.warn("[WEBSOCKET-SECURITY] Connection rejected: Authorization header missing.");
+                throw new IllegalArgumentException("Authorization header is required to connect to the WebSocket.");
             }
 
             String bearerToken = authorizationHeaders.get(0);
             if (!bearerToken.startsWith("Bearer ")) {
-                log.warn("[WEBSOCKET-SECURITY] Conexión rechazada: Formato de token inválido.");
-                throw new IllegalArgumentException("El token debe empezar con 'Bearer '.");
+                log.warn("[WEBSOCKET-SECURITY] Connection rejected: Invalid token format.");
+                throw new IllegalArgumentException("The token must start with 'Bearer '.");
             }
 
             String token = bearerToken.substring(7);
 
             try {
-                // 👉 La magia del Bounded Context: Tracking confía en Identity para la auth
+                // 👉 The Bounded Context magic: Tracking trusts Identity for auth
                 Authentication userAuth = tokenAuthenticationPort.authenticate(token);
                 
                 accessor.setUser(userAuth);
-                log.info("[WEBSOCKET-SECURITY] Conexión STOMP autorizada para: {} con roles: {}", 
+                log.info("[WEBSOCKET-SECURITY] STOMP connection authorized for: {} with roles: {}",
                         userAuth.getName(), userAuth.getAuthorities());
 
             } catch (Exception e) {
-                log.error("[WEBSOCKET-SECURITY] Conexión rechazada: Token inválido o problema de identidad.", e);
-                throw new IllegalArgumentException("Autenticación inválida o expirada.");
+                log.error("[WEBSOCKET-SECURITY] Connection rejected: Invalid token or identity issue.", e);
+                throw new IllegalArgumentException("Invalid or expired authentication.");
             }
         }
 

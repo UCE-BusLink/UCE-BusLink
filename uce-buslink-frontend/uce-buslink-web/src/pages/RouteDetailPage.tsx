@@ -5,6 +5,8 @@ import { getCurrentWeekDays } from '../data/mockData';
 import { useRoute } from '../hooks/useRoute';
 import { useTripsByRoute } from '../hooks/useTripsByRoute';
 import type { RouteStopDetail, StopType, ApiTrip } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@clerk/clerk-react';
 import {
   EmptyState,
   RouteDetailHeader,
@@ -23,15 +25,64 @@ export function RouteDetailPage() {
 
   const { route, loading, error, notFound } = useRoute(routeId);
   const { trips, loading: tripsLoading, error: tripsError } = useTripsByRoute(routeId);
+  const { getToken } = useAuth();
+
+  const { data: schedules = [], isLoading: schedulesLoading } = useQuery({
+    queryKey: ['route-schedules', routeId],
+    queryFn: async () => {
+      if (!routeId) return [];
+      const token = await getToken({ template: 'uce-buslink' });
+      if (!token) return [];
+      try {
+        const response = await fetch(`http://localhost:8080/api/v1/supervisor/fleet/schedules/route/${routeId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) return [];
+        return await response.json();
+      } catch (err) {
+        console.warn('Error fetching schedules:', err);
+        return [];
+      }
+    },
+    enabled: !!routeId,
+  });
+
+  const timesMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    schedules.forEach((schedule: any) => {
+      if (!schedule.active) return;
+      schedule.details.forEach((detail: any) => {
+        if (detail.type === 'FIXED') {
+          detail.daysOfWeek.forEach((day: string) => {
+            if (!map[day]) map[day] = [];
+            detail.fixedDepartureTimes.forEach((t: string) => {
+              const fullTime = t.length <= 5 ? `${t.padStart(5, '0')}:00` : t.slice(0, 8);
+              if (!map[day].includes(fullTime)) {
+                map[day].push(fullTime);
+              }
+            });
+          });
+        }
+      });
+    });
+    return map;
+  }, [schedules]);
 
   const [weekOffset, setWeekOffset] = useState<number>(0);
 
+  const DAY_ENUMS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+
   const weekDays = useMemo(() => {
     return getCurrentWeekDays(weekOffset).map((day) => {
-      const hasTrips = trips.some((t) => t.departureTime.startsWith(day.dateString!));
-      return { ...day, hasTrips };
+      const dateObj = new Date(day.dateString! + "T00:00:00");
+      const dayEnum = DAY_ENUMS[dateObj.getDay()];
+
+      const hasActualTrips = trips.some((t) => t.departureTime.startsWith(day.dateString!));
+      const hasScheduledTrips = (timesMap[dayEnum] && timesMap[dayEnum].length > 0) || false;
+
+      return { ...day, hasTrips: isAdminContext ? (hasActualTrips || hasScheduledTrips) : hasActualTrips, dayEnum };
     });
-  }, [trips, weekOffset]);
+  }, [trips, weekOffset, timesMap, isAdminContext]);
 
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   const [hasInitializedDay, setHasInitializedDay] = useState(false);
@@ -40,11 +91,11 @@ export function RouteDetailPage() {
     if (!tripsLoading && !hasInitializedDay) {
       const defaultSelectedIndex = weekDays.findIndex((d) => d.hasTrips);
       const todayIndex = weekDays.findIndex((d) => d.isToday);
-      
-      const initialIndex = defaultSelectedIndex >= 0 
-        ? defaultSelectedIndex 
+
+      const initialIndex = defaultSelectedIndex >= 0
+        ? defaultSelectedIndex
         : (todayIndex >= 0 ? todayIndex : 0);
-        
+
       setSelectedDayIndex(initialIndex);
       setHasInitializedDay(true);
     }
@@ -52,6 +103,44 @@ export function RouteDetailPage() {
 
   // HU-244 — favorito local (persistencia pendiente del backend de favoritos)
   const [isFavorite, setIsFavorite] = useState(false);
+
+  const selectedDay = weekDays[selectedDayIndex] || weekDays[0];
+
+  const filteredTrips = useMemo(() => {
+    if (!selectedDay) return [];
+
+    // 1. Get actual trips for this day
+    const actualTrips = trips.filter((t) => t.departureTime.startsWith(selectedDay.dateString!));
+
+    // 2. Get predefined schedules for this day
+    const scheduledTimes = timesMap[selectedDay.dayEnum] || [];
+
+    // 3. Create mock trips for scheduled times that don't have an actual trip yet
+    const templateTrips: ApiTrip[] = scheduledTimes
+      .filter((time) => {
+        // Check if an actual trip already exists at this exact time
+        return !actualTrips.some(t => {
+          const actualTime = t.departureTime.split('T')[1]; // e.g. "07:30:00"
+          return actualTime && actualTime.startsWith(time.slice(0, 5));
+        });
+      })
+      .map((time) => ({
+        id: `template-${time}`,
+        routeId: routeId!,
+        busId: '',
+        driverId: '',
+        state: 'TEMPLATE',
+        departureTime: `${selectedDay.dateString}T${time}`,
+        estimatedArrivalTime: '',
+        availableSeats: 0,
+      }));
+
+    // Combine and sort by time
+    const finalTrips = isAdminContext ? [...actualTrips, ...templateTrips] : [...actualTrips];
+    return finalTrips.sort((a, b) =>
+      a.departureTime.localeCompare(b.departureTime)
+    );
+  }, [trips, selectedDay, timesMap, routeId, isAdminContext]);
 
   if (loading) {
     return (
@@ -105,8 +194,7 @@ export function RouteDetailPage() {
     navigate(`/routes/${routeId}/seats/${trip.id}`);
   }
 
-  const selectedDay = weekDays[selectedDayIndex] || weekDays[0];
-  const filteredTrips = trips.filter((t) => t.departureTime.startsWith(selectedDay.dateString!));
+
 
   return (
     <div>
@@ -148,7 +236,7 @@ export function RouteDetailPage() {
             stopsCount={stops.length}
             departuresCount={trips.length}
           />
-          
+
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="font-bold text-navy-900">Mapa de la Ruta</h3>

@@ -8,7 +8,7 @@ public class ETACalculator {
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     /**
-     * Calcula la distancia entre dos puntos geográficos usando la fórmula de Haversine.
+     * Calculates the distance between two geographic points using the Haversine formula.
      */
     public double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
         double dLat = Math.toRadians(lat2 - lat1);
@@ -24,10 +24,10 @@ public class ETACalculator {
     }
     
     /**
-     * Estima los minutos restantes para llegar a la parada.
+     * Estimates the remaining minutes to arrive at the stop.
      */
     public int estimateTimeToArriveMinutes(double distanceKm, double currentSpeedKmh) {
-        if (currentSpeedKmh <= 5.0) return 99; // Bus detenido en semáforo, parada o tráfico pesado
+        if (currentSpeedKmh <= 5.0) return 99; // Bus stopped at a traffic light, stop, or heavy traffic
         return (int) Math.round((distanceKm / currentSpeedKmh) * 60.0);
     }
 }

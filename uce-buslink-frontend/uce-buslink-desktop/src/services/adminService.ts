@@ -76,6 +76,20 @@ export interface BatchStop {
   longitude: number;
 }
 
+export interface BatchItemError {
+  index: number;
+  reason: string;
+  fieldErrors?: Record<string, string> | null;
+}
+
+export interface BatchResult<T> {
+  succeeded: T[];
+  failed: BatchItemError[];
+  totalReceived: number;
+  successCount: number;
+  failureCount: number;
+}
+
 export interface SchedulePayload {
   routeId: string;
   details: {
@@ -210,7 +224,7 @@ export async function createTrip(token: string, payload: CreateTripPayload): Pro
 // --- FUNCIONES NUEVAS DEL WIZARD (Corregidas para usar apiFetch) ---
 
 export async function createBatchStops(token: string, stops: BatchStop[]) {
-  return apiFetch<any[]>('/api/v1/supervisor/fleet/stops/batch', token, {
+  return apiFetch<BatchResult<ApiStop>>('/api/v1/supervisor/fleet/stops/batch', token, {
     method: 'POST',
     body: JSON.stringify(stops),
   });
@@ -230,7 +244,6 @@ export async function createSchedule(token: string, schedule: SchedulePayload) {
   });
 }
 
-// Agrega estas interfaces junto a las demás
 export interface RouteDailyReport {
   total_reservations: number;
   route_id: string;
@@ -246,7 +259,6 @@ export interface RouteDailyReport {
   total_incidents: number;
 }
 
-// Agrega esta función para consumir el endpoint de reportes diarios
 export async function fetchDailyRouteReports(token: string, page = 0, size = 5): Promise<PageResponse<RouteDailyReport>> {
   return apiFetch<PageResponse<RouteDailyReport>>(
     `/api/v1/supervisor/reports/routes/daily?page=${page}&size=${size}`,

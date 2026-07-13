@@ -143,7 +143,7 @@ public class SupervisorMapper {
         entity.setRoute(routeJpaEntity);
         entity.setIsActive(domain.isActive());
         
-        // Mapear la lista de detalles
+        // Map the list of details
         if (domain.getDetails() != null) {
             for (ScheduleDetail detailDomain : domain.getDetails()) {
                 ScheduleDetailJpaEntity detailEntity = new ScheduleDetailJpaEntity();
@@ -154,7 +154,7 @@ public class SupervisorMapper {
                 detailEntity.setFrequencyEndTime(detailDomain.getFrequencyEndTime());
                 detailEntity.setFrequencyIntervalMinutes(detailDomain.getFrequencyIntervalMinutes());
                 
-                // Usamos el helper para que se asigne el schedule_id automáticamente
+                // We use the helper so the schedule_id is assigned automatically
                 entity.addDetail(detailEntity); 
             }
         }
@@ -216,7 +216,7 @@ public class SupervisorMapper {
         entity.setCompletedAt(domain.getCompletedAt());
         entity.setCancelledAt(domain.getCancelledAt());
         entity.setAvailableSeats(domain.getAvailableSeats());
-        // El versionado lo maneja Spring JPA automáticamente mediante la anotación @Version, pero podemos pasarlo.
+        // Versioning is handled automatically by Spring JPA via the @Version annotation, but we can pass it along.
         if (domain.getVersion() != null) {
             entity.setVersion(domain.getVersion());
         }

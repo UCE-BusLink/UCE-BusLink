@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateScheduleCommand(
-    @NotNull(message = "El ID de la ruta es obligatorio")
+    @NotNull(message = "Route ID is required")
     UUID routeId,
 
-    @NotEmpty(message = "Debe enviar al menos un detalle de horario")
+    @NotEmpty(message = "At least one schedule detail must be provided")
     @Valid
     List<ScheduleDetailCommand> details
 ) {}

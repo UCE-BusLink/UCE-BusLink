@@ -132,7 +132,7 @@ public class RouteRepositoryAdapter implements RouteRepository {
         RouteJpaEntity entity = springDataRouteRepository.findById(route.getId())
                 .orElseThrow(() -> new RuntimeException("Route not found: " + route.getId()));
 
-        // Datos básicos
+        // Basic data
         entity.setName(route.getName());
         entity.setDescription(route.getDescription());
         entity.setIsActive(route.getIsActive());
@@ -140,19 +140,19 @@ public class RouteRepositoryAdapter implements RouteRepository {
         entity.setPathPolyline(route.getPathPolyline());
         entity.setUpdatedBy(route.getUpdatedBy());
 
-        // Sincronizar relaciones en lugar de limpiarlas a ciegas
+        // Synchronize relationships instead of blindly clearing them
         if (route.getRouteStops() != null) {
-            
-            // 1. Recopilar los IDs de las paradas entrantes
+
+            // 1. Collect the IDs of the incoming stops
             java.util.Set<UUID> incomingStopIds = route.getRouteStops().stream()
                     .map(rs -> rs.getStop().getId())
                     .collect(Collectors.toSet());
 
-            // 2. Eliminar de la entidad las paradas que ya no existen en la petición
-            entity.getRouteStops().removeIf(rsEntity -> 
+            // 2. Remove from the entity the stops that no longer exist in the request
+            entity.getRouteStops().removeIf(rsEntity ->
                     !incomingStopIds.contains(rsEntity.getStop().getId()));
 
-            // 3. Actualizar las paradas que se mantienen o agregar las nuevas
+            // 3. Update the stops that remain or add the new ones
             for (RouteStop rs : route.getRouteStops()) {
                 UUID stopId = rs.getStop().getId();
 
@@ -161,12 +161,12 @@ public class RouteRepositoryAdapter implements RouteRepository {
                         .findFirst();
 
                 if (existingRsOpt.isPresent()) {
-                    // Si ya existe la relación, SOLO actualizamos sus atributos
+                    // If the relationship already exists, ONLY update its attributes
                     RouteStopJpaEntity existingRs = existingRsOpt.get();
                     existingRs.setStopOrder(rs.getStopOrder());
                     existingRs.setEstimatedMinutesFromStart(rs.getEstimatedMinutesFromStart());
                 } else {
-                    // Si no existe, creamos una nueva instancia
+                    // If it doesn't exist, create a new instance
                     StopJpaEntity stopEntity = stopRepository.getReferenceById(stopId);
                     
                     RouteStopJpaEntity newRsEntity = new RouteStopJpaEntity();

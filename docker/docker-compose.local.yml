@@ -110,6 +110,27 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  uce-buslink-storybook:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.storybook
+    container_name: uce-buslink-storybook
+    ports:
+      - "6006:80"
+    networks:
+      - uce-buslink-net
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
 volumes:
   uce-buslink-db-data:
     driver: local

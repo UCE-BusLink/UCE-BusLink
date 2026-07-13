@@ -1,5 +1,6 @@
 package com.ucebuslink.supervisor.application.usecase;
 
+import com.ucebuslink.shared.dto.BatchResult;
 import com.ucebuslink.supervisor.application.dto.schedule.CreateScheduleCommand;
 import com.ucebuslink.supervisor.application.dto.schedule.ScheduleResponse;
 import com.ucebuslink.supervisor.application.dto.schedule.UpdateScheduleCommand;
@@ -13,5 +14,5 @@ public interface ManageScheduleUseCase {
     ScheduleResponse update(UUID id, UpdateScheduleCommand command);
     void delete(UUID id);
 
-    List<ScheduleResponse> createBatch(List<CreateScheduleCommand> commands);
+    BatchResult<ScheduleResponse> createBatch(List<CreateScheduleCommand> commands);
 }
